@@ -9,8 +9,10 @@ import { models, categories } from '../data/mockData';
 import { ProfileCard } from '../components/ui/ProfileCard';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { useNavigate } from 'react-router-dom';
 
 export const ModelWall = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
@@ -147,7 +149,7 @@ export const ModelWall = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredModels.map(model => (
-                <ProfileCard key={model.id} model={model} />
+                <ProfileCard key={model.id} model={model} onViewProfile={(id) => navigate(`/profile/${id}`)} onInvite={(id) => navigate(`/invite/${id}`)} />
               ))}
             </div>
 

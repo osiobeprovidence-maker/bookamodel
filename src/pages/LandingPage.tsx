@@ -5,13 +5,14 @@
 
 import { motion } from 'motion/react';
 import { Search, MapPin, Grid, ArrowRight, Star, CheckCircle, Zap } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { models, categories } from '../data/mockData';
 import { ProfileCard } from '../components/ui/ProfileCard';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 
 export const LandingPage = () => {
+  const navigate = useNavigate();
   const featuredModels = models.slice(0, 4);
   const availableToday = models.filter(m => m.isAvailableToday).slice(0, 4);
 
@@ -117,7 +118,7 @@ export const LandingPage = () => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {availableToday.map(model => (
-              <ProfileCard key={model.id} model={model} />
+              <ProfileCard key={model.id} model={model} onViewProfile={(id) => navigate(`/profile/${id}`)} onInvite={(id) => navigate(`/invite/${id}`)} />
             ))}
           </div>
         </div>
