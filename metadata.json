@@ -1,0 +1,6 @@
+{
+  "name": "BookAModel",
+  "description": "The easiest way to find and book models in Nigeria. Discover beauty, fashion, commercial, and lifestyle models.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,95 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { motion } from 'motion/react';
+import { Star, MapPin, CheckCircle2, Award, Zap } from 'lucide-react';
+import { Model } from '../../types';
+import { Badge } from './Badge';
+import { Button } from './Button';
+import { cn } from '../../lib/utils';
+
+interface ProfileCardProps {
+  model: Model;
+  className?: string;
+  onInvite?: (id: string) => void;
+  onViewProfile?: (id: string) => void;
+  key?: string | number;
+}
+
+export const ProfileCard = ({ model, className, onInvite, onViewProfile }: ProfileCardProps) => {
+  return (
+    <motion.div
+      whileHover={{ y: -4 }}
+      className={cn(
+        "group bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300",
+        className
+      )}
+    >
+      {/* Cover Photo */}
+      <div className="aspect-[3/4] relative overflow-hidden">
+        <img
+          src={model.portfolio[0] || model.profileImage}
+          alt={model.name}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        
+        {/* Badges on Image */}
+        <div className="absolute top-3 left-3 flex flex-col gap-2">
+          {model.isAvailableToday && (
+            <Badge variant="success">
+              Available
+            </Badge>
+          )}
+        </div>
+        
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+          <div className="flex items-center justify-between text-white">
+            <div className="flex items-center gap-1">
+              <Star className="w-3 h-3 fill-[#D4AF37] text-[#D4AF37]" />
+              <span className="text-xs font-bold">{model.rating}</span>
+            </div>
+            <span className="text-[10px] font-medium opacity-90">{model.location}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-2">
+          <div>
+            <h3 className="font-bold text-sm text-gray-900 leading-tight mb-1">{model.name}</h3>
+            <div className="flex flex-wrap gap-1">
+              {model.categories.slice(0, 2).map((cat) => (
+                <span key={cat} className="text-[10px] text-gray-400 font-medium">#{cat}</span>
+              ))}
+            </div>
+          </div>
+          {model.isVerified && <CheckCircle2 className="w-4 h-4 text-blue-500" />}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 mt-4">
+          <Button
+            size="sm"
+            variant="secondary"
+            className="w-full text-[10px] py-2 rounded-xl"
+            onClick={() => onViewProfile?.(model.id)}
+          >
+            Profile
+          </Button>
+          <Button
+            size="sm"
+            variant="primary"
+            className="w-full text-[10px] py-2 rounded-xl"
+            onClick={() => onInvite?.(model.id)}
+          >
+            Invite
+          </Button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
