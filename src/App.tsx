@@ -145,7 +145,7 @@ export default function App() {
 
   return (
     <UserProvider>
-      <div className="font-sans antialiased text-[#111111]">
+      <div className="font-sans antialiased text-[#111111] overflow-x-hidden">
         <ScrollToTop />
         {!isDashboard && <Navbar />}
         <Routes>

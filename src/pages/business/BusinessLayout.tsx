@@ -41,7 +41,7 @@ export const BusinessLayout = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <div className="bg-[#F8F8F8] min-h-screen flex">
+    <div className="bg-[#F8F8F8] min-h-screen flex overflow-x-hidden">
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-40 lg:hidden"
@@ -108,7 +108,7 @@ export const BusinessLayout = ({ children }: { children: ReactNode }) => {
         </div>
       </aside>
 
-      <main className="flex-1 lg:ml-64">
+      <main className="flex-1 min-w-0 lg:ml-64">
         <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-black/5 px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => setSidebarOpen(true)}

@@ -233,7 +233,7 @@ export default function SavedModels() {
         {filteredModels.length > 0 ? (
           <div
             className={cn(
-              'gap-6 mb-10',
+              'gap-4 sm:gap-6 mb-10 min-w-0',
               viewMode === 'grid'
                 ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
                 : 'flex flex-col'
@@ -245,7 +245,7 @@ export default function SavedModels() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-md transition-shadow"
+                className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden min-w-0 group hover:shadow-md transition-shadow"
               >
                 {viewMode === 'grid' ? (
                   <>
@@ -309,15 +309,15 @@ export default function SavedModels() {
                   </>
                 ) : (
                   /* List View */
-                  <div className="flex items-center gap-4 p-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4">
                     <img
                       src={model!.image}
                       alt={model!.name}
                       className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-bold text-[#111111] truncate">{model!.name}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm font-bold text-[#111111] truncate min-w-0">{model!.name}</h3>
                         <span
                           className={cn(
                             'px-2 py-0.5 rounded-full text-[10px] font-bold text-white flex-shrink-0',
@@ -327,18 +327,18 @@ export default function SavedModels() {
                           {model!.isAvailable ? 'Available' : 'Booked'}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                        <span>{model!.category}</span>
-                        <span>&middot;</span>
-                        <span>{model!.location}</span>
-                        <span>&middot;</span>
-                        <span className="flex items-center gap-0.5">
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-1 min-w-0 flex-wrap">
+                        <span className="truncate">{model!.category}</span>
+                        <span className="hidden sm:inline">&middot;</span>
+                        <span className="truncate">{model!.location}</span>
+                        <span className="hidden sm:inline">&middot;</span>
+                        <span className="flex items-center gap-0.5 flex-shrink-0">
                           <Star className="w-3 h-3 text-[#D4AF37] fill-[#D4AF37]" />
                           {model!.rating}
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0 flex-wrap sm:flex-nowrap">
                       <button className="p-2 text-gray-400 hover:text-[#D4AF37] transition-colors rounded-lg hover:bg-gray-100">
                         <Eye className="w-4 h-4" />
                       </button>

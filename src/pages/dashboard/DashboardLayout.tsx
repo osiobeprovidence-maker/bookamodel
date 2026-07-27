@@ -34,7 +34,7 @@ export const DashboardLayout = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <div className="bg-[#F8F8F8] min-h-screen flex">
+    <div className="bg-[#F8F8F8] min-h-screen flex overflow-x-hidden">
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div
@@ -94,7 +94,7 @@ export const DashboardLayout = ({ children }: { children: ReactNode }) => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64">
+      <main className="flex-1 min-w-0 lg:ml-64">
         {/* Mobile Header */}
         <div className="lg:hidden sticky top-0 z-30 bg-white border-b border-black/5 px-4 py-3 flex items-center gap-3">
           <button
