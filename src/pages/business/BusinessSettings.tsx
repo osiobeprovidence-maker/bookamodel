@@ -370,7 +370,7 @@ export default function BusinessSettings() {
                 <Toggle enabled={twoFactor} onToggle={() => setTwoFactor(!twoFactor)} />
               </div>
               {twoFactor && (
-                <div className="flex gap-3 ml-12">
+                <div className="flex gap-3 sm:ml-12 flex-wrap">
                   {['sms', 'authenticator', 'email'].map((m) => (
                     <button key={m} onClick={() => setTwoFactorMethod(m)} className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${twoFactorMethod === m ? 'bg-[#D4AF37] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
                       {m === 'authenticator' ? 'Authenticator App' : m.toUpperCase()}
@@ -387,14 +387,14 @@ export default function BusinessSettings() {
               </div>
               <div className="space-y-4">
                 {activeSessions.map((s, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-100">
+                  <div key={i} className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-xl">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-100 shrink-0">
                         <Globe className="w-4 h-4 text-gray-400" />
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-[#111111]">{s.device} \u2022 {s.browser}</p>
-                        <p className="text-xs text-gray-400">{s.location} \u2022 {s.time}</p>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-[#111111] truncate">{s.device} \u2022 {s.browser}</p>
+                        <p className="text-xs text-gray-400 truncate">{s.location} \u2022 {s.time}</p>
                       </div>
                     </div>
                     {s.current ? (
@@ -513,14 +513,14 @@ export default function BusinessSettings() {
             </div>
             <div className="space-y-3">
               {teamMembers.map((member, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-[#D4AF37]/10 rounded-full flex items-center justify-center">
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-10 h-10 bg-[#D4AF37]/10 rounded-full flex items-center justify-center shrink-0">
                       <span className="text-xs font-bold text-[#D4AF37]">{member.name.split(' ').map((n) => n[0]).join('')}</span>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-[#111111]">{member.name}</p>
-                      <p className="text-xs text-gray-400">{member.email}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-[#111111] truncate">{member.name}</p>
+                      <p className="text-xs text-gray-400 truncate">{member.email}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -580,7 +580,7 @@ export default function BusinessSettings() {
 
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
               <h4 className="text-sm font-bold text-[#111111] mb-4">API Usage</h4>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
                   { label: 'Requests Today', value: '1,247' },
                   { label: 'This Month', value: '34,891' },

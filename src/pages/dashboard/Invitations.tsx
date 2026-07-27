@@ -40,7 +40,7 @@ export default function Invitations() {
   ];
 
   return (
-    <div className="p-10">
+    <div className="p-4 sm:p-6 lg:p-10">
       <div className="mb-8">
         <h1 className="text-3xl font-bold" style={{ color: '#111111' }}>
           Invitations
@@ -49,7 +49,7 @@ export default function Invitations() {
       </div>
 
       {/* Stats Cards */}
-      <div className="mb-8 grid grid-cols-4 gap-6">
+      <div className="mb-8 grid grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => (
           <div
             key={stat.label}

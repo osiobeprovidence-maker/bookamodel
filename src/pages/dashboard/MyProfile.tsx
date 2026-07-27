@@ -38,7 +38,7 @@ export default function MyProfile() {
   };
 
   return (
-    <div className="p-10">
+    <div className="p-4 sm:p-6 lg:p-10">
       {/* Header */}
       <header className="mb-10">
         <h1 className="text-3xl font-black tracking-tight text-[#111111]">

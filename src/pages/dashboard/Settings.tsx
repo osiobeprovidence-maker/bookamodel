@@ -344,7 +344,7 @@ export default function Settings() {
                 <Toggle enabled={twoFactor} onToggle={() => setTwoFactor(!twoFactor)} />
               </div>
               {twoFactor && (
-                <div className="flex gap-3 ml-12">
+                <div className="flex gap-3 sm:ml-12 flex-wrap">
                   {['sms', 'authenticator', 'email'].map((m) => (
                     <button key={m} onClick={() => setTwoFactorMethod(m)} className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${twoFactorMethod === m ? 'bg-[#D4AF37] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
                       {m === 'authenticator' ? 'Authenticator App' : m.toUpperCase()}
@@ -362,14 +362,14 @@ export default function Settings() {
               </div>
               <div className="space-y-4">
                 {activeSessions.map((s, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-100">
+                  <div key={i} className="flex items-center justify-between gap-3 p-4 bg-gray-50 rounded-xl">
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-gray-100 shrink-0">
                         <Smartphone className="w-4 h-4 text-gray-400" />
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-[#111111]">{s.device} \u2022 {s.browser}</p>
-                        <p className="text-xs text-gray-400">{s.location} \u2022 {s.time}</p>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-[#111111] truncate">{s.device} \u2022 {s.browser}</p>
+                        <p className="text-xs text-gray-400 truncate">{s.location} \u2022 {s.time}</p>
                       </div>
                     </div>
                     {s.current ? (

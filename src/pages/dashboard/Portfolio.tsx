@@ -38,7 +38,7 @@ export default function Portfolio() {
   ];
 
   return (
-    <div className="p-10">
+    <div className="p-4 sm:p-6 lg:p-10">
       <div className="mb-8">
         <h1 className="text-3xl font-bold" style={{ color: '#111111' }}>
           Portfolio
@@ -47,7 +47,7 @@ export default function Portfolio() {
       </div>
 
       {/* Top Actions */}
-      <div className="mb-8 flex justify-end gap-3">
+      <div className="mb-8 flex flex-wrap justify-end gap-3">
         <button
           onClick={() => setIsUploadOpen(true)}
           className="flex items-center gap-2 rounded-full bg-[#D4AF37] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#c9a430]"
@@ -66,7 +66,7 @@ export default function Portfolio() {
       </div>
 
       {/* Stats Cards */}
-      <div className="mb-8 grid grid-cols-4 gap-6">
+      <div className="mb-8 grid grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => (
           <div
             key={stat.label}

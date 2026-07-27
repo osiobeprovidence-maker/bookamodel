@@ -30,7 +30,7 @@ export const BusinessDashboardHome = () => {
 
   return (
     <div>
-      <header className="flex justify-between items-center mb-10">
+      <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-10">
         <div>
           <h1 className="text-3xl font-black mb-1">Welcome back, {user?.name || 'Nike'}!</h1>
           <p className="text-gray-500 font-medium">Here&apos;s what&apos;s happening with your bookings today.</p>
@@ -125,7 +125,7 @@ export const BusinessDashboardHome = () => {
                     <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{model.location} \u2022 {model.category}</p>
                   </div>
                 </div>
-                <button className="px-3 py-1 text-[10px] font-bold uppercase border border-gray-200 rounded-lg hover:bg-gray-50 transition-all">
+                <button className="px-4 py-2 text-[10px] font-bold uppercase border border-gray-200 rounded-lg hover:bg-gray-50 transition-all min-h-[44px]">
                   View
                 </button>
               </div>

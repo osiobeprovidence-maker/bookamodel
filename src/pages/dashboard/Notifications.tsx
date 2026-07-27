@@ -70,7 +70,7 @@ export default function Notifications() {
     setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
-    <div className="p-10">
+    <div className="p-4 sm:p-6 lg:p-10">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[#111111]">Notifications</h1>
@@ -80,7 +80,7 @@ export default function Notifications() {
       </div>
 
       {/* Top Controls */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
         <button
           onClick={markAllAsRead}
           className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"

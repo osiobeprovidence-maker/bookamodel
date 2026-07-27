@@ -34,14 +34,14 @@ export default function Applications() {
   })
 
   return (
-    <div className="p-10">
+    <div className="p-4 sm:p-6 lg:p-10">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <h1 className="text-2xl font-bold text-[#111111]">Applications</h1>
         <p className="text-gray-400 mt-1">Track every application you've submitted.</p>
       </motion.div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-5 gap-4 mt-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-8">
         {stats.map((stat, i) => {
           const Icon = stat.icon
           return (
@@ -73,7 +73,7 @@ export default function Applications() {
         transition={{ duration: 0.4, delay: 0.3 }}
         className="bg-white rounded-2xl p-5 border border-gray-100 mt-6"
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <div className="relative flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input

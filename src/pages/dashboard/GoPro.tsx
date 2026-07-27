@@ -125,7 +125,7 @@ export default function GoPro() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-2xl p-10 mb-10"
+        className="relative overflow-hidden rounded-2xl p-6 sm:p-10 mb-10"
         style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #B8960C 50%, #D4AF37 100%)' }}
       >
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
@@ -382,7 +382,7 @@ export default function GoPro() {
             >
               {paymentState === 'success' ? (
                 /* Success Screen */
-                <div className="p-10 text-center">
+                <div className="p-6 sm:p-10 text-center">
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
@@ -413,7 +413,7 @@ export default function GoPro() {
                 </div>
               ) : paymentState === 'error' ? (
                 /* Error Screen */
-                <div className="p-10 text-center">
+                <div className="p-6 sm:p-10 text-center">
                   <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
                     <AlertCircle className="w-10 h-10 text-red-500" />
                   </div>
@@ -458,7 +458,7 @@ export default function GoPro() {
                       <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                         Payment Method
                       </label>
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         {paymentMethods.map((pm) => (
                           <button
                             key={pm.id}
