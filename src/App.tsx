@@ -38,9 +38,30 @@ import SavedModels from './pages/business/SavedModels';
 import JobRequests from './pages/business/JobRequests';
 import Messages from './pages/business/Messages';
 import BusinessSettings from './pages/business/BusinessSettings';
-import { useEffect } from 'react';
-import { UserProvider } from './contexts/UserContext';
+import { useEffect, type ReactNode } from 'react';
+import { UserProvider, useUser } from './contexts/UserContext';
 import { ToastProvider } from './components/ui/Toast';
+
+import { AdminLayout } from './components/admin/AdminLayout';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminModels from './pages/admin/AdminModels';
+import AdminBusinesses from './pages/admin/AdminBusinesses';
+import AdminBookings from './pages/admin/AdminBookings';
+import AdminCategories from './pages/admin/AdminCategories';
+import AdminFeatured from './pages/admin/AdminFeatured';
+import AdminVerification from './pages/admin/AdminVerification';
+import AdminReviews from './pages/admin/AdminReviews';
+import AdminPayments from './pages/admin/AdminPayments';
+import AdminNotifications from './pages/admin/AdminNotifications';
+import AdminReports from './pages/admin/AdminReports';
+import AdminCMS from './pages/admin/AdminCMS';
+import AdminSupport from './pages/admin/AdminSupport';
+import AdminTeam from './pages/admin/AdminTeam';
+import AdminAudit from './pages/admin/AdminAudit';
+import AdminSettings from './pages/admin/AdminSettings';
+import { AdminAccessDenied } from './pages/AdminAccessDenied';
+
+const SUPER_ADMIN_EMAIL = 'osiobeprovidence@gmail.com';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -140,16 +161,29 @@ const BizSettings = () => (
   </BusinessLayout>
 );
 
+const AdminGuard = ({ children }: { children: ReactNode }) => {
+  const { user } = useUser();
+  if (!user || user.email !== SUPER_ADMIN_EMAIL) {
+    return <AdminAccessDenied />;
+  }
+  return <AdminLayout>{children}</AdminLayout>;
+};
+
+const AdminPage = ({ children }: { children: ReactNode }) => (
+  <AdminGuard>{children}</AdminGuard>
+);
+
 export default function App() {
   const location = useLocation();
   const isDashboard = location.pathname.includes('dashboard');
+  const isAdmin = location.pathname.startsWith('/admin');
 
   return (
     <UserProvider>
       <ToastProvider>
         <div className="font-sans antialiased text-[#111111] overflow-x-hidden">
         <ScrollToTop />
-        {!isDashboard && <Navbar />}
+        {!isDashboard && !isAdmin && <Navbar />}
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/explore" element={<ModelWall />} />
@@ -181,8 +215,24 @@ export default function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/help" element={<HelpPage />} />
+          <Route path="/admin" element={<AdminPage><AdminDashboard /></AdminPage>} />
+          <Route path="/admin/models" element={<AdminPage><AdminModels /></AdminPage>} />
+          <Route path="/admin/businesses" element={<AdminPage><AdminBusinesses /></AdminPage>} />
+          <Route path="/admin/bookings" element={<AdminPage><AdminBookings /></AdminPage>} />
+          <Route path="/admin/categories" element={<AdminPage><AdminCategories /></AdminPage>} />
+          <Route path="/admin/featured" element={<AdminPage><AdminFeatured /></AdminPage>} />
+          <Route path="/admin/verification" element={<AdminPage><AdminVerification /></AdminPage>} />
+          <Route path="/admin/reviews" element={<AdminPage><AdminReviews /></AdminPage>} />
+          <Route path="/admin/payments" element={<AdminPage><AdminPayments /></AdminPage>} />
+          <Route path="/admin/notifications" element={<AdminPage><AdminNotifications /></AdminPage>} />
+          <Route path="/admin/reports" element={<AdminPage><AdminReports /></AdminPage>} />
+          <Route path="/admin/cms" element={<AdminPage><AdminCMS /></AdminPage>} />
+          <Route path="/admin/support" element={<AdminPage><AdminSupport /></AdminPage>} />
+          <Route path="/admin/admins" element={<AdminPage><AdminTeam /></AdminPage>} />
+          <Route path="/admin/audit" element={<AdminPage><AdminAudit /></AdminPage>} />
+          <Route path="/admin/settings" element={<AdminPage><AdminSettings /></AdminPage>} />
         </Routes>
-        {!isDashboard && <Footer />}
+        {!isDashboard && !isAdmin && <Footer />}
         </div>
       </ToastProvider>
     </UserProvider>
