@@ -7,7 +7,7 @@ import { useState, type ReactNode } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, User, Image, FileText, Send,
-  Bell, Settings, Trophy, Menu, X
+  Bell, Settings, Trophy, Menu, X, Crown, Sparkles
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -18,6 +18,8 @@ const navLinks = [
   { label: 'Applications', icon: FileText, path: '/model-dashboard/applications' },
   { label: 'Invitations', icon: Send, path: '/model-dashboard/invitations', badge: '8' },
   { label: 'Notifications', icon: Bell, path: '/model-dashboard/notifications' },
+  { label: 'Go Pro', icon: Crown, path: '/model-dashboard/go-pro', highlight: true },
+  { label: 'Settings', icon: Settings, path: '/model-dashboard/settings' },
 ];
 
 export const DashboardLayout = ({ children }: { children: ReactNode }) => {
@@ -83,24 +85,12 @@ export const DashboardLayout = ({ children }: { children: ReactNode }) => {
                   {item.badge}
                 </span>
               )}
+              {'highlight' in item && item.highlight && (
+                <Sparkles className="w-3 h-3 text-[#D4AF37]" />
+              )}
             </NavLink>
           ))}
         </nav>
-
-        <div className="mt-auto space-y-2 pt-6 border-t border-gray-100">
-          <Link
-            to="#"
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-[#D4AF37] hover:bg-[#D4AF37]/5"
-          >
-            <Trophy className="w-4 h-4" /> Go Pro
-          </Link>
-          <Link
-            to="#"
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-gray-500 hover:bg-gray-50 hover:text-black"
-          >
-            <Settings className="w-4 h-4" /> Settings
-          </Link>
-        </div>
       </aside>
 
       {/* Main Content */}

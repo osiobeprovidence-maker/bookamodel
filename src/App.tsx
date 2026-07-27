@@ -28,6 +28,8 @@ import Portfolio from './pages/dashboard/Portfolio';
 import Applications from './pages/dashboard/Applications';
 import Invitations from './pages/dashboard/Invitations';
 import Notifications from './pages/dashboard/Notifications';
+import GoPro from './pages/dashboard/GoPro';
+import Settings from './pages/dashboard/Settings';
 import { useEffect } from 'react';
 import { UserProvider } from './contexts/UserContext';
 
@@ -75,6 +77,18 @@ const ModelNotificationsDashboard = () => (
   </DashboardLayout>
 );
 
+const ModelGoProDashboard = () => (
+  <DashboardLayout>
+    <GoPro />
+  </DashboardLayout>
+);
+
+const ModelSettingsDashboard = () => (
+  <DashboardLayout>
+    <Settings />
+  </DashboardLayout>
+);
+
 export default function App() {
   const location = useLocation();
   const isDashboard = location.pathname.includes('dashboard');
@@ -97,6 +111,8 @@ export default function App() {
           <Route path="/model-dashboard/applications" element={<ModelApplicationsDashboard />} />
           <Route path="/model-dashboard/invitations" element={<ModelInvitationsDashboard />} />
           <Route path="/model-dashboard/notifications" element={<ModelNotificationsDashboard />} />
+          <Route path="/model-dashboard/go-pro" element={<ModelGoProDashboard />} />
+          <Route path="/model-dashboard/settings" element={<ModelSettingsDashboard />} />
           <Route path="/create-profile" element={<CreateProfile />} />
           <Route path="/invite/:id" element={<CreateInvitation />} />
           <Route path="/pricing" element={<Pricing />} />
