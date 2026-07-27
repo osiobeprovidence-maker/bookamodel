@@ -30,6 +30,14 @@ import Invitations from './pages/dashboard/Invitations';
 import Notifications from './pages/dashboard/Notifications';
 import GoPro from './pages/dashboard/GoPro';
 import Settings from './pages/dashboard/Settings';
+import { BusinessLayout } from './pages/business/BusinessLayout';
+import { BusinessDashboardHome } from './pages/business/BusinessDashboardHome';
+import SearchModels from './pages/business/SearchModels';
+import BusinessInvitations from './pages/business/BusinessInvitations';
+import SavedModels from './pages/business/SavedModels';
+import JobRequests from './pages/business/JobRequests';
+import Messages from './pages/business/Messages';
+import BusinessSettings from './pages/business/BusinessSettings';
 import { useEffect } from 'react';
 import { UserProvider } from './contexts/UserContext';
 
@@ -89,6 +97,48 @@ const ModelSettingsDashboard = () => (
   </DashboardLayout>
 );
 
+const BizDashboard = () => (
+  <BusinessLayout>
+    <BusinessDashboardHome />
+  </BusinessLayout>
+);
+
+const BizSearch = () => (
+  <BusinessLayout>
+    <SearchModels />
+  </BusinessLayout>
+);
+
+const BizInvitations = () => (
+  <BusinessLayout>
+    <BusinessInvitations />
+  </BusinessLayout>
+);
+
+const BizSaved = () => (
+  <BusinessLayout>
+    <SavedModels />
+  </BusinessLayout>
+);
+
+const BizJobs = () => (
+  <BusinessLayout>
+    <JobRequests />
+  </BusinessLayout>
+);
+
+const BizMessages = () => (
+  <BusinessLayout>
+    <Messages />
+  </BusinessLayout>
+);
+
+const BizSettings = () => (
+  <BusinessLayout>
+    <BusinessSettings />
+  </BusinessLayout>
+);
+
 export default function App() {
   const location = useLocation();
   const isDashboard = location.pathname.includes('dashboard');
@@ -104,7 +154,13 @@ export default function App() {
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/models" element={<ModelWall />} />
           <Route path="/profile/:id" element={<ModelProfile />} />
-          <Route path="/business-dashboard" element={<BusinessDashboard />} />
+          <Route path="/business-dashboard" element={<BizDashboard />} />
+          <Route path="/business-dashboard/search" element={<BizSearch />} />
+          <Route path="/business-dashboard/invitations" element={<BizInvitations />} />
+          <Route path="/business-dashboard/saved" element={<BizSaved />} />
+          <Route path="/business-dashboard/jobs" element={<BizJobs />} />
+          <Route path="/business-dashboard/messages" element={<BizMessages />} />
+          <Route path="/business-dashboard/settings" element={<BizSettings />} />
           <Route path="/model-dashboard" element={<ModelDashboard />} />
           <Route path="/model-dashboard/profile" element={<ModelProfileDashboard />} />
           <Route path="/model-dashboard/portfolio" element={<ModelPortfolioDashboard />} />
