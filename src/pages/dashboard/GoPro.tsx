@@ -113,8 +113,8 @@ export default function GoPro() {
   return (
     <div>
       {/* Header */}
-      <header className="mb-10">
-        <h1 className="text-3xl font-black tracking-tight text-[#111111]">Go Pro</h1>
+      <header className="mb-6 sm:mb-10">
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#111111]">Go Pro</h1>
         <p className="text-gray-400 font-medium text-sm mt-1">
           Unlock premium features and grow your modeling career.
         </p>
@@ -125,25 +125,25 @@ export default function GoPro() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-2xl p-6 sm:p-10 mb-10"
+        className="relative overflow-hidden rounded-2xl p-4 sm:p-10 mb-6 sm:mb-10"
         style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #B8960C 50%, #D4AF37 100%)' }}
       >
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-        <div className="relative z-10 flex items-center gap-8">
-          <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-            <Crown className="w-10 h-10 text-white" />
+        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8">
+          <div className="w-14 h-14 sm:w-20 sm:h-20 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm shrink-0">
+            <Crown className="w-7 h-7 sm:w-10 sm:h-10 text-white" />
           </div>
-          <div className="flex-1">
-            <h2 className="text-3xl font-black text-white tracking-tight mb-2">Become a Pro Model</h2>
-            <p className="text-white/80 text-sm font-medium max-w-lg">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl sm:text-3xl font-black text-white tracking-tight mb-2">Become a Pro Model</h2>
+            <p className="text-white/80 text-xs sm:text-sm font-medium max-w-lg">
               Join thousands of top Nigerian models who use BOOKAMODEL Pro to connect with premium brands,
               get priority invitations, and grow their careers.
             </p>
           </div>
           <button
             onClick={() => handleUpgrade('Pro Monthly')}
-            className="hidden md:flex bg-white text-[#D4AF37] px-8 py-4 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-50 transition-all active:scale-95 shrink-0"
+            className="w-full sm:w-auto bg-white text-[#D4AF37] px-8 py-4 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-50 transition-all active:scale-95 shrink-0"
           >
             Upgrade Now
           </button>
@@ -155,10 +155,10 @@ export default function GoPro() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 mb-10"
+        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-8 mb-6 sm:mb-10"
       >
         <h3 className="text-lg font-bold tracking-tight text-[#111111] mb-6">Current Plan</h3>
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center">
               <span className="text-lg font-black text-gray-400">F</span>
@@ -187,7 +187,7 @@ export default function GoPro() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.15 }}
-        className="mb-10"
+        className="mb-6 sm:mb-10"
       >
         <h3 className="text-lg font-bold tracking-tight text-[#111111] mb-6">Pro Benefits</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -214,7 +214,7 @@ export default function GoPro() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
-        className="mb-10"
+        className="mb-6 sm:mb-10"
       >
         <h3 className="text-lg font-bold tracking-tight text-[#111111] mb-6">Pricing Plans</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -224,7 +224,7 @@ export default function GoPro() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.25 + i * 0.08 }}
-              className={`relative bg-white rounded-2xl border shadow-sm p-8 ${
+              className={`relative bg-white rounded-2xl border shadow-sm p-4 sm:p-8 ${
                 plan.popular ? 'border-[#D4AF37] shadow-[#D4AF37]/10' : 'border-gray-100'
               }`}
             >
@@ -275,40 +275,40 @@ export default function GoPro() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.3 }}
-        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 mb-10"
+        className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-8 mb-6 sm:mb-10"
       >
         <h3 className="text-lg font-bold tracking-tight text-[#111111] mb-6">Billing History</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <table className="w-full text-left min-w-[600px]">
             <thead>
               <tr className="border-b border-gray-100">
-                {['Date', 'Plan', 'Amount', 'Payment Method', 'Invoice', 'Status', 'Actions'].map((h) => (
-                  <th key={h} className="pb-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest">{h}</th>
+                {['Date', 'Plan', 'Amount', 'Method', 'Invoice', 'Status', 'Actions'].map((h) => (
+                  <th key={h} className="pb-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 sm:px-0 whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {billingHistory.map((row, i) => (
                 <tr key={i} className="border-b border-gray-50 last:border-0">
-                  <td className="py-4 text-xs text-gray-500">{row.date}</td>
-                  <td className="py-4 text-xs font-medium text-[#111111]">{row.plan}</td>
-                  <td className="py-4 text-xs text-gray-500">{row.amount}</td>
-                  <td className="py-4 text-xs text-gray-500">{row.method}</td>
-                  <td className="py-4 text-xs text-gray-500">{row.invoice}</td>
-                  <td className="py-4">
+                  <td className="py-4 text-xs text-gray-500 px-4 sm:px-0 whitespace-nowrap">{row.date}</td>
+                  <td className="py-4 text-xs font-medium text-[#111111] px-4 sm:px-0">{row.plan}</td>
+                  <td className="py-4 text-xs text-gray-500 px-4 sm:px-0 whitespace-nowrap">{row.amount}</td>
+                  <td className="py-4 text-xs text-gray-500 px-4 sm:px-0">{row.method}</td>
+                  <td className="py-4 text-xs text-gray-500 px-4 sm:px-0">{row.invoice}</td>
+                  <td className="py-4 px-4 sm:px-0">
                     {row.status !== '-' && (
                       <span className="px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-[10px] font-bold uppercase">
                         {row.status}
                       </span>
                     )}
                   </td>
-                  <td className="py-4">
+                  <td className="py-4 px-4 sm:px-0">
                     {row.status !== '-' && (
-                      <div className="flex gap-2">
-                        <button className="text-[10px] font-bold text-gray-400 hover:text-[#111111] uppercase tracking-widest flex items-center gap-1">
+                      <div className="flex gap-2 whitespace-nowrap">
+                        <button className="text-[10px] font-bold text-gray-400 hover:text-[#111111] uppercase tracking-widest flex items-center gap-1 min-h-[44px]">
                           <Download className="w-3 h-3" /> Receipt
                         </button>
-                        <button className="text-[10px] font-bold text-gray-400 hover:text-[#111111] uppercase tracking-widest flex items-center gap-1">
+                        <button className="text-[10px] font-bold text-gray-400 hover:text-[#111111] uppercase tracking-widest flex items-center gap-1 min-h-[44px]">
                           <Receipt className="w-3 h-3" /> Invoice
                         </button>
                       </div>
@@ -326,7 +326,7 @@ export default function GoPro() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.35 }}
-        className="mb-10"
+        className="mb-6 sm:mb-10"
       >
         <h3 className="text-lg font-bold tracking-tight text-[#111111] mb-6">Frequently Asked Questions</h3>
         <div className="space-y-3">
@@ -334,7 +334,7 @@ export default function GoPro() {
             <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <button
                 onClick={() => setExpandedFaq(expandedFaq === i ? null : i)}
-                className="w-full flex items-center justify-between p-6 text-left"
+                className="w-full flex items-center justify-between p-4 sm:p-6 text-left min-h-[44px]"
               >
                 <span className="text-sm font-bold text-[#111111]">{faq.q}</span>
                 {expandedFaq === i ? (
@@ -351,7 +351,7 @@ export default function GoPro() {
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <div className="px-6 pb-6">
+                    <div className="px-4 sm:px-6 pb-4 sm:pb-6">
                       <p className="text-xs text-gray-500 leading-relaxed">{faq.a}</p>
                     </div>
                   </motion.div>
@@ -396,7 +396,7 @@ export default function GoPro() {
                   <p className="text-xs text-gray-400 mb-8">
                     Your account has been upgraded. Enjoy all premium features!
                   </p>
-                  <div className="flex gap-3 justify-center">
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <button
                       onClick={resetPayment}
                       className="bg-[#D4AF37] text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all"
@@ -421,7 +421,7 @@ export default function GoPro() {
                   <p className="text-sm text-gray-400 mb-8">
                     Something went wrong. Please try again or use a different payment method.
                   </p>
-                  <div className="flex gap-3 justify-center">
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <button
                       onClick={handlePayment}
                       className="bg-[#111111] text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-all"
@@ -546,7 +546,7 @@ export default function GoPro() {
                     </div>
                   </div>
 
-                  <div className="flex gap-3 p-6 border-t border-gray-100">
+                  <div className="flex flex-col sm:flex-row gap-3 p-6 border-t border-gray-100">
                     <button
                       onClick={resetPayment}
                       className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-all"
