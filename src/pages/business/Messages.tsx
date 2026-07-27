@@ -23,13 +23,16 @@ import {
 } from 'lucide-react';
 import { conversations, chatMessages } from '../../data/businessData';
 import { cn } from '../../lib/utils';
+import { useToast } from '../../components/ui/Toast';
 
 export default function Messages() {
+  const { toast } = useToast();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
   const [localMessages, setLocalMessages] = useState(chatMessages);
   const [isMobileChat, setIsMobileChat] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [conversationSearch, setConversationSearch] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -110,6 +113,8 @@ export default function Messages() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
+              value={conversationSearch}
+              onChange={(e) => setConversationSearch(e.target.value)}
               placeholder="Search conversations..."
               className="w-full pl-9 pr-4 py-2.5 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#D4AF37]/30 transition-all"
             />
@@ -117,7 +122,9 @@ export default function Messages() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {conversations.map((conversation) => (
+          {conversations
+            .filter((c) => !conversationSearch || c.modelName.toLowerCase().includes(conversationSearch.toLowerCase()))
+            .map((conversation) => (
             <button
               key={conversation.id}
               onClick={() => handleConversationSelect(conversation.id)}
@@ -211,13 +218,13 @@ export default function Messages() {
               </div>
 
               <div className="flex items-center gap-1">
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <button onClick={() => toast('Voice call coming soon', 'info')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                   <Phone className="w-4.5 h-4.5 text-gray-500" />
                 </button>
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <button onClick={() => toast('Video call coming soon', 'info')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                   <Video className="w-4.5 h-4.5 text-gray-500" />
                 </button>
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <button onClick={() => toast('More options coming soon', 'info')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                   <MoreVertical className="w-4.5 h-4.5 text-gray-500" />
                 </button>
               </div>
@@ -299,13 +306,13 @@ export default function Messages() {
             {/* Message Input */}
             <div className="px-5 py-4 border-t border-gray-100 bg-white">
               <div className="flex items-center gap-2">
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <button onClick={() => toast('Emoji picker coming soon', 'info')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                   <Smile className="w-5 h-5 text-gray-400" />
                 </button>
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <button onClick={() => toast('File attachment coming soon', 'info')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                   <Paperclip className="w-5 h-5 text-gray-400" />
                 </button>
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <button onClick={() => toast('Image upload coming soon', 'info')} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                   <Image className="w-5 h-5 text-gray-400" />
                 </button>
                 <input
@@ -436,10 +443,16 @@ export default function Messages() {
                 Quick Actions
               </h4>
               <div className="space-y-2">
-                <button className="w-full py-2.5 bg-[#D4AF37] text-white text-sm font-semibold rounded-xl hover:bg-[#D4AF37]/90 transition-colors">
+                <button
+                  onClick={() => { toast(`Opening invite for ${activeConversation?.modelName}`, 'success'); }}
+                  className="w-full py-2.5 bg-[#D4AF37] text-white text-sm font-semibold rounded-xl hover:bg-[#D4AF37]/90 transition-colors"
+                >
                   Invite to Job
                 </button>
-                <button className="w-full py-2.5 bg-gray-50 text-[#111111] text-sm font-semibold rounded-xl hover:bg-gray-100 transition-colors">
+                <button
+                  onClick={() => { toast(`Viewing ${activeConversation?.modelName}'s profile`, 'info'); }}
+                  className="w-full py-2.5 bg-gray-50 text-[#111111] text-sm font-semibold rounded-xl hover:bg-gray-100 transition-colors"
+                >
                   View Full Profile
                 </button>
               </div>

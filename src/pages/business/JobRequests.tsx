@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { jobRequests } from '../../data/businessData';
 import { cn } from '../../lib/utils';
+import { useToast } from '../../components/ui/Toast';
 
 type FilterTab = 'all' | 'draft' | 'open' | 'closed' | 'completed' | 'cancelled';
 
@@ -57,11 +58,14 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
 const CATEGORIES = ['Fashion', 'Commercial', 'Runway', 'Beauty', 'Fitness', 'Lifestyle'];
 
 export default function JobRequests() {
+  const { toast } = useToast();
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [localJobs, setLocalJobs] = useState(jobRequests);
+  const [viewJob, setViewJob] = useState<typeof jobRequests[number] | null>(null);
 
-  const filteredJobs = jobRequests.filter((job) => {
+  const filteredJobs = localJobs.filter((job) => {
     const matchesFilter =
       activeFilter === 'all' || job.status?.toLowerCase() === activeFilter;
     const matchesSearch =
@@ -73,12 +77,12 @@ export default function JobRequests() {
 
   const getStatusCount = (status: string) => {
     if (status === 'Active') {
-      return jobRequests.filter((j) => j.status === 'Open').length;
+      return localJobs.filter((j) => j.status === 'Open').length;
     }
     if (status === 'Expired') {
       return 0;
     }
-    return jobRequests.filter((j) => j.status === status).length;
+    return localJobs.filter((j) => j.status === status).length;
   };
 
   return (
@@ -108,11 +112,11 @@ export default function JobRequests() {
             <Plus size={14} />
             Create Job
           </button>
-          <button className="flex items-center gap-2 border border-gray-200 bg-white text-gray-700 px-4 py-2.5 rounded-xl text-sm font-medium hover:border-[#D4AF37] hover:text-[#D4AF37] transition-all">
+          <button className="flex items-center gap-2 border border-gray-200 bg-white text-gray-700 px-4 py-2.5 rounded-xl text-sm font-medium hover:border-[#D4AF37] hover:text-[#D4AF37] transition-all" onClick={() => toast('Import Brief coming soon', 'info')}>
             <Upload size={14} />
             Import Brief
           </button>
-          <button className="flex items-center gap-2 border border-gray-200 bg-white text-gray-700 px-4 py-2.5 rounded-xl text-sm font-medium hover:border-[#D4AF37] hover:text-[#D4AF37] transition-all">
+          <button className="flex items-center gap-2 border border-gray-200 bg-white text-gray-700 px-4 py-2.5 rounded-xl text-sm font-medium hover:border-[#D4AF37] hover:text-[#D4AF37] transition-all" onClick={() => toast('Select a job to duplicate', 'info')}>
             <Copy size={14} />
             Duplicate Job
           </button>
@@ -241,24 +245,35 @@ export default function JobRequests() {
 
                     <div className="flex items-center gap-2 shrink-0">
                       <button
+                        onClick={() => toast('Job editing coming soon', 'info')}
                         title="Edit"
                         className="p-2 rounded-lg text-gray-400 hover:text-[#D4AF37] hover:bg-yellow-50 transition-all"
                       >
                         <Edit3 size={16} />
                       </button>
                       <button
+                        onClick={() => setViewJob(job)}
                         title="View"
                         className="p-2 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-all"
                       >
                         <Eye size={16} />
                       </button>
                       <button
+                        onClick={() => {
+                          const newJob = { ...job, id: `${job.id}-copy-${Date.now()}`, name: `${job.name} (Copy)`, applications: 0, invited: 0, status: 'Draft' as const };
+                          setLocalJobs((prev) => [...prev, newJob]);
+                          toast(`Duplicated "${job.name}"`, 'success');
+                        }}
                         title="Duplicate"
                         className="p-2 rounded-lg text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 transition-all"
                       >
                         <Copy size={16} />
                       </button>
                       <button
+                        onClick={() => {
+                          setLocalJobs((prev) => prev.filter((j) => j.id !== job.id));
+                          toast(`Deleted "${job.name}"`, 'info');
+                        }}
                         title="Delete"
                         className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
                       >
@@ -527,23 +542,94 @@ export default function JobRequests() {
               {/* Modal Footer */}
               <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex items-center justify-end gap-3 rounded-b-2xl">
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => { setShowCreateModal(false); toast('Preview coming soon', 'info'); }}
                   className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-all"
                 >
                   Preview
                 </button>
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => { setShowCreateModal(false); toast('Job saved as draft', 'success'); }}
                   className="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-all"
                 >
                   Save Draft
                 </button>
                 <button
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => {
+                    const newJob = {
+                      id: `job-${Date.now()}`,
+                      name: 'New Campaign',
+                      category: 'Fashion',
+                      status: 'Open' as const,
+                      applications: 0,
+                      invited: 0,
+                      budget: '₦0',
+                      location: 'Lagos',
+                      date: new Date().toISOString().split('T')[0],
+                      description: 'New campaign job.',
+                    };
+                    setLocalJobs((prev) => [...prev, newJob]);
+                    setShowCreateModal(false);
+                    toast('Job published successfully!', 'success');
+                  }}
                   className="px-5 py-2.5 bg-[#D4AF37] text-white rounded-xl text-sm font-semibold hover:bg-[#C5A028] transition-all"
                 >
                   Publish
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* View Job Modal */}
+      <AnimatePresence>
+        {viewJob && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+            onClick={() => setViewJob(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-lg bg-white rounded-2xl p-6 sm:p-8 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-[#111111]">Job Details</h2>
+                <button onClick={() => setViewJob(null)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Campaign</p>
+                  <p className="font-bold text-[#111111]">{viewJob.name}</p>
+                </div>
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <span className="flex items-center gap-1"><Users size={14} /> {viewJob.applications} Applications</span>
+                  <span className="flex items-center gap-1"><Send size={14} /> {viewJob.invited} Invited</span>
+                </div>
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <span className="flex items-center gap-1"><Wallet size={14} /> {viewJob.budget}</span>
+                  <span className="flex items-center gap-1"><MapPin size={14} /> {viewJob.location}</span>
+                </div>
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <span className="flex items-center gap-1"><Calendar size={14} /> {viewJob.date}</span>
+                  <span className={cn('px-2 py-0.5 rounded-full text-xs font-bold', STATUS_COLORS[viewJob.status]?.bg, STATUS_COLORS[viewJob.status]?.text)}>{viewJob.status}</span>
+                </div>
+                {viewJob.description && (
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Description</p>
+                    <p className="text-sm text-gray-600">{viewJob.description}</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end mt-6">
+                <button onClick={() => setViewJob(null)} className="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-all">Close</button>
               </div>
             </motion.div>
           </motion.div>

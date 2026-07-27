@@ -4,14 +4,18 @@
  */
 
 import { motion } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { Send, Heart, Calendar, TrendingUp, Bell, Users, Wallet, Trophy, Clock, ArrowUpRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { businessInvitations, businessModels, monthlyData, recentActivity } from '../../data/businessData';
 import { cn } from '../../lib/utils';
 import { useUser } from '../../contexts/UserContext';
+import { useToast } from '../../components/ui/Toast';
 
 export const BusinessDashboardHome = () => {
   const { user } = useUser();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const stats = [
     { label: 'Active Invitations', value: '12', change: '+2', icon: Send, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -36,7 +40,7 @@ export const BusinessDashboardHome = () => {
           <p className="text-gray-500 font-medium">Here&apos;s what&apos;s happening with your bookings today.</p>
         </div>
         <div className="flex items-center gap-4">
-          <button className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center border border-black/5 relative hover:shadow-md transition-all">
+          <button onClick={() => toast('No new notifications', 'info')} className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center border border-black/5 relative hover:shadow-md transition-all">
             <Bell className="w-5 h-5 text-gray-600" />
             <span className="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
           </button>
@@ -77,7 +81,7 @@ export const BusinessDashboardHome = () => {
         >
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-lg font-bold tracking-tight">Recent Invitations</h3>
-            <button className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest">View All</button>
+            <button onClick={() => navigate('/business-dashboard/invitations')} className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest">View All</button>
           </div>
           <div className="space-y-4">
             {recentInvites.map((invite) => (
@@ -125,12 +129,12 @@ export const BusinessDashboardHome = () => {
                     <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{model.location} \u2022 {model.category}</p>
                   </div>
                 </div>
-                <button className="px-4 py-2 text-[10px] font-bold uppercase border border-gray-200 rounded-lg hover:bg-gray-50 transition-all min-h-[44px]">
+                <button onClick={() => navigate(`/profile/${model.id}`)} className="px-4 py-2 text-[10px] font-bold uppercase border border-gray-200 rounded-lg hover:bg-gray-50 transition-all min-h-[44px]">
                   View
                 </button>
               </div>
             ))}
-            <button className="w-full bg-[#D4AF37] text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95 shadow-md">
+            <button onClick={() => navigate('/business-dashboard/search')} className="w-full bg-[#D4AF37] text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95 shadow-md">
               Discover More
             </button>
           </div>
@@ -211,7 +215,7 @@ export const BusinessDashboardHome = () => {
               </div>
             ))}
           </div>
-          <button className="w-full mt-6 bg-[#D4AF37] text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95">
+          <button onClick={() => toast('Calendar view coming soon', 'info')} className="w-full mt-6 bg-[#D4AF37] text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95">
             View Calendar
           </button>
         </motion.div>

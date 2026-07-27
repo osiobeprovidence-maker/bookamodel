@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import {
   Heart,
@@ -24,6 +25,7 @@ import {
 } from 'lucide-react';
 import { businessModels, savedModelsData } from '../../data/businessData';
 import { cn } from '../../lib/utils';
+import { useToast } from '../../components/ui/Toast';
 
 const folders = ['All', 'Favorites', 'Editorial', 'Commercial', 'Runway', 'Recently Saved'] as const;
 
@@ -31,24 +33,27 @@ const categories = ['All', 'Fashion', 'Commercial', 'Runway', 'Editorial', 'Fitn
 const genders = ['All', 'Male', 'Female'];
 
 export default function SavedModels() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [activeFolder, setActiveFolder] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [genderFilter, setGenderFilter] = useState('All');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [localSaved, setLocalSaved] = useState(savedModelsData);
 
-  const totalSaved = savedModelsData.length;
-  const recentlyAdded = savedModelsData.filter((s) => {
+  const totalSaved = localSaved.length;
+  const recentlyAdded = localSaved.filter((s) => {
     const saved = new Date(s.savedDate);
     const now = new Date();
     const diff = (now.getTime() - saved.getTime()) / (1000 * 60 * 60 * 24);
     return diff <= 7;
   }).length;
-  const availableCount = savedModelsData.filter((s) => {
+  const availableCount = localSaved.filter((s) => {
     const model = businessModels.find((m) => m.id === s.modelId);
     return model?.isAvailable;
   }).length;
-  const bookedCount = savedModelsData.filter((s) => {
+  const bookedCount = localSaved.filter((s) => {
     const model = businessModels.find((m) => m.id === s.modelId);
     return model && !model.isAvailable;
   }).length;
@@ -60,7 +65,7 @@ export default function SavedModels() {
     { label: 'Booked', value: bookedCount, icon: Calendar, bg: 'bg-yellow-100', color: 'text-yellow-600' },
   ];
 
-  const filteredModels = savedModelsData
+  const filteredModels = localSaved
     .filter((item) => {
       if (activeFolder === 'All') return true;
       if (activeFolder === 'Recently Saved') {
@@ -290,18 +295,33 @@ export default function SavedModels() {
 
                       {/* Action Buttons */}
                       <div className="flex gap-2 mt-4">
-                        <button className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-100 text-[#111111] rounded-xl text-xs font-bold hover:bg-[#D4AF37] hover:text-white transition-colors">
+                        <button
+                          onClick={() => navigate(`/profile/${model!.id}`)}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-100 text-[#111111] rounded-xl text-xs font-bold hover:bg-[#D4AF37] hover:text-white transition-colors"
+                        >
                           <Eye className="w-3.5 h-3.5" />
                           View
                         </button>
-                        <button className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-[#111111] text-white rounded-xl text-xs font-bold hover:bg-black transition-colors">
+                        <button
+                          onClick={() => { toast(`Invitation sent to ${model!.name}`, 'success'); }}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-[#111111] text-white rounded-xl text-xs font-bold hover:bg-black transition-colors"
+                        >
                           <Send className="w-3.5 h-3.5" />
                           Invite
                         </button>
-                        <button className="flex items-center justify-center px-3 py-2.5 bg-gray-100 text-[#111111] rounded-xl text-xs font-bold hover:bg-[#D4AF37] hover:text-white transition-colors">
+                        <button
+                          onClick={() => { navigate('/business-dashboard/messages'); toast(`Opening chat with ${model!.name}`, 'info'); }}
+                          className="flex items-center justify-center px-3 py-2.5 bg-gray-100 text-[#111111] rounded-xl text-xs font-bold hover:bg-[#D4AF37] hover:text-white transition-colors"
+                        >
                           <MessageSquare className="w-3.5 h-3.5" />
                         </button>
-                        <button className="flex items-center justify-center px-3 py-2.5 border border-gray-200 rounded-xl text-gray-400 hover:text-red-500 hover:border-red-200 transition-colors">
+                        <button
+                          onClick={() => {
+                            setLocalSaved((prev) => prev.filter((s) => s.modelId !== model!.id));
+                            toast(`Removed ${model!.name} from saved`, 'info');
+                          }}
+                          className="flex items-center justify-center px-3 py-2.5 border border-gray-200 rounded-xl text-gray-400 hover:text-red-500 hover:border-red-200 transition-colors"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -339,16 +359,31 @@ export default function SavedModels() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0 flex-wrap sm:flex-nowrap">
-                      <button className="p-2 text-gray-400 hover:text-[#D4AF37] transition-colors rounded-lg hover:bg-gray-100">
+                      <button
+                        onClick={() => navigate(`/profile/${model!.id}`)}
+                        className="p-2 text-gray-400 hover:text-[#D4AF37] transition-colors rounded-lg hover:bg-gray-100" title="View Profile"
+                      >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-[#111111] transition-colors rounded-lg hover:bg-gray-100">
+                      <button
+                        onClick={() => { toast(`Invitation sent to ${model!.name}`, 'success'); }}
+                        className="p-2 text-gray-400 hover:text-[#111111] transition-colors rounded-lg hover:bg-gray-100" title="Invite"
+                      >
                         <Send className="w-4 h-4" />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-[#D4AF37] transition-colors rounded-lg hover:bg-gray-100">
+                      <button
+                        onClick={() => { navigate('/business-dashboard/messages'); }}
+                        className="p-2 text-gray-400 hover:text-[#D4AF37] transition-colors rounded-lg hover:bg-gray-100" title="Message"
+                      >
                         <MessageSquare className="w-4 h-4" />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-gray-100">
+                      <button
+                        onClick={() => {
+                          setLocalSaved((prev) => prev.filter((s) => s.modelId !== model!.id));
+                          toast(`Removed ${model!.name} from saved`, 'info');
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-gray-100" title="Remove"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>

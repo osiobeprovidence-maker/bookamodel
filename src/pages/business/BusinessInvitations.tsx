@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { businessInvitations } from '../../data/businessData';
 import { cn } from '../../lib/utils';
+import { useToast } from '../../components/ui/Toast';
 
 const statusFilters = ['All', 'Pending', 'Accepted', 'Declined', 'Expired', 'Completed'] as const;
 type FilterStatus = (typeof statusFilters)[number];
@@ -24,20 +25,22 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 };
 
 export default function BusinessInvitations() {
+  const { toast } = useToast();
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('All');
   const [selectedInvitation, setSelectedInvitation] = useState<typeof businessInvitations[number] | null>(null);
+  const [localInvitations, setLocalInvitations] = useState(businessInvitations);
 
   const filtered = activeFilter === 'All'
-    ? businessInvitations
-    : businessInvitations.filter((inv) => inv.status === activeFilter);
+    ? localInvitations
+    : localInvitations.filter((inv) => inv.status === activeFilter);
 
   const counts = {
-    all: businessInvitations.length,
-    pending: businessInvitations.filter((i) => i.status === 'Pending').length,
-    accepted: businessInvitations.filter((i) => i.status === 'Accepted').length,
-    declined: businessInvitations.filter((i) => i.status === 'Declined').length,
-    expired: businessInvitations.filter((i) => i.status === 'Expired').length,
-    completed: 15,
+    all: localInvitations.length,
+    pending: localInvitations.filter((i) => i.status === 'Pending').length,
+    accepted: localInvitations.filter((i) => i.status === 'Accepted').length,
+    declined: localInvitations.filter((i) => i.status === 'Declined').length,
+    expired: localInvitations.filter((i) => i.status === 'Expired').length,
+    completed: localInvitations.filter((i) => i.status === 'Accepted').length,
   };
 
   const stats = [
@@ -133,16 +136,31 @@ export default function BusinessInvitations() {
                 </button>
                 {inv.status === 'Pending' && (
                   <>
-                    <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit">
+                    <button
+                      onClick={() => toast('Invitation editing coming soon', 'info')}
+                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit"
+                    >
                       <Edit3 className="w-4 h-4" />
                     </button>
-                    <button className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Cancel">
+                    <button
+                      onClick={() => {
+                        setLocalInvitations((prev) => prev.filter((i) => i.id !== inv.id));
+                        toast('Invitation cancelled', 'success');
+                      }}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all" title="Cancel"
+                    >
                       <Ban className="w-4 h-4" />
                     </button>
                   </>
                 )}
                 {(inv.status === 'Expired' || inv.status === 'Declined') && (
-                  <button className="p-2 text-gray-400 hover:text-[#D4AF37] hover:bg-[#D4AF37]/5 rounded-lg transition-all" title="Resend">
+                  <button
+                    onClick={() => {
+                      setLocalInvitations((prev) => prev.map((i) => i.id === inv.id ? { ...i, status: 'Pending' as const } : i));
+                      toast(`Invitation resent to ${inv.modelName}`, 'success');
+                    }}
+                    className="p-2 text-gray-400 hover:text-[#D4AF37] hover:bg-[#D4AF37]/5 rounded-lg transition-all" title="Resend"
+                  >
                     <RotateCcw className="w-4 h-4" />
                   </button>
                 )}

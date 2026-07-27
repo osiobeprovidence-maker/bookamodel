@@ -40,6 +40,7 @@ import Messages from './pages/business/Messages';
 import BusinessSettings from './pages/business/BusinessSettings';
 import { useEffect } from 'react';
 import { UserProvider } from './contexts/UserContext';
+import { ToastProvider } from './components/ui/Toast';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -145,7 +146,8 @@ export default function App() {
 
   return (
     <UserProvider>
-      <div className="font-sans antialiased text-[#111111] overflow-x-hidden">
+      <ToastProvider>
+        <div className="font-sans antialiased text-[#111111] overflow-x-hidden">
         <ScrollToTop />
         {!isDashboard && <Navbar />}
         <Routes>
@@ -181,7 +183,8 @@ export default function App() {
           <Route path="/help" element={<HelpPage />} />
         </Routes>
         {!isDashboard && <Footer />}
-      </div>
+        </div>
+      </ToastProvider>
     </UserProvider>
   );
 }

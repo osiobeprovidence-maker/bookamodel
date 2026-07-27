@@ -4,6 +4,7 @@
  */
 
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Search,
@@ -24,8 +25,12 @@ import {
   ArrowLeft,
   ArrowRight,
   PackageOpen,
+  Send,
+  Calendar,
+  Wallet,
 } from 'lucide-react';
 import { businessModels } from '../../data/businessData';
+import { useToast } from '../../components/ui/Toast';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -37,11 +42,16 @@ const availabilityOptions = ['All', 'Available Now', 'Not Available'];
 const sortByOptions = ['Newest', 'Most Popular', 'Highest Rated', 'Recently Active'];
 
 export default function SearchModels() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState('Name');
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState('Newest');
+  const [savedModels, setSavedModels] = useState<Set<string>>(new Set());
+  const [inviteModal, setInviteModal] = useState<typeof businessModels[number] | null>(null);
+  const [inviteForm, setInviteForm] = useState({ date: '', time: '', location: '', budget: '', message: '' });
   const [filters, setFilters] = useState({
     gender: 'All',
     category: 'All',
@@ -139,6 +149,31 @@ export default function SearchModels() {
     setSortBy('Newest');
     setSearchQuery('');
     setCurrentPage(1);
+  };
+
+  const toggleSave = (modelId: string, modelName: string) => {
+    setSavedModels((prev) => {
+      const next = new Set(prev);
+      if (next.has(modelId)) {
+        next.delete(modelId);
+        toast(`Removed ${modelName} from saved`, 'info');
+      } else {
+        next.add(modelId);
+        toast(`Saved ${modelName}`, 'success');
+      }
+      return next;
+    });
+  };
+
+  const handleSendInvite = () => {
+    if (!inviteModal) return;
+    if (!inviteForm.date || !inviteForm.message) {
+      toast('Please fill in date and message', 'warning');
+      return;
+    }
+    toast(`Invitation sent to ${inviteModal.name}!`, 'success');
+    setInviteModal(null);
+    setInviteForm({ date: '', time: '', location: '', budget: '', message: '' });
   };
 
   return (
@@ -506,16 +541,32 @@ export default function SearchModels() {
 
                   {/* Action Buttons */}
                   <div className="flex gap-2">
-                    <button className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-[#D4AF37] text-white rounded-xl text-xs font-bold hover:bg-caramel-600 transition-colors">
+                    <button
+                      onClick={() => navigate(`/profile/${model.id}`)}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-[#D4AF37] text-white rounded-xl text-xs font-bold hover:bg-[#C5A028] transition-colors"
+                    >
                       <User className="w-3.5 h-3.5" />
                       View Profile
                     </button>
-                    <button className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-[#111111] text-white rounded-xl text-xs font-bold hover:bg-black transition-colors">
+                    <button
+                      onClick={() => {
+                        setInviteModal(model);
+                        setInviteForm({ date: '', time: '', location: model.location || '', budget: '', message: '' });
+                      }}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-[#111111] text-white rounded-xl text-xs font-bold hover:bg-black transition-colors"
+                    >
                       <MessageCircle className="w-3.5 h-3.5" />
                       Invite
                     </button>
-                    <button className="flex items-center justify-center px-3 py-2.5 border border-gray-200 rounded-xl text-gray-500 hover:text-red-500 hover:border-red-200 transition-colors">
-                      <Heart className="w-4 h-4" />
+                    <button
+                      onClick={() => toggleSave(model.id, model.name)}
+                      className={`flex items-center justify-center px-3 py-2.5 border rounded-xl transition-colors ${
+                        savedModels.has(model.id)
+                          ? 'bg-red-50 border-red-200 text-red-500'
+                          : 'border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200'
+                      }`}
+                    >
+                      <Heart className={`w-4 h-4 ${savedModels.has(model.id) ? 'fill-current' : ''}`} />
                     </button>
                   </div>
                 </div>
@@ -585,6 +636,91 @@ export default function SearchModels() {
           </motion.div>
         )}
       </div>
+
+      {/* Invite Modal */}
+      <AnimatePresence>
+        {inviteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+            onClick={() => setInviteModal(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-lg bg-white rounded-2xl p-6 sm:p-8 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-[#111111]">Invite {inviteModal.name}</h2>
+                  <p className="text-sm text-gray-400">Send a job invitation</p>
+                </div>
+                <button onClick={() => setInviteModal(null)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-3 mb-6 p-3 bg-gray-50 rounded-xl">
+                <img src={inviteModal.image} alt={inviteModal.name} className="w-12 h-12 rounded-lg object-cover" />
+                <div>
+                  <p className="font-bold text-sm">{inviteModal.name}</p>
+                  <p className="text-xs text-gray-400">{inviteModal.category} · {inviteModal.location}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Date *</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input type="date" value={inviteForm.date} onChange={(e) => setInviteForm({ ...inviteForm, date: e.target.value })}
+                        className="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Time</label>
+                    <input type="time" value={inviteForm.time} onChange={(e) => setInviteForm({ ...inviteForm, time: e.target.value })}
+                      className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Location</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input type="text" value={inviteForm.location} onChange={(e) => setInviteForm({ ...inviteForm, location: e.target.value })} placeholder="Event location"
+                      className="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Budget (₦)</label>
+                  <div className="relative">
+                    <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input type="text" value={inviteForm.budget} onChange={(e) => setInviteForm({ ...inviteForm, budget: e.target.value })} placeholder="e.g. 150,000"
+                      className="w-full pl-10 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Message *</label>
+                  <textarea rows={3} value={inviteForm.message} onChange={(e) => setInviteForm({ ...inviteForm, message: e.target.value })} placeholder="Describe the job opportunity..."
+                    className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37] resize-none" />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button onClick={() => setInviteModal(null)} className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-all">Cancel</button>
+                <button onClick={handleSendInvite} className="px-5 py-2.5 bg-[#D4AF37] text-white rounded-xl text-sm font-semibold hover:bg-[#C5A028] transition-all flex items-center gap-2">
+                  <Send className="w-4 h-4" /> Send Invitation
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
