@@ -23,9 +23,9 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center px-6 pt-20">
+    <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center px-4 sm:px-6 pt-20 pb-10">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl p-10 border border-gray-100 shadow-sm">
+        <div className="bg-white rounded-2xl p-6 sm:p-10 border border-gray-100 shadow-sm">
           <div className="text-center mb-10">
             <h1 className="text-2xl font-bold tracking-tight mb-2 uppercase">Welcome Back</h1>
             <p className="text-sm text-gray-400">Enter your credentials to access your account</p>

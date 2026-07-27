@@ -110,8 +110,12 @@ export const Navbar = () => {
           ))}
           <div className="h-px bg-gray-100 my-2" />
           <div className="grid grid-cols-2 gap-4">
-            <Button variant="secondary" className="font-bold">Login</Button>
-            <Button variant="primary" className="font-bold">Sign Up</Button>
+            <Link to="/login" onClick={() => setIsOpen(false)}>
+              <Button variant="secondary" className="w-full font-bold">Login</Button>
+            </Link>
+            <Link to="/signup" onClick={() => setIsOpen(false)}>
+              <Button variant="primary" className="w-full font-bold">Sign Up</Button>
+            </Link>
           </div>
         </div>
       )}

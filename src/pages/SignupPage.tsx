@@ -3,19 +3,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, FormEvent } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Briefcase, Camera, ArrowRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { cn } from '../lib/utils';
+import { useUser } from '../contexts/UserContext';
 
 export const SignupPage = () => {
   const [role, setRole] = useState<'business' | 'model'>('business');
+  const [email, setEmail] = useState('');
+  const { login } = useUser();
+  const navigate = useNavigate();
+
+  const handleSignup = (e: FormEvent) => {
+    e.preventDefault();
+    login(email || `user@example.com`, role);
+    navigate(role === 'business' ? '/business-dashboard' : '/model-dashboard');
+  };
 
   return (
-    <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center px-6 pt-24 pb-12">
+    <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center px-4 sm:px-6 pt-24 pb-12">
       <div className="w-full max-w-lg">
-        <div className="bg-white rounded-2xl p-10 border border-gray-100 shadow-sm">
+        <div className="bg-white rounded-2xl p-6 sm:p-10 border border-gray-100 shadow-sm">
           <div className="text-center mb-10">
             <h1 className="text-2xl font-bold tracking-tight mb-2 uppercase">Create Account</h1>
             <p className="text-sm text-gray-400">Join Nigeria's leading model marketplace</p>
@@ -42,8 +52,8 @@ export const SignupPage = () => {
             </button>
           </div>
 
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-            <div className="grid grid-cols-2 gap-4">
+          <form className="space-y-6" onSubmit={handleSignup}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest ml-1">First Name</label>
                 <div className="relative">
@@ -73,6 +83,9 @@ export const SignupPage = () => {
                   type="email" 
                   placeholder="name@company.com" 
                   className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:bg-white focus:border-[#D4AF37] outline-none transition-all text-sm"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
             </div>
