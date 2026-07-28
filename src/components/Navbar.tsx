@@ -15,7 +15,7 @@ export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useUser();
+  const { convexUser: user, logout } = useUser();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);

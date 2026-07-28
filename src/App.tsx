@@ -14,7 +14,6 @@ import { CreateProfile } from './pages/CreateProfile';
 import { CreateInvitation } from './pages/CreateInvitation';
 import { Pricing } from './pages/Pricing';
 import { LoginPage } from './pages/LoginPage';
-import { SignupPage } from './pages/SignupPage';
 import OnboardingPage from './pages/OnboardingPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { AboutPage } from './pages/About';
