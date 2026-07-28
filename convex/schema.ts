@@ -44,6 +44,8 @@ export default defineSchema({
     ),
     imageUrl: v.optional(v.string()),
     coverImage: v.optional(v.string()),
+    videoUrl: v.optional(v.string()),
+    videoThumbnail: v.optional(v.string()),
     isVerified: v.boolean(),
     isFeatured: v.optional(v.boolean()),
     isPro: v.optional(v.boolean()),
@@ -71,6 +73,9 @@ export default defineSchema({
     userId: v.id("users"),
     imageUrl: v.string(),
     title: v.optional(v.string()),
+    type: v.optional(v.union(v.literal("image"), v.literal("video"))),
+    videoUrl: v.optional(v.string()),
+    thumbnailUrl: v.optional(v.string()),
     category: v.union(
       v.literal("portrait"),
       v.literal("fashion"),
