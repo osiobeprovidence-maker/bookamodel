@@ -6,13 +6,15 @@
 import { 
   Send, Heart, Calendar, Bell,
   TrendingUp, Eye, CheckCircle, 
-  Wallet, Trophy, ChevronRight
+  Wallet, Trophy, ChevronRight, AlertCircle, ArrowRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { cn } from '../../lib/utils';
+import { useUser } from '../../contexts/UserContext';
 
 export const ModelDashboardHome = () => {
+  const { convexUser } = useUser();
   const stats = [
     { label: 'Profile Views', value: '1,284', change: '+12%', icon: Eye, color: 'text-blue-600', bg: 'bg-blue-50' },
     { label: 'New Invitations', value: '8', change: 'New', icon: Send, color: 'text-orange-600', bg: 'bg-orange-50' },
@@ -34,6 +36,21 @@ export const ModelDashboardHome = () => {
           </div>
         </div>
       </header>
+
+      {convexUser && !convexUser.profileCompleted && (
+        <div className="bg-gradient-to-r from-[#D4AF37]/10 to-[#D4AF37]/5 border border-[#D4AF37]/20 rounded-2xl p-5 mb-8 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-[#D4AF37] shrink-0" />
+            <p className="text-sm font-medium text-[#111111]">Complete your profile to increase your visibility to brands.</p>
+          </div>
+          <Link
+            to="/model-dashboard/profile"
+            className="shrink-0 bg-[#D4AF37] text-white px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all flex items-center gap-1.5"
+          >
+            Complete Profile <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">

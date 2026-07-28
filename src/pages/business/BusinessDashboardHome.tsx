@@ -5,7 +5,8 @@
 
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { Send, Heart, Calendar, TrendingUp, Bell, Users, Wallet, Trophy, Clock, ArrowUpRight } from 'lucide-react';
+import { Send, Heart, Calendar, TrendingUp, Bell, Users, Wallet, Trophy, Clock, ArrowUpRight, AlertCircle, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { businessInvitations, businessModels, monthlyData, recentActivity } from '../../data/businessData';
 import { cn } from '../../lib/utils';
@@ -13,7 +14,7 @@ import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../components/ui/Toast';
 
 export const BusinessDashboardHome = () => {
-  const { user } = useUser();
+  const { convexUser } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -36,7 +37,7 @@ export const BusinessDashboardHome = () => {
     <div>
       <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-10">
         <div>
-          <h1 className="text-3xl font-black mb-1">Welcome back, {user?.name || 'Nike'}!</h1>
+          <h1 className="text-3xl font-black mb-1">Welcome back, {convexUser?.name || 'Nike'}!</h1>
           <p className="text-gray-500 font-medium">Here&apos;s what&apos;s happening with your bookings today.</p>
         </div>
         <div className="flex items-center gap-4">
@@ -46,6 +47,21 @@ export const BusinessDashboardHome = () => {
           </button>
         </div>
       </header>
+
+      {convexUser && !convexUser.profileCompleted && (
+        <div className="bg-gradient-to-r from-[#D4AF37]/10 to-[#D4AF37]/5 border border-[#D4AF37]/20 rounded-2xl p-5 mb-8 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-[#D4AF37] shrink-0" />
+            <p className="text-sm font-medium text-[#111111]">Complete your business profile to attract more models.</p>
+          </div>
+          <Link
+            to="/business-dashboard/settings"
+            className="shrink-0 bg-[#D4AF37] text-white px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all flex items-center gap-1.5"
+          >
+            Complete Profile <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">

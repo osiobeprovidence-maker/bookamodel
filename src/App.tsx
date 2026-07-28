@@ -177,7 +177,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (convexUser && !convexUser.profileCompleted) {
+  if (convexUser && !convexUser.role) {
     return <Navigate to="/onboarding" replace />;
   }
 
