@@ -1,29 +1,27 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Mail, Lock, User, Briefcase, Camera, ArrowRight, Check,
-  ChevronLeft, Building2, Shield, Eye, Globe, MapPin,
-  Phone, Calendar, Ruler, Tag, Heart, Sparkles, Star,
-  Upload, ChevronRight,
+  Mail, Lock, User, Check, ChevronLeft, Upload,
+  Phone, Calendar, Ruler, ChevronRight, Camera,
+  AlertCircle, Loader2, Globe, Building2, X,
 } from 'lucide-react';
-import { signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { useQuery, useMutation } from 'convex/react';
 import { auth, googleProvider } from '../lib/firebase';
+import { api } from '../../convex/_generated/api';
 import { useUser } from '../contexts/UserContext';
 import { cn } from '../lib/utils';
 
 type AccountType = 'model' | 'business' | null;
 
-interface StepProps {
-  onNext: () => void;
-  onSkip?: () => void;
-  onBack?: () => void;
-}
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 const modelCategories = [
   'Fashion', 'Commercial', 'Beauty', 'Fitness', 'Editorial',
   'Runway', 'Swimwear', 'Lingerie', 'Plus Size', 'Petite',
-  'Parts', 'Promotional', 'Fitness', 'Art', 'Other',
+  'Parts', 'Promotional', 'Art', 'Other',
 ];
 
 const businessCategories = [
@@ -62,6 +60,11 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
   );
 }
 
+interface StepProps {
+  onNext: () => void;
+  onBack?: () => void;
+}
+
 function Step1Auth({ onNext }: StepProps) {
   const [mode, setMode] = useState<'choose' | 'email'>('choose');
   const [firstName, setFirstName] = useState('');
@@ -71,21 +74,27 @@ function Step1Auth({ onNext }: StepProps) {
   const [agree, setAgree] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const createUser = useMutation(api.users.createUser);
   const { login } = useUser();
+  const navigate = useNavigate();
 
   const handleGoogle = async () => {
     setLoading(true);
     setError('');
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      login(user.email!, user.displayName || user.email!.split('@')[0], '');
+      const firebaseUser = result.user;
+      const convexUserId = await createUser({
+        firebaseUid: firebaseUser.uid,
+        email: firebaseUser.email!,
+        name: firebaseUser.displayName || firebaseUser.email!.split('@')[0],
+        imageUrl: firebaseUser.photoURL || undefined,
+      });
+      login(firebaseUser.email!, firebaseUser.displayName || undefined, '', convexUserId);
       onNext();
     } catch (err: any) {
-      if (err.code !== 'auth/popup-closed-by-user') {
-        setError('Failed to sign in with Google. Try again.');
-      }
+      if (err.code === 'auth/popup-closed-by-user') return;
+      setError(err.message || 'Failed to sign in with Google.');
     } finally {
       setLoading(false);
     }
@@ -99,16 +108,21 @@ function Step1Auth({ onNext }: StepProps) {
     setError('');
     try {
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      const user = result.user;
-      login(user.email!, `${firstName} ${lastName}`, '');
+      const firebaseUser = result.user;
+      const convexUserId = await createUser({
+        firebaseUid: firebaseUser.uid,
+        email: firebaseUser.email!,
+        name: `${firstName} ${lastName}`,
+      });
+      login(firebaseUser.email!, `${firstName} ${lastName}`, '', convexUserId);
       onNext();
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {
-        setError('This email is already registered. Please log in instead.');
+        setError('This email is already registered. Please log in.');
       } else if (err.code === 'auth/weak-password') {
         setError('Password must be at least 6 characters.');
       } else {
-        setError('Failed to create account. Please try again.');
+        setError(err.message || 'Failed to create account.');
       }
     } finally {
       setLoading(false);
@@ -118,13 +132,8 @@ function Step1Auth({ onNext }: StepProps) {
   return (
     <div>
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-[#D4AF37]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <User className="w-8 h-8 text-[#D4AF37]" />
-        </div>
         <h1 className="text-2xl font-black tracking-tight text-[#111111]">Create Your Account</h1>
-        <p className="text-sm text-gray-400 mt-1">
-          Join Nigeria's leading model marketplace
-        </p>
+        <p className="text-sm text-gray-400 mt-1">Join Nigeria's leading model marketplace</p>
       </div>
 
       <AnimatePresence mode="wait">
@@ -145,7 +154,8 @@ function Step1Auth({ onNext }: StepProps) {
             </div>
             <button
               onClick={() => setMode('email')}
-              className="w-full flex items-center justify-center gap-3 py-4 bg-[#111111] rounded-xl hover:bg-black transition-all text-sm font-bold text-white"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-3 py-4 bg-[#111111] rounded-xl hover:bg-black transition-all text-sm font-bold text-white disabled:opacity-50"
             >
               <Mail className="w-5 h-5" /> Continue with Email
             </button>
@@ -180,10 +190,11 @@ function Step1Auth({ onNext }: StepProps) {
                 I agree to the <a href="/terms" className="text-black font-bold underline">Terms of Service</a> and <a href="/privacy" className="text-black font-bold underline">Privacy Policy</a>.
               </p>
             </div>
-            {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
+            {error && <p className="text-xs text-red-500 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{error}</p>}
             <div className="flex gap-3">
               <button type="button" onClick={() => setMode('choose')} className="px-6 py-3 bg-gray-100 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-200 transition-all">Back</button>
-              <button type="submit" disabled={loading} className="flex-1 bg-[#D4AF37] text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95 disabled:opacity-50">
+              <button type="submit" disabled={loading} className="flex-1 bg-[#D4AF37] text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 {loading ? 'Creating Account...' : 'Create Account'}
               </button>
             </div>
@@ -196,21 +207,28 @@ function Step1Auth({ onNext }: StepProps) {
 
 function Step2AccountType({ onNext }: StepProps) {
   const [selected, setSelected] = useState<AccountType>(null);
-  const { setRole } = useUser();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const setUserRole = useMutation(api.users.setUserRole);
+  const { user } = useUser();
 
-  const handleContinue = () => {
-    if (selected) {
-      setRole(selected);
+  const handleContinue = async () => {
+    if (!selected || !user?.convexUserId) return;
+    setLoading(true);
+    setError('');
+    try {
+      await setUserRole({ userId: user.convexUserId as any, role: selected });
       onNext();
+    } catch (err: any) {
+      setError('Failed to set account type. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div>
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-[#D4AF37]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Sparkles className="w-8 h-8 text-[#D4AF37]" />
-        </div>
         <h1 className="text-2xl font-black tracking-tight text-[#111111]">How will you use BookAModel?</h1>
         <p className="text-sm text-gray-400 mt-1">Choose how you want to get started</p>
       </div>
@@ -255,7 +273,7 @@ function Step2AccountType({ onNext }: StepProps) {
             </div>
           )}
           <div className="w-14 h-14 bg-[#111111]/5 rounded-2xl flex items-center justify-center mb-4 mx-auto sm:mx-0">
-            <Briefcase className="w-7 h-7 text-[#111111]" />
+            <Building2 className="w-7 h-7 text-[#111111]" />
           </div>
           <h2 className="text-lg font-bold text-[#111111] mb-2 text-center sm:text-left">I'm a Business</h2>
           <p className="text-xs text-gray-400 leading-relaxed text-center sm:text-left">
@@ -269,13 +287,94 @@ function Step2AccountType({ onNext }: StepProps) {
         </button>
       </div>
 
+      {error && <p className="text-xs text-red-500 font-medium mt-4 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{error}</p>}
+
       <button
         onClick={handleContinue}
-        disabled={!selected}
-        className="w-full mt-8 bg-[#D4AF37] text-white py-4 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+        disabled={!selected || loading}
+        className="w-full mt-8 bg-[#D4AF37] text-white py-4 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
-        Continue
+        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+        {loading ? 'Setting up...' : 'Continue'}
       </button>
+    </div>
+  );
+}
+
+function PhotoUpload({ storageId, onUpload }: { storageId: string | null; onUpload: (id: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError('');
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError('Only JPG, JPEG, PNG, and WebP files are allowed.');
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setError('File must be under 5MB.');
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+    setUploading(true);
+
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      if (!response.ok) throw new Error('Upload failed');
+      const { storageId } = await response.json();
+      onUpload(storageId);
+    } catch (err) {
+      setError('Upload failed. Please try again.');
+      setPreview(null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="flex justify-center mb-6">
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-200 hover:border-[#D4AF37] transition-all disabled:opacity-50"
+        >
+          {preview || storageId ? (
+            <img src={preview || undefined} alt="Preview" className="w-full h-full object-cover" />
+          ) : uploading ? (
+            <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+          ) : (
+            <Camera className="w-8 h-8 text-gray-400" />
+          )}
+        </button>
+        {!uploading && !storageId && !preview && (
+          <div className="absolute bottom-0 right-0 w-8 h-8 bg-[#D4AF37] rounded-full flex items-center justify-center">
+            <Upload className="w-4 h-4 text-white" />
+          </div>
+        )}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
+          className="hidden"
+          onChange={handleFile}
+        />
+      </div>
+      {error && <p className="absolute mt-28 text-[10px] text-red-500 font-medium">{error}</p>}
     </div>
   );
 }
@@ -286,7 +385,11 @@ function Step3ModelProfile({ onNext, onBack }: StepProps) {
     city: '', gender: '', dob: '', height: '',
     categories: [] as string[], bio: '',
   });
+  const [photoStorageId, setPhotoStorageId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const saveModelProfile = useMutation(api.users.saveModelProfile);
+  const setProfileCompleted = useMutation(api.users.setProfileCompleted);
   const { user } = useUser();
 
   const toggleCategory = (cat: string) => {
@@ -298,34 +401,45 @@ function Step3ModelProfile({ onNext, onBack }: StepProps) {
     }));
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.username.trim()) { setError('Username is required'); return; }
+    if (!user?.convexUserId) { setError('Not authenticated. Please restart.'); return; }
+    setLoading(true);
     setError('');
-    onNext();
+    try {
+      await saveModelProfile({
+        userId: user.convexUserId as any,
+        username: form.username.trim(),
+        phone: form.phone || undefined,
+        gender: form.gender || undefined,
+        country: form.country || undefined,
+        state: form.state || undefined,
+        city: form.city || undefined,
+        dateOfBirth: form.dob || undefined,
+        height: form.height || undefined,
+        bio: form.bio || undefined,
+        categories: form.categories.length > 0 ? form.categories : undefined,
+        profilePhotoStorageId: photoStorageId || undefined,
+      });
+      await setProfileCompleted({ userId: user.convexUserId as any });
+      onNext();
+    } catch (err: any) {
+      setError(err.message || 'Failed to save profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit}>
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-[#D4AF37]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Camera className="w-8 h-8 text-[#D4AF37]" />
-        </div>
         <h1 className="text-2xl font-black tracking-tight text-[#111111]">Set Up Your Model Profile</h1>
         <p className="text-sm text-gray-400 mt-1">Tell brands who you are. You can always edit later.</p>
       </div>
 
       <div className="space-y-4 max-w-lg mx-auto">
-        <div className="flex justify-center mb-6">
-          <div className="relative">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center">
-              <Camera className="w-8 h-8 text-gray-400" />
-            </div>
-            <button type="button" className="absolute bottom-0 right-0 w-8 h-8 bg-[#D4AF37] rounded-full flex items-center justify-center">
-              <Upload className="w-4 h-4 text-white" />
-            </button>
-          </div>
-        </div>
+        <PhotoUpload storageId={photoStorageId} onUpload={setPhotoStorageId} />
 
         <div className="space-y-1.5">
           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
@@ -380,7 +494,7 @@ function Step3ModelProfile({ onNext, onBack }: StepProps) {
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Height</label>
             <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus-within:bg-white focus-within:border-[#D4AF37] transition-all">
               <Ruler className="w-4 h-4 text-gray-300 shrink-0" />
-              <input type="text" placeholder={'5\'7"'} value={form.height} onChange={e => setForm({ ...form, height: e.target.value })} className="bg-transparent outline-none text-sm flex-1" />
+              <input type="text" placeholder={"5'7\""} value={form.height} onChange={e => setForm({ ...form, height: e.target.value })} className="bg-transparent outline-none text-sm flex-1" />
             </div>
           </div>
         </div>
@@ -401,14 +515,15 @@ function Step3ModelProfile({ onNext, onBack }: StepProps) {
           <textarea placeholder="Tell brands about yourself..." value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} rows={3} className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:bg-white focus:border-[#D4AF37] outline-none text-sm transition-all resize-none" />
         </div>
 
-        {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
+        {error && <p className="text-xs text-red-500 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{error}</p>}
 
         <div className="flex gap-3 pt-4">
-          <button type="button" onClick={onBack} className="px-6 py-3 bg-gray-100 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-200 transition-all flex items-center gap-1">
+          <button type="button" onClick={onBack} disabled={loading} className="px-6 py-3 bg-gray-100 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-200 transition-all flex items-center gap-1">
             <ChevronLeft className="w-4 h-4" /> Back
           </button>
-          <button type="submit" className="flex-1 bg-[#D4AF37] text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95 flex items-center justify-center gap-2">
-            Continue <ChevronRight className="w-4 h-4" />
+          <button type="submit" disabled={loading} className="flex-1 bg-[#D4AF37] text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {loading ? 'Saving...' : 'Continue'} <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -422,38 +537,51 @@ function Step3BusinessProfile({ onNext, onBack }: StepProps) {
     country: 'Nigeria', state: '', category: '',
     website: '', description: '',
   });
+  const [logoStorageId, setLogoStorageId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const saveBusinessProfile = useMutation(api.users.saveBusinessProfile);
+  const setProfileCompleted = useMutation(api.users.setProfileCompleted);
   const { user } = useUser();
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.businessName.trim()) { setError('Business name is required'); return; }
     if (!form.contactPerson.trim()) { setError('Contact person is required'); return; }
+    if (!user?.convexUserId) { setError('Not authenticated. Please restart.'); return; }
+    setLoading(true);
     setError('');
-    onNext();
+    try {
+      await saveBusinessProfile({
+        userId: user.convexUserId as any,
+        businessName: form.businessName.trim(),
+        contactPerson: form.contactPerson.trim(),
+        phone: form.phone || undefined,
+        country: form.country || undefined,
+        state: form.state || undefined,
+        businessCategory: form.category || undefined,
+        website: form.website || undefined,
+        description: form.description || undefined,
+        logoStorageId: logoStorageId || undefined,
+      });
+      await setProfileCompleted({ userId: user.convexUserId as any });
+      onNext();
+    } catch (err: any) {
+      setError(err.message || 'Failed to save profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit}>
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-[#D4AF37]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Briefcase className="w-8 h-8 text-[#D4AF37]" />
-        </div>
         <h1 className="text-2xl font-black tracking-tight text-[#111111]">Set Up Your Business Profile</h1>
         <p className="text-sm text-gray-400 mt-1">Tell models about your company. You can always edit later.</p>
       </div>
 
       <div className="space-y-4 max-w-lg mx-auto">
-        <div className="flex justify-center mb-6">
-          <div className="relative">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center">
-              <Building2 className="w-8 h-8 text-gray-400" />
-            </div>
-            <button type="button" className="absolute bottom-0 right-0 w-8 h-8 bg-[#D4AF37] rounded-full flex items-center justify-center">
-              <Upload className="w-4 h-4 text-white" />
-            </button>
-          </div>
-        </div>
+        <PhotoUpload storageId={logoStorageId} onUpload={setLogoStorageId} />
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
@@ -507,18 +635,19 @@ function Step3BusinessProfile({ onNext, onBack }: StepProps) {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Business Description</label>
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Description</label>
           <textarea placeholder="Tell models what your company does..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} className="w-full px-4 py-3 bg-gray-50 rounded-xl border border-transparent focus:bg-white focus:border-[#D4AF37] outline-none text-sm transition-all resize-none" />
         </div>
 
-        {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
+        {error && <p className="text-xs text-red-500 font-medium flex items-center gap-1"><AlertCircle className="w-3 h-3" />{error}</p>}
 
         <div className="flex gap-3 pt-4">
-          <button type="button" onClick={onBack} className="px-6 py-3 bg-gray-100 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-200 transition-all flex items-center gap-1">
+          <button type="button" onClick={onBack} disabled={loading} className="px-6 py-3 bg-gray-100 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-200 transition-all flex items-center gap-1">
             <ChevronLeft className="w-4 h-4" /> Back
           </button>
-          <button type="submit" className="flex-1 bg-[#D4AF37] text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95 flex items-center justify-center gap-2">
-            Complete Setup <ChevronRight className="w-4 h-4" />
+          <button type="submit" disabled={loading} className="flex-1 bg-[#D4AF37] text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2">
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {loading ? 'Saving...' : 'Complete Setup'} <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -563,8 +692,19 @@ function Step4Success({ accountType }: { accountType: AccountType }) {
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [accountType, setAccountType] = useState<AccountType>(null);
+  const navigate = useNavigate();
+  const { user } = useUser();
 
   const totalSteps = 4;
+
+  const handleStep1Complete = () => setStep(1);
+
+  const handleStep2Complete = () => {
+    const saved = localStorage.getItem('user');
+    const type = saved ? JSON.parse(saved).role as AccountType : null;
+    setAccountType(type);
+    setStep(2);
+  };
 
   return (
     <div className="min-h-screen bg-[#F8F8F8] flex flex-col items-center justify-center px-4 py-12">
@@ -580,17 +720,8 @@ export default function OnboardingPage() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              {step === 0 && <Step1Auth onNext={() => setStep(1)} />}
-              {step === 1 && (
-                <Step2AccountType
-                  onNext={() => {
-                    const saved = localStorage.getItem('user');
-                    const type = saved ? JSON.parse(saved).role as AccountType : null;
-                    setAccountType(type);
-                    setStep(2);
-                  }}
-                />
-              )}
+              {step === 0 && <Step1Auth onNext={handleStep1Complete} />}
+              {step === 1 && <Step2AccountType onNext={handleStep2Complete} />}
               {step === 2 && accountType === 'model' && (
                 <Step3ModelProfile onNext={() => setStep(3)} onBack={() => setStep(1)} />
               )}

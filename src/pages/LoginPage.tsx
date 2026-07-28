@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { useMutation } from 'convex/react';
 import { auth, googleProvider } from '../lib/firebase';
+import { api } from '../../convex/_generated/api';
 import { Button } from '../components/ui/Button';
 import { useUser } from '../contexts/UserContext';
 
@@ -11,6 +13,7 @@ export const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const createUser = useMutation(api.users.createUser);
   const { login } = useUser();
   const navigate = useNavigate();
 
@@ -18,10 +21,14 @@ export const LoginPage = () => {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       const parsed = JSON.parse(savedUser);
-      if (parsed.role === 'model') navigate('/model-dashboard');
-      else if (parsed.role === 'business') navigate('/business-dashboard');
-      else if (parsed.email === 'osiobeprovidence@gmail.com') navigate('/admin');
-      else navigate('/onboarding');
+      if (parsed.profileCompleted) {
+        if (parsed.role === 'model') navigate('/model-dashboard');
+        else if (parsed.role === 'business') navigate('/business-dashboard');
+        else if (parsed.email === 'osiobeprovidence@gmail.com') navigate('/admin');
+        else navigate('/onboarding');
+      } else {
+        navigate('/onboarding');
+      }
     } else {
       navigate('/onboarding');
     }
@@ -33,7 +40,13 @@ export const LoginPage = () => {
     setError('');
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
-      login(result.user.email!, result.user.displayName || undefined, '');
+      const firebaseUser = result.user;
+      const convexUserId = await createUser({
+        firebaseUid: firebaseUser.uid,
+        email: firebaseUser.email!,
+        name: firebaseUser.displayName || firebaseUser.email!.split('@')[0],
+      });
+      login(firebaseUser.email!, firebaseUser.displayName || undefined, '', convexUserId);
       redirectToDashboard();
     } catch (err: any) {
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
@@ -41,7 +54,7 @@ export const LoginPage = () => {
       } else if (err.code === 'auth/invalid-email') {
         setError('Please enter a valid email address');
       } else {
-        setError('Failed to sign in. Please try again.');
+        setError(err.message || 'Failed to sign in.');
       }
     } finally {
       setLoading(false);
@@ -53,12 +66,18 @@ export const LoginPage = () => {
     setError('');
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      login(result.user.email!, result.user.displayName || undefined, '');
+      const firebaseUser = result.user;
+      const convexUserId = await createUser({
+        firebaseUid: firebaseUser.uid,
+        email: firebaseUser.email!,
+        name: firebaseUser.displayName || firebaseUser.email!.split('@')[0],
+        imageUrl: firebaseUser.photoURL || undefined,
+      });
+      login(firebaseUser.email!, firebaseUser.displayName || undefined, '', convexUserId);
       redirectToDashboard();
     } catch (err: any) {
-      if (err.code !== 'auth/popup-closed-by-user') {
-        setError('Failed to sign in with Google');
-      }
+      if (err.code === 'auth/popup-closed-by-user') return;
+      setError(err.message || 'Failed to sign in with Google.');
     } finally {
       setLoading(false);
     }
@@ -92,7 +111,7 @@ export const LoginPage = () => {
             <div className="space-y-2">
               <div className="flex justify-between items-center px-1">
                 <label className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">Password</label>
-                <a href="#" className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest">Forgot?</a>
+                <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest cursor-pointer">Forgot?</span>
               </div>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
@@ -109,8 +128,9 @@ export const LoginPage = () => {
 
             {error && <p className="text-xs text-red-500 font-medium">{error}</p>}
 
-            <Button type="submit" disabled={loading} className="w-full py-4 rounded-xl font-bold group">
-              {loading ? 'Signing in...' : 'Login to Account'} <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+            <Button type="submit" disabled={loading} className="w-full py-4 rounded-xl font-bold group flex items-center justify-center gap-2">
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              {loading ? 'Signing in...' : 'Login to Account'} <ArrowRight className="w-4 h-4" />
             </Button>
 
             <div className="relative py-4">

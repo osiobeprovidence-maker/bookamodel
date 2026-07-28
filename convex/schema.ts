@@ -3,26 +3,32 @@ import { v } from "convex/values";
 
 export default defineSchema({
   users: defineTable({
+    firebaseUid: v.string(),
     email: v.string(),
     name: v.string(),
-    role: v.union(v.literal("model"), v.literal("business"), v.literal("admin")),
+    role: v.optional(v.union(v.literal("model"), v.literal("business"), v.literal("admin"))),
     imageUrl: v.optional(v.string()),
     phone: v.optional(v.string()),
+    profileCompleted: v.boolean(),
     createdAt: v.number(),
     lastActive: v.optional(v.number()),
     isOnline: v.optional(v.boolean()),
   })
+    .index("by_firebaseUid", ["firebaseUid"])
     .index("by_email", ["email"])
     .index("by_role", ["role"]),
 
   modelProfiles: defineTable({
     userId: v.id("users"),
     displayName: v.string(),
+    username: v.optional(v.string()),
     tagline: v.optional(v.string()),
     bio: v.optional(v.string()),
     gender: v.optional(v.string()),
-    city: v.optional(v.string()),
+    dateOfBirth: v.optional(v.string()),
+    country: v.optional(v.string()),
     state: v.optional(v.string()),
+    city: v.optional(v.string()),
     height: v.optional(v.string()),
     bust: v.optional(v.string()),
     waist: v.optional(v.string()),
@@ -43,6 +49,7 @@ export default defineSchema({
       })
     ),
     imageUrl: v.optional(v.string()),
+    profilePhotoStorageId: v.optional(v.string()),
     coverImage: v.optional(v.string()),
     videoUrl: v.optional(v.string()),
     videoThumbnail: v.optional(v.string()),
@@ -50,6 +57,7 @@ export default defineSchema({
     isFeatured: v.optional(v.boolean()),
     isPro: v.optional(v.boolean()),
     isAvailable: v.boolean(),
+    profileCompleted: v.boolean(),
     rating: v.optional(v.number()),
     reviewCount: v.optional(v.number()),
     profileViews: v.optional(v.number()),
@@ -95,15 +103,20 @@ export default defineSchema({
   businessProfiles: defineTable({
     userId: v.id("users"),
     companyName: v.string(),
+    businessCategory: v.optional(v.string()),
     industry: v.optional(v.string()),
     description: v.optional(v.string()),
     website: v.optional(v.string()),
     logoUrl: v.optional(v.string()),
+    logoStorageId: v.optional(v.string()),
     address: v.optional(v.string()),
-    city: v.optional(v.string()),
+    country: v.optional(v.string()),
     state: v.optional(v.string()),
+    city: v.optional(v.string()),
     contactPerson: v.optional(v.string()),
     contactPhone: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    profileCompleted: v.boolean(),
     isVerified: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
