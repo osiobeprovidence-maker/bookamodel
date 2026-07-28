@@ -147,24 +147,24 @@ export const saveModelProfile = mutation({
     profilePhotoStorageId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { userId, ...profile } = args;
+    const { userId, phone, ...profile } = args;
     const existing = await ctx.db
       .query("modelProfiles")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .unique();
+    await ctx.db.patch(userId, { phone, imageUrl: profile.imageUrl });
     if (existing) {
       await ctx.db.patch(existing._id, { ...profile, updatedAt: Date.now() });
       return existing._id;
     }
     return await ctx.db.insert("modelProfiles", {
       userId,
-      displayName: profile.displayName || "",
-      ...profile,
       isVerified: false,
-      isAvailable: profile.isAvailable ?? true,
+      isAvailable: true,
       profileCompleted: true,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      ...profile,
     });
   },
 });

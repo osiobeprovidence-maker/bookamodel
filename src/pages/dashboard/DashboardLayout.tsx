@@ -80,11 +80,6 @@ export const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 <item.icon className="w-4 h-4" />
                 {item.label}
               </div>
-              {item.badge && (
-                <span className="bg-orange-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full">
-                  {item.badge}
-                </span>
-              )}
               {'highlight' in item && item.highlight && (
                 <Sparkles className="w-3 h-3 text-[#D4AF37]" />
               )}

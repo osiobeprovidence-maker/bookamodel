@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { motion } from 'motion/react';
 import {
   User,
@@ -64,7 +64,7 @@ export default function MyProfile() {
   useEffect(() => {
     if (modelProfile) {
       setForm({
-        displayName: modelProfile.displayName || convexUser?.name || '',
+        displayName: modelProfile.displayName || '',
         phone: convexUser?.phone || '',
         bio: modelProfile.bio || '',
         tagline: modelProfile.tagline || '',
@@ -89,14 +89,12 @@ export default function MyProfile() {
         instagram: modelProfile.socials?.instagram || '',
         tiktok: modelProfile.socials?.tiktok || '',
         twitter: modelProfile.socials?.twitter || '',
-        imageUrl: modelProfile.imageUrl || convexUser?.imageUrl || '',
+        imageUrl: modelProfile.imageUrl || '',
       });
-    } else if (convexUser && modelProfile === undefined) {
-      setForm(f => ({ ...f, displayName: convexUser.name || '' }));
     }
-  }, [modelProfile, convexUser]);
+  }, [modelProfile]);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
@@ -166,7 +164,7 @@ export default function MyProfile() {
   const handleCancel = () => {
     if (modelProfile) {
       setForm({
-        displayName: modelProfile.displayName || convexUser?.name || '',
+        displayName: modelProfile.displayName || '',
         phone: convexUser?.phone || '',
         bio: modelProfile.bio || '',
         tagline: modelProfile.tagline || '',
@@ -191,7 +189,7 @@ export default function MyProfile() {
         instagram: modelProfile.socials?.instagram || '',
         tiktok: modelProfile.socials?.tiktok || '',
         twitter: modelProfile.socials?.twitter || '',
-        imageUrl: modelProfile.imageUrl || convexUser?.imageUrl || '',
+        imageUrl: modelProfile.imageUrl || '',
       });
     }
   };
