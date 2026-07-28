@@ -1,43 +1,62 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import { 
-  Send, Heart, Calendar, Bell,
-  TrendingUp, Eye, CheckCircle, 
-  Wallet, Trophy, ChevronRight, AlertCircle, ArrowRight
+import {
+  Send, Eye, Trophy, Wallet, CheckCircle, AlertCircle, ArrowRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Button } from '../../components/ui/Button';
-import { cn } from '../../lib/utils';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
+import { cn } from '../../lib/utils';
 
 export const ModelDashboardHome = () => {
   const { convexUser } = useUser();
-  const stats = [
-    { label: 'Profile Views', value: '1,284', change: '+12%', icon: Eye, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'New Invitations', value: '8', change: 'New', icon: Send, color: 'text-orange-600', bg: 'bg-orange-50' },
-    { label: 'Success Rate', value: '98%', change: '+2%', icon: Trophy, color: 'text-yellow-600', bg: 'bg-yellow-50' },
-    { label: 'Pending Payouts', value: '\u20A685k', change: '+\u20A620k', icon: Wallet, color: 'text-green-600', bg: 'bg-green-50' },
+  const dashboardData = useQuery(
+    api.dashboard.getModelDashboardData,
+    convexUser ? { userId: convexUser._id as any } : 'skip'
+  );
+
+  if (!convexUser || !dashboardData) {
+    return <SkeletonLoading />;
+  }
+
+  const { user, profile, stats, recentInvitations, upcomingBookings, profileCompletion } = dashboardData;
+
+  const formatCurrency = (amount: number) => {
+    if (amount >= 1_000_000) return `₦${(amount / 1_000_000).toFixed(1)}M`;
+    if (amount >= 1_000) return `₦${(amount / 1_000).toFixed(0)}k`;
+    return `₦${amount}`;
+  };
+
+  const statCards = [
+    { label: 'Profile Views', value: stats.profileViews.toLocaleString(), icon: Eye, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'New Invitations', value: String(stats.pendingInvitations), icon: Send, color: 'text-orange-600', bg: 'bg-orange-50', badge: stats.pendingInvitations > 0 ? `${stats.pendingInvitations} pending` : undefined },
+    { label: 'Success Rate', value: `${stats.successRate}%`, icon: Trophy, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+    { label: 'Earnings', value: formatCurrency(stats.totalEarnings), icon: Wallet, color: 'text-green-600', bg: 'bg-green-50' },
   ];
 
   return (
     <div>
       <header className="flex justify-between items-center mb-10">
         <div>
-          <h1 className="text-3xl font-black mb-1">Hi, Chioma!</h1>
-          <p className="text-gray-500 font-medium">Your profile is getting <span className="text-green-500 font-bold">24% more views</span> this week.</p>
+          <h1 className="text-3xl font-black mb-1">Hi, {user.name}!</h1>
+          <p className="text-gray-500 font-medium">
+            {profile
+              ? profile.isAvailable
+                ? 'Your profile is visible to brands.'
+                : 'Your profile is hidden from searches.'
+              : 'Complete your profile to get discovered.'}
+          </p>
         </div>
         <div className="flex items-center gap-6">
-          <div className="hidden md:flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-black/5">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-xs font-bold">Visible to Brands</span>
-          </div>
+          {profile?.isAvailable && (
+            <div className="hidden md:flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-black/5">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-xs font-bold">Visible to Brands</span>
+            </div>
+          )}
         </div>
       </header>
 
-      {convexUser && !convexUser.profileCompleted && (
+      {!profile?.profileCompleted && (
         <div className="bg-gradient-to-r from-[#D4AF37]/10 to-[#D4AF37]/5 border border-[#D4AF37]/20 rounded-2xl p-5 mb-8 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-[#D4AF37] shrink-0" />
@@ -52,15 +71,18 @@ export const ModelDashboardHome = () => {
         </div>
       )}
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        {stats.map((stat) => (
+        {statCards.map((stat) => (
           <div key={stat.label} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
             <div className="flex justify-between items-start mb-4">
-              <div className={cn("p-2.5 rounded-xl", stat.bg)}>
-                <stat.icon className={cn("w-4 h-4", stat.color)} />
+              <div className={cn('p-2.5 rounded-xl', stat.bg)}>
+                <stat.icon className={cn('w-4 h-4', stat.color)} />
               </div>
-              <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{stat.change}</div>
+              {stat.badge && (
+                <div className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  {stat.badge}
+                </div>
+              )}
             </div>
             <p className="text-gray-400 text-[10px] uppercase font-bold tracking-widest mb-1">{stat.label}</p>
             <h3 className="text-2xl font-extrabold tracking-tight">{stat.value}</h3>
@@ -69,94 +91,143 @@ export const ModelDashboardHome = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Feed */}
         <div className="lg:col-span-2 space-y-8">
-          {/* Profile Completion */}
           <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm overflow-hidden relative">
             <div className="relative z-10">
               <h3 className="text-lg font-bold tracking-tight mb-2">Profile Strength</h3>
-              <p className="text-gray-400 text-sm mb-6">Complete your profile to appear higher in search results.</p>
+              <p className="text-gray-400 text-sm mb-6">
+                {profile ? 'Complete your profile to appear higher in search results.' : 'Create your model profile to start receiving invitations.'}
+              </p>
               <div className="flex items-center gap-4 mb-2">
                 <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#D4AF37] w-[85%]" />
+                  <div className="h-full bg-[#D4AF37] rounded-full transition-all duration-500" style={{ width: `${profileCompletion}%` }} />
                 </div>
-                <span className="text-xs font-extrabold text-[#D4AF37]">85%</span>
+                <span className="text-xs font-extrabold text-[#D4AF37]">{profileCompletion}%</span>
               </div>
-              <div className="flex flex-wrap items-center gap-6 mt-6">
-                <div className="flex items-center gap-2 text-[10px] text-green-600 font-bold uppercase tracking-wider">
-                  <CheckCircle className="w-4 h-4" /> Portfolio Uploaded
+              {profile && (
+                <div className="flex flex-wrap items-center gap-6 mt-6">
+                  {stats.portfolioCount > 0 && (
+                    <div className="flex items-center gap-2 text-[10px] text-green-600 font-bold uppercase tracking-wider">
+                      <CheckCircle className="w-4 h-4" /> Portfolio ({stats.portfolioCount})
+                    </div>
+                  )}
+                  {profile.isVerified && (
+                    <div className="flex items-center gap-2 text-[10px] text-green-600 font-bold uppercase tracking-wider">
+                      <CheckCircle className="w-4 h-4" /> Identity Verified
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2 text-[10px] text-green-600 font-bold uppercase tracking-wider">
-                  <CheckCircle className="w-4 h-4" /> Identity Verified
-                </div>
-                <button className="text-[10px] text-black font-bold underline uppercase tracking-wider">Add Measurements (+15%)</button>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Recent Activity */}
           <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
             <h3 className="text-lg font-bold tracking-tight mb-8">Recent Activity</h3>
-            <div className="space-y-8">
-              {[
-                { title: 'New Invitation', desc: 'Zara Nigeria sent you a project invite', time: '2h ago', icon: Send, color: 'bg-blue-50 text-blue-600' },
-                { title: 'Profile View', desc: 'A creative director from Lagos viewed your profile', time: '5h ago', icon: Eye, color: 'bg-purple-50 text-purple-600' },
-                { title: 'Payment Received', desc: '\u20A645,000 for "Native Wear Shoot" processed', time: '1d ago', icon: Wallet, color: 'bg-green-50 text-green-600' },
-              ].map((activity, i) => (
-                <div key={i} className="flex gap-4">
-                  <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm", activity.color)}>
-                    <activity.icon className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-bold text-sm tracking-tight">{activity.title}</h4>
-                      <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">{activity.time}</span>
+            {recentInvitations.length > 0 ? (
+              <div className="space-y-6">
+                {recentInvitations.map((invite) => (
+                  <div key={invite._id} className="flex gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 shadow-sm">
+                      <Send className="w-4 h-4 text-blue-600" />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{activity.desc}</p>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-bold text-sm tracking-tight">{invite.title}</h4>
+                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                          {new Date(invite.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Status: {invite.status}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Send className="w-8 h-8 text-gray-200 mx-auto mb-3" />
+                <p className="text-gray-400 text-sm font-medium">No invitations yet</p>
+                <p className="text-gray-300 text-xs mt-1">Complete your profile to start receiving invitations.</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Quick Actions */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-[#111111] text-white rounded-2xl p-8 shadow-xl shadow-black/10">
             <h3 className="text-lg font-bold tracking-tight mb-6">Upcoming Jobs</h3>
-            <div className="space-y-4">
-              <div className="p-4 bg-white/5 rounded-xl border border-white/5">
-                <p className="text-[10px] text-[#D4AF37] font-bold uppercase tracking-[0.2em] mb-1">TOMORROW \u2022 10:00 AM</p>
-                <h4 className="font-bold text-sm tracking-tight">Glow Skincare Shoot</h4>
-                <p className="text-xs text-gray-400 mt-1">Lekki Phase 1, Lagos</p>
+            {upcomingBookings.length > 0 ? (
+              <div className="space-y-4">
+                {upcomingBookings.map((booking) => (
+                  <div key={booking._id} className="p-4 bg-white/5 rounded-xl border border-white/5">
+                    <p className="text-[10px] text-[#D4AF37] font-bold uppercase tracking-[0.2em] mb-1">
+                      {booking.date}
+                    </p>
+                    <h4 className="font-bold text-sm tracking-tight">{booking.title}</h4>
+                    {booking.location && (
+                      <p className="text-xs text-gray-400 mt-1">{booking.location}</p>
+                    )}
+                  </div>
+                ))}
               </div>
-              <div className="p-4 bg-white/5 rounded-xl border border-white/5 opacity-50">
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mb-1">JUN 24 \u2022 02:00 PM</p>
-                <h4 className="font-bold text-sm tracking-tight">Fashion Week Casting</h4>
-                <p className="text-xs text-gray-400 mt-1">Eko Hotel, VI</p>
+            ) : (
+              <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center">
+                <p className="text-xs text-gray-400">No upcoming jobs scheduled.</p>
               </div>
-            </div>
-            <Button variant="gold" className="w-full mt-6 rounded-xl font-bold uppercase text-[10px] tracking-widest py-4">View Calendar</Button>
+            )}
           </div>
 
           <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
             <h3 className="text-lg font-bold tracking-tight mb-6">Tips for Success</h3>
             <ul className="space-y-4">
-              <li className="flex items-start gap-3 group cursor-pointer">
-                <div className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full mt-2 shrink-0" />
-                <p className="text-xs text-gray-500 font-medium leading-relaxed group-hover:text-black">Update your portfolio regularly with high-res photos.</p>
-              </li>
-              <li className="flex items-start gap-3 group cursor-pointer">
-                <div className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full mt-2 shrink-0" />
-                <p className="text-xs text-gray-500 font-medium leading-relaxed group-hover:text-black">Respond to invitations within 2 hours to get badges.</p>
-              </li>
+              {[
+                'Update your portfolio regularly with high-res photos.',
+                'Respond to invitations quickly to build your reputation.',
+                'Complete all profile sections to rank higher in searches.',
+              ].map((tip) => (
+                <li key={tip} className="flex items-start gap-3 group cursor-pointer">
+                  <div className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full mt-2 shrink-0" />
+                  <p className="text-xs text-gray-500 font-medium leading-relaxed group-hover:text-black">{tip}</p>
+                </li>
+              ))}
             </ul>
-            <button className="mt-8 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1 hover:gap-2 transition-all">
-              Read all tips <ChevronRight className="w-4 h-4 text-[#D4AF37]" />
-            </button>
           </div>
         </div>
       </div>
     </div>
   );
 };
+
+function SkeletonLoading() {
+  return (
+    <div className="animate-pulse space-y-8">
+      <div className="flex justify-between items-center">
+        <div>
+          <div className="h-8 w-48 bg-gray-200 rounded-lg mb-2" />
+          <div className="h-4 w-72 bg-gray-200 rounded" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100">
+            <div className="h-10 w-10 bg-gray-200 rounded-xl mb-4" />
+            <div className="h-3 w-20 bg-gray-200 rounded mb-2" />
+            <div className="h-8 w-16 bg-gray-200 rounded" />
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-white rounded-2xl p-8 border border-gray-100">
+          <div className="h-6 w-32 bg-gray-200 rounded mb-6" />
+          <div className="h-2 bg-gray-200 rounded-full mb-2" />
+          <div className="h-20 bg-gray-100 rounded-xl mt-6" />
+          <div className="h-20 bg-gray-100 rounded-xl mt-4" />
+        </div>
+        <div className="bg-white rounded-2xl p-8 border border-gray-100">
+          <div className="h-6 w-28 bg-gray-200 rounded mb-6" />
+          <div className="h-24 bg-gray-100 rounded-xl mb-4" />
+          <div className="h-24 bg-gray-100 rounded-xl" />
+        </div>
+      </div>
+    </div>
+  );
+}

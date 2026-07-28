@@ -1,54 +1,56 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import { motion } from 'motion/react';
-import { useNavigate } from 'react-router-dom';
-import { Send, Heart, Calendar, TrendingUp, Bell, Users, Wallet, Trophy, Clock, ArrowUpRight, AlertCircle, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { businessInvitations, businessModels, monthlyData, recentActivity } from '../../data/businessData';
-import { cn } from '../../lib/utils';
+import { Send, Heart, Calendar, TrendingUp, AlertCircle, ArrowRight, Search } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
-import { useToast } from '../../components/ui/Toast';
+import { cn } from '../../lib/utils';
 
 export const BusinessDashboardHome = () => {
   const { convexUser } = useUser();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const dashboardData = useQuery(
+    api.dashboard.getBusinessDashboardData,
+    convexUser ? { userId: convexUser._id as any } : 'skip'
+  );
 
-  const stats = [
-    { label: 'Active Invitations', value: '12', change: '+2', icon: Send, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Saved Models', value: '45', change: '+12', icon: Heart, color: 'text-pink-600', bg: 'bg-pink-50' },
-    { label: 'Jobs Completed', value: '28', change: '+5', icon: Calendar, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Total Spent', value: '\u20A64.2M', change: '+\u20A6800k', icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' },
-  ];
+  if (!convexUser || !dashboardData) {
+    return <SkeletonLoading />;
+  }
 
-  const recentInvites = businessInvitations.slice(0, 5);
-  const recommendedModels = businessModels.slice(0, 4);
+  const { user, businessProfile, stats, recentInvitations, upcomingBookings } = dashboardData;
 
-  const upcomingJobs = [
-    { name: 'GTBank Fashion Week', date: 'Aug 15, 2026', location: 'Eko Hotel, Lagos', models: 8 },
-    { name: 'Nike Air Max Launch', date: 'Sep 1, 2026', location: 'Abuja Convention Center', models: 5 },
+  const formatCurrency = (amount: number) => {
+    if (amount >= 1_000_000) return `₦${(amount / 1_000_000).toFixed(1)}M`;
+    if (amount >= 1_000) return `₦${(amount / 1_000).toFixed(0)}k`;
+    return `₦${amount}`;
+  };
+
+  const statCards = [
+    { label: 'Active Invitations', value: String(stats.activeInvitations), icon: Send, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Saved Models', value: String(stats.savedModelsCount), icon: Heart, color: 'text-pink-600', bg: 'bg-pink-50' },
+    { label: 'Jobs Completed', value: String(stats.completedJobs), icon: Calendar, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Total Spent', value: formatCurrency(stats.totalSpent), icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50' },
   ];
 
   return (
     <div>
       <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-10">
         <div>
-          <h1 className="text-3xl font-black mb-1">Welcome back, {convexUser?.name || 'Nike'}!</h1>
+          <h1 className="text-3xl font-black mb-1">Welcome back, {user.name}!</h1>
           <p className="text-gray-500 font-medium">Here&apos;s what&apos;s happening with your bookings today.</p>
         </div>
         <div className="flex items-center gap-4">
-          <button onClick={() => toast('No new notifications', 'info')} className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center border border-black/5 relative hover:shadow-md transition-all">
-            <Bell className="w-5 h-5 text-gray-600" />
-            <span className="absolute top-3 right-3 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-          </button>
+          <Link
+            to="/business-dashboard/search"
+            className="bg-[#D4AF37] text-white px-5 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all flex items-center gap-2"
+          >
+            <Search className="w-4 h-4" /> Find Models
+          </Link>
         </div>
       </header>
 
-      {convexUser && !convexUser.profileCompleted && (
+      {!businessProfile?.profileCompleted && (
         <div className="bg-gradient-to-r from-[#D4AF37]/10 to-[#D4AF37]/5 border border-[#D4AF37]/20 rounded-2xl p-5 mb-8 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-[#D4AF37] shrink-0" />
@@ -63,9 +65,8 @@ export const BusinessDashboardHome = () => {
         </div>
       )}
 
-      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        {stats.map((stat, i) => (
+        {statCards.map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 12 }}
@@ -74,11 +75,8 @@ export const BusinessDashboardHome = () => {
             className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm"
           >
             <div className="flex justify-between items-start mb-4">
-              <div className={cn("p-2.5 rounded-xl", stat.bg)}>
-                <stat.icon className={cn("w-4 h-4", stat.color)} />
-              </div>
-              <div className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                {stat.change}
+              <div className={cn('p-2.5 rounded-xl', stat.bg)}>
+                <stat.icon className={cn('w-4 h-4', stat.color)} />
               </div>
             </div>
             <p className="text-gray-400 text-[10px] uppercase font-bold tracking-widest mb-1">{stat.label}</p>
@@ -88,7 +86,6 @@ export const BusinessDashboardHome = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-        {/* Recent Invitations */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -97,145 +94,173 @@ export const BusinessDashboardHome = () => {
         >
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-lg font-bold tracking-tight">Recent Invitations</h3>
-            <button onClick={() => navigate('/business-dashboard/invitations')} className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest">View All</button>
+            <button onClick={() => navigate('/business-dashboard/invitations')} className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest">
+              View All
+            </button>
           </div>
-          <div className="space-y-4">
-            {recentInvites.map((invite) => (
-              <div key={invite.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-all">
-                <div className="flex items-center gap-4">
-                  <img src={invite.modelImage} className="w-12 h-12 rounded-lg object-cover shadow-sm" alt={invite.modelName} />
-                  <div>
-                    <h4 className="font-bold text-sm tracking-tight">{invite.modelName}</h4>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{invite.campaign} \u2022 {invite.date}</p>
+          {recentInvitations.length > 0 ? (
+            <div className="space-y-4">
+              {recentInvitations.map((invite) => (
+                <div key={invite._id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center">
+                      <Send className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm tracking-tight">{invite.title}</h4>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                        {new Date(invite.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-6">
                   <div className="text-right">
-                    <p className="text-sm font-bold tracking-tight">{invite.payment}</p>
                     <span className={cn(
-                      "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
-                      invite.status === 'Accepted' ? 'bg-green-50 text-green-700' :
-                      invite.status === 'Pending' ? 'bg-yellow-50 text-yellow-700' :
+                      'px-2 py-0.5 rounded-full text-[10px] font-bold uppercase',
+                      invite.status === 'accepted' ? 'bg-green-50 text-green-700' :
+                      invite.status === 'pending' ? 'bg-yellow-50 text-yellow-700' :
                       'bg-gray-100 text-gray-500'
                     )}>
                       {invite.status}
                     </span>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Send className="w-8 h-8 text-gray-200 mx-auto mb-3" />
+              <p className="text-gray-400 text-sm font-medium">No invitations sent yet</p>
+              <p className="text-gray-300 text-xs mt-1">Search for models and send your first invitation.</p>
+            </div>
+          )}
         </motion.div>
 
-        {/* Recommended Models */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
           className="lg:col-span-1 bg-white rounded-2xl p-8 border border-gray-100 shadow-sm"
         >
-          <h3 className="text-lg font-bold tracking-tight mb-8">Recommended</h3>
-          <div className="space-y-6">
-            {recommendedModels.map((model) => (
-              <div key={model.id} className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <img src={model.image} className="w-10 h-10 rounded-lg object-cover shadow-sm" alt={model.name} />
-                  <div>
-                    <h4 className="text-xs font-bold tracking-tight">{model.name}</h4>
-                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{model.location} \u2022 {model.category}</p>
-                  </div>
-                </div>
-                <button onClick={() => navigate(`/profile/${model.id}`)} className="px-4 py-2 text-[10px] font-bold uppercase border border-gray-200 rounded-lg hover:bg-gray-50 transition-all min-h-[44px]">
-                  View
-                </button>
+          <h3 className="text-lg font-bold tracking-tight mb-8">Quick Actions</h3>
+          <div className="space-y-4">
+            <button
+              onClick={() => navigate('/business-dashboard/search')}
+              className="w-full flex items-center gap-3 p-4 rounded-xl bg-[#D4AF37]/5 border border-[#D4AF37]/20 hover:bg-[#D4AF37]/10 transition-all text-left"
+            >
+              <div className="w-10 h-10 bg-[#D4AF37] rounded-xl flex items-center justify-center">
+                <Search className="w-5 h-5 text-white" />
               </div>
-            ))}
-            <button onClick={() => navigate('/business-dashboard/search')} className="w-full bg-[#D4AF37] text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95 shadow-md">
-              Discover More
+              <div>
+                <p className="text-xs font-bold">Discover Models</p>
+                <p className="text-[10px] text-gray-400">Find the perfect talent</p>
+              </div>
+            </button>
+            <button
+              onClick={() => navigate('/business-dashboard/search')}
+              className="w-full flex items-center gap-3 p-4 rounded-xl bg-blue-50 border border-blue-100 hover:bg-blue-100 transition-all text-left"
+            >
+              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+                <Send className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-bold">Send Invitation</p>
+                <p className="text-[10px] text-gray-400">Invite models to your project</p>
+              </div>
             </button>
           </div>
         </motion.div>
       </div>
 
-      {/* Charts */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.35 }}
-        className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm mb-10"
-      >
-        <h3 className="text-lg font-bold tracking-tight mb-6">Analytics Overview</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis dataKey="month" tick={{ fontSize: 12, fontWeight: 700 }} />
-            <YAxis tick={{ fontSize: 12, fontWeight: 700 }} />
-            <Tooltip
-              contentStyle={{ borderRadius: '12px', border: '1px solid #f0f0f0', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
-            />
-            <Line type="monotone" dataKey="invitations" stroke="#D4AF37" strokeWidth={2} dot={{ r: 4 }} name="Invitations" />
-            <Line type="monotone" dataKey="hires" stroke="#111111" strokeWidth={2} dot={{ r: 4 }} name="Hires" />
-          </LineChart>
-        </ResponsiveContainer>
-      </motion.div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-        {/* Recent Activity */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.4 }}
-          className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm"
+          className="bg-[#111111] text-white rounded-2xl p-8 shadow-xl"
         >
-          <h3 className="text-lg font-bold tracking-tight mb-8">Recent Activity</h3>
-          <div className="space-y-6">
-            {recentActivity.map((activity) => (
-              <div key={activity.id} className="flex items-start gap-4">
-                <div className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                  activity.icon === 'check' ? 'bg-green-50 text-green-600' :
-                  activity.icon === 'users' ? 'bg-blue-50 text-blue-600' :
-                  activity.icon === 'wallet' ? 'bg-purple-50 text-purple-600' :
-                  activity.icon === 'send' ? 'bg-orange-50 text-orange-600' :
-                  'bg-yellow-50 text-yellow-600'
-                )}>
-                  {activity.icon === 'check' && <Trophy className="w-4 h-4" />}
-                  {activity.icon === 'users' && <Users className="w-4 h-4" />}
-                  {activity.icon === 'wallet' && <Wallet className="w-4 h-4" />}
-                  {activity.icon === 'send' && <Send className="w-4 h-4" />}
-                  {activity.icon === 'trophy' && <Trophy className="w-4 h-4" />}
+          <h3 className="text-lg font-bold tracking-tight mb-8">Upcoming Jobs</h3>
+          {upcomingBookings.length > 0 ? (
+            <div className="space-y-4">
+              {upcomingBookings.map((booking) => (
+                <div key={booking._id} className="p-4 bg-white/5 rounded-xl border border-white/5">
+                  <p className="text-[10px] text-[#D4AF37] font-bold uppercase tracking-[0.2em] mb-1">
+                    {booking.date}
+                  </p>
+                  <h4 className="font-bold text-sm tracking-tight">{booking.title}</h4>
+                  {booking.location && (
+                    <p className="text-xs text-gray-400 mt-1">{booking.location}</p>
+                  )}
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-[#111111]">{activity.message}</p>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">{activity.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center">
+              <p className="text-xs text-gray-400">No upcoming jobs scheduled.</p>
+            </div>
+          )}
+          <button
+            onClick={() => navigate('/business-dashboard/search')}
+            className="w-full mt-6 bg-[#D4AF37] text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95"
+          >
+            Start a New Job
+          </button>
         </motion.div>
 
-        {/* Upcoming Jobs */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.45 }}
-          className="bg-[#111111] text-white rounded-2xl p-8 shadow-xl"
+          className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm"
         >
-          <h3 className="text-lg font-bold tracking-tight mb-8">Upcoming Jobs</h3>
-          <div className="space-y-4">
-            {upcomingJobs.map((job, i) => (
-              <div key={i} className="p-4 bg-white/5 rounded-xl border border-white/5">
-                <p className="text-[10px] text-[#D4AF37] font-bold uppercase tracking-[0.2em] mb-1">{job.date}</p>
-                <h4 className="font-bold text-sm tracking-tight">{job.name}</h4>
-                <p className="text-xs text-gray-400 mt-1">{job.location} \u2022 {job.models} models</p>
-              </div>
+          <h3 className="text-lg font-bold tracking-tight mb-6">Tips for Success</h3>
+          <ul className="space-y-4">
+            {[
+              'Complete your business profile to attract quality models.',
+              'Send detailed invitations with clear project requirements.',
+              'Respond to model inquiries promptly to secure top talent.',
+            ].map((tip) => (
+              <li key={tip} className="flex items-start gap-3 group cursor-pointer">
+                <div className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full mt-2 shrink-0" />
+                <p className="text-xs text-gray-500 font-medium leading-relaxed group-hover:text-black">{tip}</p>
+              </li>
             ))}
-          </div>
-          <button onClick={() => toast('Calendar view coming soon', 'info')} className="w-full mt-6 bg-[#D4AF37] text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95">
-            View Calendar
-          </button>
+          </ul>
         </motion.div>
       </div>
     </div>
   );
 };
+
+function SkeletonLoading() {
+  return (
+    <div className="animate-pulse space-y-8">
+      <div className="flex justify-between items-center">
+        <div>
+          <div className="h-8 w-64 bg-gray-200 rounded-lg mb-2" />
+          <div className="h-4 w-80 bg-gray-200 rounded" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100">
+            <div className="h-10 w-10 bg-gray-200 rounded-xl mb-4" />
+            <div className="h-3 w-20 bg-gray-200 rounded mb-2" />
+            <div className="h-8 w-16 bg-gray-200 rounded" />
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-white rounded-2xl p-8 border border-gray-100">
+          <div className="h-6 w-36 bg-gray-200 rounded mb-6" />
+          <div className="h-16 bg-gray-100 rounded-xl mb-3" />
+          <div className="h-16 bg-gray-100 rounded-xl mb-3" />
+        </div>
+        <div className="bg-white rounded-2xl p-8 border border-gray-100">
+          <div className="h-6 w-28 bg-gray-200 rounded mb-6" />
+          <div className="h-20 bg-gray-100 rounded-xl mb-4" />
+          <div className="h-20 bg-gray-100 rounded-xl" />
+        </div>
+      </div>
+    </div>
+  );
+}
