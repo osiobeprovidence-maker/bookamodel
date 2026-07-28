@@ -6,7 +6,6 @@ import { useMutation } from 'convex/react';
 import { auth, googleProvider } from '../lib/firebase';
 import { api } from '../../convex/_generated/api';
 import { Button } from '../components/ui/Button';
-import { useUser } from '../contexts/UserContext';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -14,25 +13,7 @@ export const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const createUser = useMutation(api.users.createUser);
-  const { login } = useUser();
   const navigate = useNavigate();
-
-  const redirectToDashboard = () => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      const parsed = JSON.parse(savedUser);
-      if (parsed.profileCompleted) {
-        if (parsed.role === 'model') navigate('/model-dashboard');
-        else if (parsed.role === 'business') navigate('/business-dashboard');
-        else if (parsed.email === 'osiobeprovidence@gmail.com') navigate('/admin');
-        else navigate('/onboarding');
-      } else {
-        navigate('/onboarding');
-      }
-    } else {
-      navigate('/onboarding');
-    }
-  };
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -40,14 +21,12 @@ export const LoginPage = () => {
     setError('');
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
-      const firebaseUser = result.user;
-      const convexUserId = await createUser({
-        firebaseUid: firebaseUser.uid,
-        email: firebaseUser.email!,
-        name: firebaseUser.displayName || firebaseUser.email!.split('@')[0],
+      await createUser({
+        firebaseUid: result.user.uid,
+        email: result.user.email!,
+        name: result.user.displayName || result.user.email!.split('@')[0],
       });
-      login(firebaseUser.email!, firebaseUser.displayName || undefined, '', convexUserId);
-      redirectToDashboard();
+      navigate('/', { replace: true });
     } catch (err: any) {
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
         setError('Invalid email or password');
@@ -66,15 +45,13 @@ export const LoginPage = () => {
     setError('');
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const firebaseUser = result.user;
-      const convexUserId = await createUser({
-        firebaseUid: firebaseUser.uid,
-        email: firebaseUser.email!,
-        name: firebaseUser.displayName || firebaseUser.email!.split('@')[0],
-        imageUrl: firebaseUser.photoURL || undefined,
+      await createUser({
+        firebaseUid: result.user.uid,
+        email: result.user.email!,
+        name: result.user.displayName || result.user.email!.split('@')[0],
+        imageUrl: result.user.photoURL || undefined,
       });
-      login(firebaseUser.email!, firebaseUser.displayName || undefined, '', convexUserId);
-      redirectToDashboard();
+      navigate('/', { replace: true });
     } catch (err: any) {
       if (err.code === 'auth/popup-closed-by-user') return;
       setError(err.message || 'Failed to sign in with Google.');

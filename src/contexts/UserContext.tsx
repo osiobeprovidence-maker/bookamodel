@@ -1,80 +1,67 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { onAuthStateChanged, signOut, type User as FirebaseUser } from 'firebase/auth';
 import { auth } from '../lib/firebase';
+import { useQuery, useConvex } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
-export interface User {
+export interface ConvexUser {
+  _id: string;
+  firebaseUid: string;
   email: string;
-  role: 'business' | 'model' | '';
-  name?: string;
-  convexUserId?: string;
-  profileCompleted?: boolean;
+  name: string;
+  role?: 'model' | 'business' | 'admin';
+  imageUrl?: string;
+  phone?: string;
+  profileCompleted: boolean;
+  onboardingStep: number;
+  createdAt: number;
+  lastActive?: number;
+  isOnline?: boolean;
 }
 
 interface UserContextType {
-  user: User | null;
-  login: (email: string, name?: string, role?: 'business' | 'model' | '', convexUserId?: string) => void;
-  setRole: (role: 'business' | 'model') => void;
-  setProfileCompleted: () => void;
-  logout: () => void;
+  firebaseUser: FirebaseUser | null;
+  convexUser: ConvexUser | null;
+  profileCompleted: boolean;
+  onboardingStep: number;
   isLoading: boolean;
+  logout: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-
-    const unsub = onAuthStateChanged(auth, (firebaseUser) => {
-      if (!firebaseUser && savedUser) {
-        localStorage.removeItem('user');
-        setUser(null);
-      }
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
       setIsLoading(false);
     });
-
     return () => unsub();
   }, []);
 
-  const login = (email: string, name?: string, role?: 'business' | 'model' | '', convexUserId?: string) => {
-    const newUser = {
-      email,
-      role: role || '',
-      name: name || email.split('@')[0],
-      convexUserId: convexUserId || undefined,
-      profileCompleted: false,
-    };
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
-  };
+  const convexUser = useQuery(
+    api.users.getByFirebaseUid,
+    firebaseUser?.uid ? { firebaseUid: firebaseUser.uid } : 'skip',
+  ) as ConvexUser | null | undefined;
 
-  const setRole = (role: 'business' | 'model') => {
-    if (!user) return;
-    const updated = { ...user, role };
-    setUser(updated);
-    localStorage.setItem('user', JSON.stringify(updated));
-  };
+  const logout = useCallback(async () => {
+    await signOut(auth);
+  }, []);
 
-  const setProfileCompleted = () => {
-    if (!user) return;
-    const updated = { ...user, profileCompleted: true };
-    setUser(updated);
-    localStorage.setItem('user', JSON.stringify(updated));
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
+  const value: UserContextType = {
+    firebaseUser,
+    convexUser: convexUser ?? null,
+    profileCompleted: convexUser?.profileCompleted ?? false,
+    onboardingStep: convexUser?.onboardingStep ?? 0,
+    isLoading: isLoading || (firebaseUser !== null && convexUser === undefined),
+    logout,
   };
 
   return (
-    <UserContext.Provider value={{ user, login, setRole, setProfileCompleted, logout, isLoading }}>
+    <UserContext.Provider value={value}>
       {children}
     </UserContext.Provider>
   );

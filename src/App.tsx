@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { LandingPage } from './pages/LandingPage';
@@ -162,9 +162,31 @@ const BizSettings = () => (
   </BusinessLayout>
 );
 
+const ProtectedRoute = ({ children }: { children: ReactNode }) => {
+  const { firebaseUser, convexUser, isLoading } = useUser();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!firebaseUser) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (convexUser && !convexUser.profileCompleted) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const AdminGuard = ({ children }: { children: ReactNode }) => {
-  const { user } = useUser();
-  if (!user || user.email !== SUPER_ADMIN_EMAIL) {
+  const { convexUser } = useUser();
+  if (!convexUser || convexUser.email !== SUPER_ADMIN_EMAIL) {
     return <AdminAccessDenied />;
   }
   return <AdminLayout>{children}</AdminLayout>;
@@ -191,21 +213,21 @@ export default function App() {
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/models" element={<ModelWall />} />
           <Route path="/profile/:id" element={<ModelProfile />} />
-          <Route path="/business-dashboard" element={<BizDashboard />} />
-          <Route path="/business-dashboard/search" element={<BizSearch />} />
-          <Route path="/business-dashboard/invitations" element={<BizInvitations />} />
-          <Route path="/business-dashboard/saved" element={<BizSaved />} />
-          <Route path="/business-dashboard/jobs" element={<BizJobs />} />
-          <Route path="/business-dashboard/messages" element={<BizMessages />} />
-          <Route path="/business-dashboard/settings" element={<BizSettings />} />
-          <Route path="/model-dashboard" element={<ModelDashboard />} />
-          <Route path="/model-dashboard/profile" element={<ModelProfileDashboard />} />
-          <Route path="/model-dashboard/portfolio" element={<ModelPortfolioDashboard />} />
-          <Route path="/model-dashboard/applications" element={<ModelApplicationsDashboard />} />
-          <Route path="/model-dashboard/invitations" element={<ModelInvitationsDashboard />} />
-          <Route path="/model-dashboard/notifications" element={<ModelNotificationsDashboard />} />
-          <Route path="/model-dashboard/go-pro" element={<ModelGoProDashboard />} />
-          <Route path="/model-dashboard/settings" element={<ModelSettingsDashboard />} />
+          <Route path="/business-dashboard" element={<ProtectedRoute><BizDashboard /></ProtectedRoute>} />
+          <Route path="/business-dashboard/search" element={<ProtectedRoute><BizSearch /></ProtectedRoute>} />
+          <Route path="/business-dashboard/invitations" element={<ProtectedRoute><BizInvitations /></ProtectedRoute>} />
+          <Route path="/business-dashboard/saved" element={<ProtectedRoute><BizSaved /></ProtectedRoute>} />
+          <Route path="/business-dashboard/jobs" element={<ProtectedRoute><BizJobs /></ProtectedRoute>} />
+          <Route path="/business-dashboard/messages" element={<ProtectedRoute><BizMessages /></ProtectedRoute>} />
+          <Route path="/business-dashboard/settings" element={<ProtectedRoute><BizSettings /></ProtectedRoute>} />
+          <Route path="/model-dashboard" element={<ProtectedRoute><ModelDashboard /></ProtectedRoute>} />
+          <Route path="/model-dashboard/profile" element={<ProtectedRoute><ModelProfileDashboard /></ProtectedRoute>} />
+          <Route path="/model-dashboard/portfolio" element={<ProtectedRoute><ModelPortfolioDashboard /></ProtectedRoute>} />
+          <Route path="/model-dashboard/applications" element={<ProtectedRoute><ModelApplicationsDashboard /></ProtectedRoute>} />
+          <Route path="/model-dashboard/invitations" element={<ProtectedRoute><ModelInvitationsDashboard /></ProtectedRoute>} />
+          <Route path="/model-dashboard/notifications" element={<ProtectedRoute><ModelNotificationsDashboard /></ProtectedRoute>} />
+          <Route path="/model-dashboard/go-pro" element={<ProtectedRoute><ModelGoProDashboard /></ProtectedRoute>} />
+          <Route path="/model-dashboard/settings" element={<ProtectedRoute><ModelSettingsDashboard /></ProtectedRoute>} />
           <Route path="/create-profile" element={<CreateProfile />} />
           <Route path="/invite/:id" element={<CreateInvitation />} />
           <Route path="/pricing" element={<Pricing />} />

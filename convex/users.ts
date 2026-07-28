@@ -49,6 +49,7 @@ export const createUser = mutation({
       imageUrl: args.imageUrl,
       role: undefined,
       profileCompleted: false,
+      onboardingStep: 0,
       createdAt: Date.now(),
       lastActive: Date.now(),
       isOnline: true,
@@ -63,6 +64,23 @@ export const setUserRole = mutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.userId, { role: args.role });
+  },
+});
+
+export const updateOnboardingStep = mutation({
+  args: {
+    userId: v.id("users"),
+    onboardingStep: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, { onboardingStep: args.onboardingStep });
+  },
+});
+
+export const completeOnboarding = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, { profileCompleted: true, onboardingStep: 0 });
   },
 });
 

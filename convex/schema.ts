@@ -10,6 +10,7 @@ export default defineSchema({
     imageUrl: v.optional(v.string()),
     phone: v.optional(v.string()),
     profileCompleted: v.boolean(),
+    onboardingStep: v.optional(v.number()),
     createdAt: v.number(),
     lastActive: v.optional(v.number()),
     isOnline: v.optional(v.boolean()),

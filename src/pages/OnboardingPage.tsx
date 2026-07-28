@@ -1,4 +1,4 @@
-import { useState, useRef, type FormEvent } from 'react';
+import { useState, useRef, useEffect, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -75,8 +75,7 @@ function Step1Auth({ onNext }: StepProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const createUser = useMutation(api.users.createUser);
-  const { login } = useUser();
-  const navigate = useNavigate();
+  const updateOnboardingStep = useMutation(api.users.updateOnboardingStep);
 
   const handleGoogle = async () => {
     setLoading(true);
@@ -90,7 +89,7 @@ function Step1Auth({ onNext }: StepProps) {
         name: firebaseUser.displayName || firebaseUser.email!.split('@')[0],
         imageUrl: firebaseUser.photoURL || undefined,
       });
-      login(firebaseUser.email!, firebaseUser.displayName || undefined, '', convexUserId);
+      await updateOnboardingStep({ userId: convexUserId as any, onboardingStep: 1 });
       onNext();
     } catch (err: any) {
       if (err.code === 'auth/popup-closed-by-user') return;
@@ -114,7 +113,7 @@ function Step1Auth({ onNext }: StepProps) {
         email: firebaseUser.email!,
         name: `${firstName} ${lastName}`,
       });
-      login(firebaseUser.email!, `${firstName} ${lastName}`, '', convexUserId);
+      await updateOnboardingStep({ userId: convexUserId as any, onboardingStep: 1 });
       onNext();
     } catch (err: any) {
       if (err.code === 'auth/email-already-in-use') {
@@ -210,14 +209,16 @@ function Step2AccountType({ onNext }: StepProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const setUserRole = useMutation(api.users.setUserRole);
-  const { user } = useUser();
+  const updateOnboardingStep = useMutation(api.users.updateOnboardingStep);
+  const { convexUser } = useUser();
 
   const handleContinue = async () => {
-    if (!selected || !user?.convexUserId) return;
+    if (!selected || !convexUser?._id) return;
     setLoading(true);
     setError('');
     try {
-      await setUserRole({ userId: user.convexUserId as any, role: selected });
+      await setUserRole({ userId: convexUser._id as any, role: selected });
+      await updateOnboardingStep({ userId: convexUser._id as any, onboardingStep: 2 });
       onNext();
     } catch (err: any) {
       setError('Failed to set account type. Please try again.');
@@ -389,8 +390,8 @@ function Step3ModelProfile({ onNext, onBack }: StepProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const saveModelProfile = useMutation(api.users.saveModelProfile);
-  const setProfileCompleted = useMutation(api.users.setProfileCompleted);
-  const { user } = useUser();
+  const completeOnboarding = useMutation(api.users.completeOnboarding);
+  const { convexUser } = useUser();
 
   const toggleCategory = (cat: string) => {
     setForm(prev => ({
@@ -404,12 +405,12 @@ function Step3ModelProfile({ onNext, onBack }: StepProps) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.username.trim()) { setError('Username is required'); return; }
-    if (!user?.convexUserId) { setError('Not authenticated. Please restart.'); return; }
+    if (!convexUser?._id) { setError('Not authenticated. Please restart.'); return; }
     setLoading(true);
     setError('');
     try {
       await saveModelProfile({
-        userId: user.convexUserId as any,
+        userId: convexUser._id as any,
         username: form.username.trim(),
         phone: form.phone || undefined,
         gender: form.gender || undefined,
@@ -422,7 +423,7 @@ function Step3ModelProfile({ onNext, onBack }: StepProps) {
         categories: form.categories.length > 0 ? form.categories : undefined,
         profilePhotoStorageId: photoStorageId || undefined,
       });
-      await setProfileCompleted({ userId: user.convexUserId as any });
+      await completeOnboarding({ userId: convexUser._id as any });
       onNext();
     } catch (err: any) {
       setError(err.message || 'Failed to save profile. Please try again.');
@@ -541,19 +542,19 @@ function Step3BusinessProfile({ onNext, onBack }: StepProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const saveBusinessProfile = useMutation(api.users.saveBusinessProfile);
-  const setProfileCompleted = useMutation(api.users.setProfileCompleted);
-  const { user } = useUser();
+  const completeOnboarding = useMutation(api.users.completeOnboarding);
+  const { convexUser } = useUser();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.businessName.trim()) { setError('Business name is required'); return; }
     if (!form.contactPerson.trim()) { setError('Contact person is required'); return; }
-    if (!user?.convexUserId) { setError('Not authenticated. Please restart.'); return; }
+    if (!convexUser?._id) { setError('Not authenticated. Please restart.'); return; }
     setLoading(true);
     setError('');
     try {
       await saveBusinessProfile({
-        userId: user.convexUserId as any,
+        userId: convexUser._id as any,
         businessName: form.businessName.trim(),
         contactPerson: form.contactPerson.trim(),
         phone: form.phone || undefined,
@@ -564,7 +565,7 @@ function Step3BusinessProfile({ onNext, onBack }: StepProps) {
         description: form.description || undefined,
         logoStorageId: logoStorageId || undefined,
       });
-      await setProfileCompleted({ userId: user.convexUserId as any });
+      await completeOnboarding({ userId: convexUser._id as any });
       onNext();
     } catch (err: any) {
       setError(err.message || 'Failed to save profile. Please try again.');
@@ -692,24 +693,50 @@ function Step4Success({ accountType }: { accountType: AccountType }) {
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [accountType, setAccountType] = useState<AccountType>(null);
+  const [initialized, setInitialized] = useState(false);
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { firebaseUser, convexUser, isLoading } = useUser();
 
   const totalSteps = 4;
 
-  const handleStep1Complete = () => setStep(1);
+  useEffect(() => {
+    if (!isLoading && convexUser) {
+      if (convexUser.profileCompleted) {
+        navigate(convexUser.role === 'business' ? '/business-dashboard' : '/model-dashboard', { replace: true });
+        return;
+      }
+      if (!initialized && convexUser.onboardingStep > 0) {
+        setStep(convexUser.onboardingStep);
+        if (convexUser.role) {
+          setAccountType(convexUser.role as AccountType);
+        }
+        setInitialized(true);
+      } else if (!initialized) {
+        setInitialized(true);
+      }
+    }
+  }, [isLoading, convexUser, initialized, navigate]);
 
-  const handleStep2Complete = () => {
-    const saved = localStorage.getItem('user');
-    const type = saved ? JSON.parse(saved).role as AccountType : null;
-    setAccountType(type);
+  const handleStep0Complete = () => {
+    setStep(1);
+  };
+
+  const handleStep1Complete = () => {
     setStep(2);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#D4AF37] animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F8F8] flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-xl">
-        <StepIndicator current={step} total={totalSteps} />
+        {firebaseUser && <StepIndicator current={step} total={totalSteps} />}
 
         <div className="bg-white rounded-2xl p-6 sm:p-10 border border-gray-100 shadow-sm">
           <AnimatePresence mode="wait">
@@ -720,12 +747,20 @@ export default function OnboardingPage() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.2 }}
             >
-              {step === 0 && <Step1Auth onNext={handleStep1Complete} />}
-              {step === 1 && <Step2AccountType onNext={handleStep2Complete} />}
-              {step === 2 && accountType === 'model' && (
+              {!firebaseUser && <Step1Auth onNext={handleStep0Complete} />}
+              {firebaseUser && !convexUser && (
+                <div className="text-center py-8">
+                  <Loader2 className="w-8 h-8 text-[#D4AF37] animate-spin mx-auto mb-4" />
+                  <p className="text-sm text-gray-400">Loading your profile...</p>
+                </div>
+              )}
+              {firebaseUser && convexUser && step === 1 && (
+                <Step2AccountType onNext={handleStep1Complete} />
+              )}
+              {firebaseUser && convexUser && step === 2 && accountType === 'model' && (
                 <Step3ModelProfile onNext={() => setStep(3)} onBack={() => setStep(1)} />
               )}
-              {step === 2 && accountType === 'business' && (
+              {firebaseUser && convexUser && step === 2 && accountType === 'business' && (
                 <Step3BusinessProfile onNext={() => setStep(3)} onBack={() => setStep(1)} />
               )}
               {step === 3 && <Step4Success accountType={accountType} />}
