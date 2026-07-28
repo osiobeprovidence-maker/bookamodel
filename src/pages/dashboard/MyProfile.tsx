@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import {
   User,
@@ -7,6 +7,7 @@ import {
   FileText,
   Eye,
   Camera,
+  Loader2,
 } from 'lucide-react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -25,6 +26,9 @@ export default function MyProfile() {
     convexUser ? { userId: convexUser._id as any } : 'skip'
   );
   const saveProfile = useMutation(api.users.saveModelProfile);
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   const [form, setForm] = useState({
     displayName: '',
@@ -91,6 +95,26 @@ export default function MyProfile() {
       setForm(f => ({ ...f, displayName: convexUser.name || '' }));
     }
   }, [modelProfile, convexUser]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const result = await fetch(uploadUrl, { method: 'POST', body: file });
+      if (!result.ok) throw new Error('Upload failed');
+      const { storageId } = await result.json();
+      const imageUrl = `${import.meta.env.VITE_CONVEX_URL}/api/storage/${storageId}`;
+      setForm((prev) => ({ ...prev, imageUrl }));
+    } catch {
+      setToastMessage('Failed to upload image');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const update = (key: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -204,20 +228,25 @@ export default function MyProfile() {
 
           <div className="flex items-center gap-6 mb-8">
             <div className="relative group">
-              {form.imageUrl ? (
+              {uploading ? (
+                <div className="w-24 h-24 rounded-full bg-gray-100 border-2 border-white shadow-sm flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                </div>
+              ) : form.imageUrl ? (
                 <img src={form.imageUrl} alt="Profile" className="w-24 h-24 rounded-full object-cover border-2 border-white shadow-sm" />
               ) : (
                 <div className="w-24 h-24 rounded-full bg-gray-100 border-2 border-white shadow-sm flex items-center justify-center">
                   <span className="text-2xl font-bold text-gray-400">{(form.displayName || '?').charAt(0).toUpperCase()}</span>
                 </div>
               )}
-              <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+              <button onClick={() => fileInputRef.current?.click()} className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                 <Camera className="w-5 h-5 text-white" />
-              </div>
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
             </div>
             <div>
               <p className="text-sm font-bold text-[#111111]">{form.displayName || 'Your Name'}</p>
-              <p className="text-xs text-gray-400 mt-1">Upload a profile photo</p>
+              <p className="text-xs text-gray-400 mt-1">Click photo to upload</p>
             </div>
           </div>
 
