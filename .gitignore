@@ -7,3 +7,5 @@ convex/_generated/
 *.log
 .env*
 !.env.example
+
+.vercel
