@@ -15,6 +15,7 @@ import { CreateInvitation } from './pages/CreateInvitation';
 import { Pricing } from './pages/Pricing';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
+import OnboardingPage from './pages/OnboardingPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { AboutPage } from './pages/About';
 import { ContactPage } from './pages/Contact';
@@ -209,7 +210,8 @@ export default function App() {
           <Route path="/invite/:id" element={<CreateInvitation />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/signup" element={<OnboardingPage />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/terms" element={<TermsPage />} />
