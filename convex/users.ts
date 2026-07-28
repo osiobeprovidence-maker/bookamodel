@@ -114,16 +114,36 @@ export const getBusinessProfile = query({
 export const saveModelProfile = mutation({
   args: {
     userId: v.id("users"),
-    username: v.string(),
+    displayName: v.string(),
     phone: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    tagline: v.optional(v.string()),
     gender: v.optional(v.string()),
+    dateOfBirth: v.optional(v.string()),
     country: v.optional(v.string()),
     state: v.optional(v.string()),
     city: v.optional(v.string()),
-    dateOfBirth: v.optional(v.string()),
     height: v.optional(v.string()),
-    bio: v.optional(v.string()),
+    weight: v.optional(v.string()),
+    bust: v.optional(v.string()),
+    waist: v.optional(v.string()),
+    hips: v.optional(v.string()),
+    shoeSize: v.optional(v.string()),
+    eyeColor: v.optional(v.string()),
+    skinTone: v.optional(v.string()),
+    hairColor: v.optional(v.string()),
     categories: v.optional(v.array(v.string())),
+    hourlyRate: v.optional(v.string()),
+    dailyRate: v.optional(v.string()),
+    isAvailable: v.optional(v.boolean()),
+    socials: v.optional(
+      v.object({
+        instagram: v.optional(v.string()),
+        twitter: v.optional(v.string()),
+        tiktok: v.optional(v.string()),
+      })
+    ),
+    imageUrl: v.optional(v.string()),
     profilePhotoStorageId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -138,10 +158,10 @@ export const saveModelProfile = mutation({
     }
     return await ctx.db.insert("modelProfiles", {
       userId,
-      displayName: args.username,
+      displayName: profile.displayName || "",
       ...profile,
       isVerified: false,
-      isAvailable: true,
+      isAvailable: profile.isAvailable ?? true,
       profileCompleted: true,
       createdAt: Date.now(),
       updatedAt: Date.now(),

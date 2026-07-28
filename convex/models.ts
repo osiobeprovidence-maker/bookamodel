@@ -69,6 +69,7 @@ export const upsert = mutation({
     return await ctx.db.insert("modelProfiles", {
       ...args,
       isVerified: false,
+      profileCompleted: true,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });

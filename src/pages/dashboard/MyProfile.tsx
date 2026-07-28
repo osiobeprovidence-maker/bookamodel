@@ -1,9 +1,4 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import {
   User,
@@ -13,7 +8,9 @@ import {
   Eye,
   Camera,
 } from 'lucide-react';
-import { profileData } from '../../data/dashboardData';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { useUser } from '../../contexts/UserContext';
 
 const inputClass =
   'w-full px-6 py-4 bg-white rounded-xl border border-gray-100 focus:border-[#D4AF37] outline-none transition-all text-sm font-medium';
@@ -22,24 +19,163 @@ const selectClass =
   'w-full px-6 py-4 bg-white rounded-xl border border-gray-100 focus:border-[#D4AF37] outline-none transition-all text-sm font-medium appearance-none';
 
 export default function MyProfile() {
-  const [form, setForm] = useState({ ...profileData });
+  const { convexUser } = useUser();
+  const modelProfile = useQuery(
+    api.users.getModelProfile,
+    convexUser ? { userId: convexUser._id as any } : 'skip'
+  );
+  const saveProfile = useMutation(api.users.saveModelProfile);
+
+  const [form, setForm] = useState({
+    displayName: '',
+    phone: '',
+    bio: '',
+    tagline: '',
+    gender: '',
+    dateOfBirth: '',
+    country: '',
+    state: '',
+    city: '',
+    height: '',
+    weight: '',
+    bust: '',
+    waist: '',
+    hips: '',
+    shoeSize: '',
+    eyeColor: '',
+    skinTone: '',
+    hairColor: '',
+    categories: '',
+    hourlyRate: '',
+    dailyRate: '',
+    isAvailable: true,
+    instagram: '',
+    tiktok: '',
+    twitter: '',
+    imageUrl: '',
+  });
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  useEffect(() => {
+    if (modelProfile) {
+      setForm({
+        displayName: modelProfile.displayName || convexUser?.name || '',
+        phone: convexUser?.phone || '',
+        bio: modelProfile.bio || '',
+        tagline: modelProfile.tagline || '',
+        gender: modelProfile.gender || '',
+        dateOfBirth: modelProfile.dateOfBirth || '',
+        country: modelProfile.country || '',
+        state: modelProfile.state || '',
+        city: modelProfile.city || '',
+        height: modelProfile.height || '',
+        weight: (modelProfile as any).weight || '',
+        bust: modelProfile.bust || '',
+        waist: modelProfile.waist || '',
+        hips: modelProfile.hips || '',
+        shoeSize: modelProfile.shoeSize || '',
+        eyeColor: modelProfile.eyeColor || '',
+        skinTone: modelProfile.skinTone || '',
+        hairColor: (modelProfile as any).hairColor || '',
+        categories: (modelProfile.categories || []).join(', '),
+        hourlyRate: modelProfile.hourlyRate || '',
+        dailyRate: modelProfile.dailyRate || '',
+        isAvailable: modelProfile.isAvailable ?? true,
+        instagram: modelProfile.socials?.instagram || '',
+        tiktok: modelProfile.socials?.tiktok || '',
+        twitter: modelProfile.socials?.twitter || '',
+        imageUrl: modelProfile.imageUrl || convexUser?.imageUrl || '',
+      });
+    } else if (convexUser && modelProfile === undefined) {
+      setForm(f => ({ ...f, displayName: convexUser.name || '' }));
+    }
+  }, [modelProfile, convexUser]);
 
   const update = (key: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const handleSave = () => {
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+  const handleSave = async () => {
+    if (!convexUser) return;
+    try {
+      await saveProfile({
+        userId: convexUser._id as any,
+        displayName: form.displayName,
+        phone: form.phone || undefined,
+        bio: form.bio || undefined,
+        tagline: form.tagline || undefined,
+        gender: form.gender || undefined,
+        dateOfBirth: form.dateOfBirth || undefined,
+        country: form.country || undefined,
+        state: form.state || undefined,
+        city: form.city || undefined,
+        height: form.height || undefined,
+        weight: form.weight || undefined,
+        bust: form.bust || undefined,
+        waist: form.waist || undefined,
+        hips: form.hips || undefined,
+        shoeSize: form.shoeSize || undefined,
+        eyeColor: form.eyeColor || undefined,
+        skinTone: form.skinTone || undefined,
+        hairColor: form.hairColor || undefined,
+        categories: form.categories ? form.categories.split(',').map(c => c.trim()).filter(Boolean) : undefined,
+        hourlyRate: form.hourlyRate || undefined,
+        dailyRate: form.dailyRate || undefined,
+        isAvailable: form.isAvailable,
+        socials: (form.instagram || form.tiktok || form.twitter) ? {
+          instagram: form.instagram || undefined,
+          tiktok: form.tiktok || undefined,
+          twitter: form.twitter || undefined,
+        } : undefined,
+        imageUrl: form.imageUrl || undefined,
+      });
+      setToastMessage('Profile saved successfully!');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch {
+      setToastMessage('Failed to save profile.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    }
   };
 
   const handleCancel = () => {
-    setForm({ ...profileData });
+    if (modelProfile) {
+      setForm({
+        displayName: modelProfile.displayName || convexUser?.name || '',
+        phone: convexUser?.phone || '',
+        bio: modelProfile.bio || '',
+        tagline: modelProfile.tagline || '',
+        gender: modelProfile.gender || '',
+        dateOfBirth: modelProfile.dateOfBirth || '',
+        country: modelProfile.country || '',
+        state: modelProfile.state || '',
+        city: modelProfile.city || '',
+        height: modelProfile.height || '',
+        weight: (modelProfile as any).weight || '',
+        bust: modelProfile.bust || '',
+        waist: modelProfile.waist || '',
+        hips: modelProfile.hips || '',
+        shoeSize: modelProfile.shoeSize || '',
+        eyeColor: modelProfile.eyeColor || '',
+        skinTone: modelProfile.skinTone || '',
+        hairColor: (modelProfile as any).hairColor || '',
+        categories: (modelProfile.categories || []).join(', '),
+        hourlyRate: modelProfile.hourlyRate || '',
+        dailyRate: modelProfile.dailyRate || '',
+        isAvailable: modelProfile.isAvailable ?? true,
+        instagram: modelProfile.socials?.instagram || '',
+        tiktok: modelProfile.socials?.tiktok || '',
+        twitter: modelProfile.socials?.twitter || '',
+        imageUrl: modelProfile.imageUrl || convexUser?.imageUrl || '',
+      });
+    }
   };
+
+  if (!convexUser) return <SkeletonLoading />;
 
   return (
     <div className="p-4 sm:p-6 lg:p-10">
-      {/* Header */}
       <header className="mb-10">
         <h1 className="text-3xl font-black tracking-tight text-[#111111]">
           My Profile
@@ -66,11 +202,10 @@ export default function MyProfile() {
             </h2>
           </div>
 
-          {/* Profile Photo */}
           <div className="flex items-center gap-6 mb-8">
             <div className="relative group">
               <img
-                src={form.profileImage}
+                src={form.imageUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&crop=faces'}
                 alt="Profile"
                 className="w-24 h-24 rounded-full object-cover border-2 border-white shadow-sm"
               />
@@ -79,7 +214,7 @@ export default function MyProfile() {
               </div>
             </div>
             <div>
-              <p className="text-sm font-bold text-[#111111]">{form.fullName}</p>
+              <p className="text-sm font-bold text-[#111111]">{form.displayName}</p>
               <p className="text-xs text-gray-400 mt-1">Click photo to change</p>
             </div>
           </div>
@@ -91,8 +226,8 @@ export default function MyProfile() {
               </label>
               <input
                 type="text"
-                value={form.fullName}
-                onChange={(e) => update('fullName', e.target.value)}
+                value={form.displayName}
+                onChange={(e) => update('displayName', e.target.value)}
                 className={inputClass}
               />
             </div>
@@ -102,9 +237,9 @@ export default function MyProfile() {
               </label>
               <input
                 type="email"
-                value={form.email}
-                onChange={(e) => update('email', e.target.value)}
-                className={inputClass}
+                value={convexUser?.email || ''}
+                disabled
+                className={`${inputClass} opacity-60 cursor-not-allowed`}
               />
             </div>
             <div>
@@ -138,6 +273,7 @@ export default function MyProfile() {
                 onChange={(e) => update('gender', e.target.value)}
                 className={selectClass}
               >
+                <option value="">Select...</option>
                 <option>Female</option>
                 <option>Male</option>
                 <option>Non-binary</option>
@@ -145,12 +281,12 @@ export default function MyProfile() {
             </div>
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                Nationality
+                Country
               </label>
               <input
                 type="text"
-                value={form.nationality}
-                onChange={(e) => update('nationality', e.target.value)}
+                value={form.country}
+                onChange={(e) => update('country', e.target.value)}
                 className={inputClass}
               />
             </div>
@@ -200,39 +336,47 @@ export default function MyProfile() {
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
                 Category
               </label>
-              <select
-                value={form.category}
-                onChange={(e) => update('category', e.target.value)}
-                className={selectClass}
-              >
-                <option>Fashion Model</option>
-                <option>Commercial Model</option>
-                <option>Runway Model</option>
-                <option>Fitness Model</option>
-                <option>Product Model</option>
-                <option>Bridal Model</option>
-              </select>
+              <input
+                type="text"
+                value={form.categories}
+                onChange={(e) => update('categories', e.target.value)}
+                className={inputClass}
+                placeholder="Fashion Model, Runway..."
+              />
             </div>
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                Agency
+                Tagline
               </label>
               <input
                 type="text"
-                value={form.agency}
-                onChange={(e) => update('agency', e.target.value)}
+                value={form.tagline}
+                onChange={(e) => update('tagline', e.target.value)}
                 className={inputClass}
               />
             </div>
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                Years of Experience
+                Hourly Rate
               </label>
               <input
-                type="number"
-                value={form.yearsOfExperience}
-                onChange={(e) => update('yearsOfExperience', e.target.value)}
+                type="text"
+                value={form.hourlyRate}
+                onChange={(e) => update('hourlyRate', e.target.value)}
                 className={inputClass}
+                placeholder="e.g. ₦50,000/hr"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                Daily Rate
+              </label>
+              <input
+                type="text"
+                value={form.dailyRate}
+                onChange={(e) => update('dailyRate', e.target.value)}
+                className={inputClass}
+                placeholder="e.g. ₦200,000/day"
               />
             </div>
             <div>
@@ -285,8 +429,8 @@ export default function MyProfile() {
               </label>
               <input
                 type="text"
-                value={form.hip}
-                onChange={(e) => update('hip', e.target.value)}
+                value={form.hips}
+                onChange={(e) => update('hips', e.target.value)}
                 className={inputClass}
               />
             </div>
@@ -310,6 +454,7 @@ export default function MyProfile() {
                 onChange={(e) => update('hairColor', e.target.value)}
                 className={selectClass}
               >
+                <option value="">Select...</option>
                 <option>Black</option>
                 <option>Brown</option>
                 <option>Blonde</option>
@@ -326,6 +471,7 @@ export default function MyProfile() {
                 onChange={(e) => update('eyeColor', e.target.value)}
                 className={selectClass}
               >
+                <option value="">Select...</option>
                 <option>Brown</option>
                 <option>Black</option>
                 <option>Green</option>
@@ -342,6 +488,7 @@ export default function MyProfile() {
                 onChange={(e) => update('skinTone', e.target.value)}
                 className={selectClass}
               >
+                <option value="">Select...</option>
                 <option>Fair</option>
                 <option>Light</option>
                 <option>Medium</option>
@@ -403,22 +550,6 @@ export default function MyProfile() {
             </div>
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                Facebook
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">
-                  f
-                </span>
-                <input
-                  type="text"
-                  value={form.facebook}
-                  onChange={(e) => update('facebook', e.target.value)}
-                  className={`${inputClass} pl-12`}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
                 X (Twitter)
               </label>
               <div className="relative">
@@ -429,38 +560,6 @@ export default function MyProfile() {
                   type="text"
                   value={form.twitter}
                   onChange={(e) => update('twitter', e.target.value)}
-                  className={`${inputClass} pl-12`}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                YouTube
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">
-                  YT
-                </span>
-                <input
-                  type="text"
-                  value={form.youtube}
-                  onChange={(e) => update('youtube', e.target.value)}
-                  className={`${inputClass} pl-12`}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                Website
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                  <Eye className="w-4 h-4" />
-                </span>
-                <input
-                  type="url"
-                  value={form.website}
-                  onChange={(e) => update('website', e.target.value)}
                   className={`${inputClass} pl-12`}
                 />
               </div>
@@ -525,14 +624,14 @@ export default function MyProfile() {
               </p>
             </div>
             <button
-              onClick={() => update('visibleToBrands', !form.visibleToBrands)}
+              onClick={() => update('isAvailable', !form.isAvailable)}
               className={`relative w-12 h-7 rounded-full transition-colors ${
-                form.visibleToBrands ? 'bg-[#D4AF37]' : 'bg-gray-200'
+                form.isAvailable ? 'bg-[#D4AF37]' : 'bg-gray-200'
               }`}
             >
               <span
                 className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
-                  form.visibleToBrands ? 'translate-x-5' : ''
+                  form.isAvailable ? 'translate-x-5' : ''
                 }`}
               />
             </button>
@@ -556,13 +655,29 @@ export default function MyProfile() {
         </div>
       </div>
 
-      {/* Success Toast */}
       {showToast && (
         <div className="fixed bottom-8 right-8 bg-[#111111] text-white px-6 py-4 rounded-xl shadow-xl text-sm font-bold flex items-center gap-3 z-50">
-          <div className="w-2 h-2 bg-green-500 rounded-full" />
-          Profile saved successfully!
+          <div className={`w-2 h-2 rounded-full ${toastMessage.includes('Failed') ? 'bg-red-500' : 'bg-green-500'}`} />
+          {toastMessage}
         </div>
       )}
+    </div>
+  );
+}
+
+function SkeletonLoading() {
+  return (
+    <div className="p-4 sm:p-6 lg:p-10 animate-pulse">
+      <div className="h-8 w-36 bg-gray-200 rounded-lg mb-10" />
+      <div className="bg-white rounded-2xl border border-gray-100 p-8 space-y-6">
+        <div className="flex gap-6 items-center">
+          <div className="w-24 h-24 bg-gray-200 rounded-full" />
+          <div><div className="h-4 w-40 bg-gray-200 rounded mb-2" /><div className="h-3 w-24 bg-gray-200 rounded" /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-6">
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-14 bg-gray-100 rounded-xl" />)}
+        </div>
+      </div>
     </div>
   );
 }

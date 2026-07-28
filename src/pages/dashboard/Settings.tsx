@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, type ElementType } from 'react';
+import { useState, useEffect, type ElementType } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   User, Shield, Bell, CreditCard, Link as LinkIcon,
@@ -13,6 +13,9 @@ import {
   Check, X, Loader2, Sun, Moon, Monitor,
   CheckCircle2, AlertCircle,
 } from 'lucide-react';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { useUser } from '../../contexts/UserContext';
 
 type Tab = 'General' | 'Account' | 'Security' | 'Privacy' | 'Notifications' | 'Billing' | 'Connected Accounts' | 'Appearance' | 'Support' | 'Danger Zone';
 
@@ -96,15 +99,38 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
 }
 
 export default function Settings() {
+  const { convexUser } = useUser();
+  const modelProfile = useQuery(
+    api.users.getModelProfile,
+    convexUser ? { userId: convexUser._id as any } : 'skip'
+  );
   const [activeTab, setActiveTab] = useState<Tab>('General');
   const [toast, setToast] = useState<string | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
 
   // General
   const [generalForm, setGeneralForm] = useState({
-    fullName: 'Chioma Adebayo', username: 'chioma_model', email: 'chioma.adebayo@email.com',
-    phone: '+234 812 345 6789', language: 'English', timezone: 'WAT (UTC+1)', country: 'Nigeria',
+    fullName: '', username: '', email: '',
+    phone: '', language: 'English', timezone: 'WAT (UTC+1)', country: '',
   });
+
+  useEffect(() => {
+    if (convexUser) {
+      setGeneralForm(prev => ({
+        ...prev,
+        fullName: convexUser.name || '',
+        email: convexUser.email || '',
+        phone: convexUser.phone || '',
+      }));
+    }
+    if (modelProfile) {
+      setGeneralForm(prev => ({
+        ...prev,
+        fullName: modelProfile.displayName || prev.fullName,
+        country: modelProfile.country || prev.country,
+      }));
+    }
+  }, [convexUser, modelProfile]);
 
   // Account
   const [accountSettings, setAccountSettings] = useState({
@@ -259,7 +285,10 @@ export default function Settings() {
                 Save Changes
               </button>
               <button
-                onClick={() => setGeneralForm({ fullName: 'Chioma Adebayo', username: 'chioma_model', email: 'chioma.adebayo@email.com', phone: '+234 812 345 6789', language: 'English', timezone: 'WAT (UTC+1)', country: 'Nigeria' })}
+                onClick={() => {
+                  if (!convexUser) return;
+                  setGeneralForm({ fullName: convexUser.name || '', username: '', email: convexUser.email || '', phone: convexUser.phone || '', language: 'English', timezone: 'WAT (UTC+1)', country: modelProfile?.country || '' });
+                }}
                 className="bg-gray-100 text-gray-600 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-all"
               >
                 Reset
@@ -593,11 +622,11 @@ export default function Settings() {
               <div className="bg-gray-50 rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 bg-[#D4AF37] rounded-full flex items-center justify-center">
-                    <span className="text-xs font-bold text-white">CA</span>
+                    <span className="text-xs font-bold text-white">{(convexUser?.name || '??').split(' ').map(n => n[0]).join('')}</span>
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-[#111111]">Chioma Adebayo</p>
-                    <p className="text-xs text-gray-400">Fashion Model</p>
+                    <p className="text-sm font-bold text-[#111111]">{convexUser?.name || 'Model'}</p>
+                    <p className="text-xs text-gray-400">{modelProfile?.tagline || 'Model'}</p>
                   </div>
                 </div>
                 <button className="bg-[#D4AF37] text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest">Preview Button</button>
