@@ -204,18 +204,20 @@ export default function MyProfile() {
 
           <div className="flex items-center gap-6 mb-8">
             <div className="relative group">
-              <img
-                src={form.imageUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop&crop=faces'}
-                alt="Profile"
-                className="w-24 h-24 rounded-full object-cover border-2 border-white shadow-sm"
-              />
+              {form.imageUrl ? (
+                <img src={form.imageUrl} alt="Profile" className="w-24 h-24 rounded-full object-cover border-2 border-white shadow-sm" />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-gray-100 border-2 border-white shadow-sm flex items-center justify-center">
+                  <span className="text-2xl font-bold text-gray-400">{(form.displayName || '?').charAt(0).toUpperCase()}</span>
+                </div>
+              )}
               <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                 <Camera className="w-5 h-5 text-white" />
               </div>
             </div>
             <div>
-              <p className="text-sm font-bold text-[#111111]">{form.displayName}</p>
-              <p className="text-xs text-gray-400 mt-1">Click photo to change</p>
+              <p className="text-sm font-bold text-[#111111]">{form.displayName || 'Your Name'}</p>
+              <p className="text-xs text-gray-400 mt-1">Upload a profile photo</p>
             </div>
           </div>
 

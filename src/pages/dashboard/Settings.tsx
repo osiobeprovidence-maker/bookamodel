@@ -144,18 +144,9 @@ export default function Settings() {
   const [showCurrentPass, setShowCurrentPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
 
-  const activeSessions = [
-    { device: 'iPhone 15 Pro', browser: 'Safari', location: 'Lagos, Nigeria', time: '2 min ago', current: true },
-    { device: 'MacBook Pro', browser: 'Chrome', location: 'Lagos, Nigeria', time: '3 hours ago', current: false },
-    { device: 'Samsung Galaxy S24', browser: 'Chrome', location: 'Abuja, Nigeria', time: '2 days ago', current: false },
-  ];
+  const activeSessions: { device: string; browser: string; location: string; time: string; current: boolean }[] = [];
 
-  const loginHistory = [
-    { device: 'iPhone 15 Pro', browser: 'Safari', ip: '102.89.xx.xx', location: 'Lagos', date: '2026-07-27 10:30', status: 'Success' },
-    { device: 'MacBook Pro', browser: 'Chrome', ip: '102.89.xx.xx', location: 'Lagos', date: '2026-07-27 07:15', status: 'Success' },
-    { device: 'Unknown', browser: 'Firefox', ip: '41.204.xx.xx', location: 'Abuja', date: '2026-07-25 14:22', status: 'Failed' },
-    { device: 'Samsung Galaxy S24', browser: 'Chrome', ip: '102.89.xx.xx', location: 'Lagos', date: '2026-07-24 09:00', status: 'Success' },
-  ];
+  const loginHistory: { device: string; browser: string; ip: string; location: string; date: string; status: string }[] = [];
 
   // Privacy
   const [privacy, setPrivacy] = useState({
@@ -172,7 +163,7 @@ export default function Settings() {
 
   // Billing
   const [billing] = useState({
-    plan: 'Free', paymentMethod: '-', nextRenewal: '-', address: '123 Lekki Phase 1, Lagos',
+    plan: 'Free', paymentMethod: '-', nextRenewal: '-', address: '',
   });
 
   // Connected Accounts

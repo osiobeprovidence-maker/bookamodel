@@ -57,10 +57,7 @@ const plans = [
   },
 ];
 
-const billingHistory = [
-  { date: '2026-07-15', plan: 'Free', amount: '\u20A60', method: '-', invoice: 'INV-001', status: 'Active' },
-  { date: '-', plan: '-', amount: '-', method: '-', invoice: '-', status: '-' },
-];
+const billingHistory: { date: string; plan: string; amount: string; method: string; invoice: string; status: string }[] = [];
 
 const faqs = [
   { q: 'What happens if I cancel?', a: 'You can cancel your Pro subscription at any time. Your Pro features will remain active until the end of your current billing period. After that, your account will revert to the Free plan.' },
@@ -278,32 +275,28 @@ export default function GoPro() {
         className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-8 mb-6 sm:mb-10"
       >
         <h3 className="text-lg font-bold tracking-tight text-[#111111] mb-6">Billing History</h3>
-        <div className="overflow-x-auto -mx-4 sm:mx-0">
-          <table className="w-full text-left min-w-[600px]">
-            <thead>
-              <tr className="border-b border-gray-100">
-                {['Date', 'Plan', 'Amount', 'Method', 'Invoice', 'Status', 'Actions'].map((h) => (
-                  <th key={h} className="pb-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 sm:px-0 whitespace-nowrap">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {billingHistory.map((row, i) => (
-                <tr key={i} className="border-b border-gray-50 last:border-0">
-                  <td className="py-4 text-xs text-gray-500 px-4 sm:px-0 whitespace-nowrap">{row.date}</td>
-                  <td className="py-4 text-xs font-medium text-[#111111] px-4 sm:px-0">{row.plan}</td>
-                  <td className="py-4 text-xs text-gray-500 px-4 sm:px-0 whitespace-nowrap">{row.amount}</td>
-                  <td className="py-4 text-xs text-gray-500 px-4 sm:px-0">{row.method}</td>
-                  <td className="py-4 text-xs text-gray-500 px-4 sm:px-0">{row.invoice}</td>
-                  <td className="py-4 px-4 sm:px-0">
-                    {row.status !== '-' && (
-                      <span className="px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-[10px] font-bold uppercase">
-                        {row.status}
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-4 px-4 sm:px-0">
-                    {row.status !== '-' && (
+        {billingHistory.length > 0 ? (
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <table className="w-full text-left min-w-[600px]">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  {['Date', 'Plan', 'Amount', 'Method', 'Invoice', 'Status', 'Actions'].map((h) => (
+                    <th key={h} className="pb-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest px-4 sm:px-0 whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {billingHistory.map((row, i) => (
+                  <tr key={i} className="border-b border-gray-50 last:border-0">
+                    <td className="py-4 text-xs text-gray-500 px-4 sm:px-0 whitespace-nowrap">{row.date}</td>
+                    <td className="py-4 text-xs font-medium text-[#111111] px-4 sm:px-0">{row.plan}</td>
+                    <td className="py-4 text-xs text-gray-500 px-4 sm:px-0 whitespace-nowrap">{row.amount}</td>
+                    <td className="py-4 text-xs text-gray-500 px-4 sm:px-0">{row.method}</td>
+                    <td className="py-4 text-xs text-gray-500 px-4 sm:px-0">{row.invoice}</td>
+                    <td className="py-4 px-4 sm:px-0">
+                      <span className="px-2 py-0.5 bg-green-50 text-green-700 rounded-full text-[10px] font-bold uppercase">{row.status}</span>
+                    </td>
+                    <td className="py-4 px-4 sm:px-0">
                       <div className="flex gap-2 whitespace-nowrap">
                         <button className="text-[10px] font-bold text-gray-400 hover:text-[#111111] uppercase tracking-widest flex items-center gap-1 min-h-[44px]">
                           <Download className="w-3 h-3" /> Receipt
@@ -312,13 +305,18 @@ export default function GoPro() {
                           <Receipt className="w-3 h-3" /> Invoice
                         </button>
                       </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <Receipt className="w-10 h-10 text-gray-200 mx-auto mb-4" />
+            <p className="text-sm text-gray-400">No billing history yet.</p>
+          </div>
+        )}
       </motion.div>
 
       {/* FAQs */}
@@ -487,7 +485,7 @@ export default function GoPro() {
                         type="text"
                         value={cardForm.name}
                         onChange={(e) => setCardForm({ ...cardForm, name: e.target.value })}
-                        placeholder="John Doe"
+                        placeholder="Cardholder name"
                         className="w-full px-4 py-3 bg-white rounded-xl border border-gray-100 focus:border-[#D4AF37] outline-none transition-all text-sm"
                       />
                     </div>
@@ -540,7 +538,7 @@ export default function GoPro() {
                         type="text"
                         value={cardForm.address}
                         onChange={(e) => setCardForm({ ...cardForm, address: e.target.value })}
-                        placeholder="123 Victoria Island, Lagos"
+                        placeholder="Enter billing address"
                         className="w-full px-4 py-3 bg-white rounded-xl border border-gray-100 focus:border-[#D4AF37] outline-none transition-all text-sm"
                       />
                     </div>

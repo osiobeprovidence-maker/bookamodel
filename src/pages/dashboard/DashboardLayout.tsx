@@ -16,7 +16,7 @@ const navLinks = [
   { label: 'My Profile', icon: User, path: '/model-dashboard/profile' },
   { label: 'Portfolio', icon: Image, path: '/model-dashboard/portfolio' },
   { label: 'Applications', icon: FileText, path: '/model-dashboard/applications' },
-  { label: 'Invitations', icon: Send, path: '/model-dashboard/invitations', badge: '8' },
+  { label: 'Invitations', icon: Send, path: '/model-dashboard/invitations' },
   { label: 'Notifications', icon: Bell, path: '/model-dashboard/notifications' },
   { label: 'Go Pro', icon: Crown, path: '/model-dashboard/go-pro', highlight: true },
   { label: 'Settings', icon: Settings, path: '/model-dashboard/settings' },
