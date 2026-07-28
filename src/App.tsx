@@ -9,7 +9,6 @@ import { Footer } from './components/Footer';
 import { LandingPage } from './pages/LandingPage';
 import { ModelWall } from './pages/ModelWall';
 import { ModelProfile } from './pages/ModelProfile';
-import { BusinessDashboard } from './pages/BusinessDashboard';
 import { CreateProfile } from './pages/CreateProfile';
 import { CreateInvitation } from './pages/CreateInvitation';
 import { Pricing } from './pages/Pricing';

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
@@ -6,6 +6,7 @@ import { useMutation } from 'convex/react';
 import { auth, googleProvider } from '../lib/firebase';
 import { api } from '../../convex/_generated/api';
 import { Button } from '../components/ui/Button';
+import { useUser } from '../contexts/UserContext';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -14,6 +15,21 @@ export const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const createUser = useMutation(api.users.createUser);
   const navigate = useNavigate();
+  const { firebaseUser, isLoading: authLoading } = useUser();
+
+  useEffect(() => {
+    if (!authLoading && firebaseUser) {
+      navigate('/onboarding', { replace: true });
+    }
+  }, [firebaseUser, authLoading, navigate]);
+
+  if (!authLoading && firebaseUser) {
+    return (
+      <div className="min-h-screen bg-[#F8F8F8] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-[#D4AF37] animate-spin" />
+      </div>
+    );
+  }
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -26,7 +42,7 @@ export const LoginPage = () => {
         email: result.user.email!,
         name: result.user.displayName || result.user.email!.split('@')[0],
       });
-      navigate('/', { replace: true });
+      navigate('/onboarding', { replace: true });
     } catch (err: any) {
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
         setError('Invalid email or password');
@@ -51,7 +67,7 @@ export const LoginPage = () => {
         name: result.user.displayName || result.user.email!.split('@')[0],
         imageUrl: result.user.photoURL || undefined,
       });
-      navigate('/', { replace: true });
+      navigate('/onboarding', { replace: true });
     } catch (err: any) {
       if (err.code === 'auth/popup-closed-by-user') return;
       setError(err.message || 'Failed to sign in with Google.');
