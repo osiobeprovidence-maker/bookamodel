@@ -61,7 +61,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
 }
 
 interface StepProps {
-  onNext: () => void;
+  onNext: (type?: AccountType) => void;
   onBack?: () => void;
 }
 
@@ -219,7 +219,7 @@ function Step2AccountType({ onNext }: StepProps) {
     try {
       await setUserRole({ userId: convexUser._id as any, role: selected });
       await updateOnboardingStep({ userId: convexUser._id as any, onboardingStep: 2 });
-      onNext();
+      onNext(selected);
     } catch (err: any) {
       setError('Failed to set account type. Please try again.');
     } finally {
@@ -721,7 +721,8 @@ export default function OnboardingPage() {
     setStep(1);
   };
 
-  const handleStep1Complete = () => {
+  const handleStep1Complete = (type?: AccountType) => {
+    if (type) setAccountType(type);
     setStep(2);
   };
 
@@ -757,13 +758,13 @@ export default function OnboardingPage() {
               {firebaseUser && convexUser && step === 1 && (
                 <Step2AccountType onNext={handleStep1Complete} />
               )}
-              {firebaseUser && convexUser && step === 2 && accountType === 'model' && (
+              {firebaseUser && convexUser && step === 2 && (accountType || convexUser.role) === 'model' && (
                 <Step3ModelProfile onNext={() => setStep(3)} onBack={() => setStep(1)} />
               )}
-              {firebaseUser && convexUser && step === 2 && accountType === 'business' && (
+              {firebaseUser && convexUser && step === 2 && (accountType || convexUser.role) === 'business' && (
                 <Step3BusinessProfile onNext={() => setStep(3)} onBack={() => setStep(1)} />
               )}
-              {step === 3 && <Step4Success accountType={accountType} />}
+              {step === 3 && <Step4Success accountType={accountType || convexUser?.role || null} />}
             </motion.div>
           </AnimatePresence>
         </div>
