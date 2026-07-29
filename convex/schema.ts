@@ -100,15 +100,76 @@ export default defineSchema({
       v.literal("commercial"),
       v.literal("editorial"),
       v.literal("fitness"),
+      v.literal("runway"),
+      v.literal("beauty"),
+      v.literal("lifestyle"),
+      v.literal("swimwear"),
+      v.literal("product"),
       v.literal("other")
     ),
     description: v.optional(v.string()),
+    muxUploadId: v.optional(v.string()),
+    muxAssetId: v.optional(v.string()),
+    playbackId: v.optional(v.string()),
+    duration: v.optional(v.number()),
+    aspectRatio: v.optional(v.string()),
+    status: v.optional(v.union(v.literal("processing"), v.literal("ready"), v.literal("errored"), v.literal("deleted"))),
+    visibility: v.optional(v.union(v.literal("public"), v.literal("private"), v.literal("hidden"))),
+    albumId: v.optional(v.id("albums")),
     order: v.number(),
     createdAt: v.number(),
   })
     .index("by_modelProfileId", ["modelProfileId"])
     .index("by_userId", ["userId"])
-    .index("by_category", ["category"]),
+    .index("by_category", ["category"])
+    .index("by_muxUploadId", ["muxUploadId"])
+    .index("by_muxAssetId", ["muxAssetId"])
+    .index("by_albumId", ["albumId"]),
+
+  muxUploads: defineTable({
+    uploadId: v.string(),
+    assetId: v.optional(v.string()),
+    status: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_uploadId", ["uploadId"]),
+
+  albums: defineTable({
+    modelProfileId: v.id("modelProfiles"),
+    userId: v.id("users"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    coverImageUrl: v.optional(v.string()),
+    coverStorageId: v.optional(v.string()),
+    category: v.union(
+      v.literal("portrait"),
+      v.literal("fashion"),
+      v.literal("commercial"),
+      v.literal("editorial"),
+      v.literal("fitness"),
+      v.literal("runway"),
+      v.literal("beauty"),
+      v.literal("lifestyle"),
+      v.literal("swimwear"),
+      v.literal("product"),
+      v.literal("other")
+    ),
+    visibility: v.union(v.literal("public"), v.literal("private"), v.literal("hidden")),
+    order: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_modelProfileId", ["modelProfileId"])
+    .index("by_userId", ["userId"]),
+
+  albumItems: defineTable({
+    albumId: v.id("albums"),
+    portfolioId: v.id("portfolio"),
+    order: v.number(),
+    addedAt: v.number(),
+  })
+    .index("by_albumId", ["albumId"])
+    .index("by_portfolioId", ["portfolioId"]),
 
   businessProfiles: defineTable({
     userId: v.id("users"),

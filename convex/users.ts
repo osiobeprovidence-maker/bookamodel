@@ -101,6 +101,16 @@ export const getModelProfile = query({
   },
 });
 
+export const getModelProfileById = query({
+  args: { modelProfileId: v.id("modelProfiles") },
+  handler: async (ctx, args) => {
+    const profile = await ctx.db.get(args.modelProfileId);
+    if (!profile) return null;
+    const user = await ctx.db.get(profile.userId);
+    return { ...profile, user: user ? { name: user.name, email: user.email, imageUrl: user.imageUrl } : null };
+  },
+});
+
 export const getBusinessProfile = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
