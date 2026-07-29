@@ -87,8 +87,21 @@ export default function MyProfile() {
     twitter: '',
     imageUrl: '',
   });
+  const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [toastIsError, setToastIsError] = useState(false);
+
+  useEffect(() => {
+    return () => { if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl); };
+  }, []);
+
+  const showToastMsg = (msg: string, isError = false) => {
+    setToastMessage(msg);
+    setToastIsError(isError);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 4000);
+  };
 
   useEffect(() => {
     if (modelProfile) {
@@ -132,23 +145,95 @@ export default function MyProfile() {
   const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToastMsg('Please select an image file (JPG, PNG, WebP)', true);
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      showToastMsg('Image must be under 10MB', true);
+      return;
+    }
+
+    console.log('[Upload] File selected:', file.name, `${(file.size / 1024).toFixed(1)}KB`, file.type);
     setUploading(true);
+
+    const objectUrl = URL.createObjectURL(file);
+    setLocalPreviewUrl(objectUrl);
+
     try {
+      console.log('[Upload] Generating upload URL...');
       const uploadUrl = await generateUploadUrl();
-      const result = await fetch(uploadUrl, { method: 'POST', body: file });
+      console.log('[Upload] URL generated:', uploadUrl);
+
+      const result = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+
       if (!result.ok) {
         const text = await result.text();
-        throw new Error(`Upload failed (${result.status}): ${text.slice(0, 200)}`);
+        throw new Error(`HTTP ${result.status}: ${text.slice(0, 200)}`);
       }
-      const { storageId } = await result.json();
+
+      const responseBody = await result.json();
+      console.log('[Upload] Response:', responseBody);
+
+      const storageId = responseBody.storageId;
       if (!storageId) throw new Error('No storageId in upload response');
+
       const imageUrl = `${import.meta.env.VITE_CONVEX_URL}/api/storage/${storageId}`;
+      console.log('[Upload] Image URL constructed:', imageUrl);
+
       setForm((prev) => ({ ...prev, imageUrl }));
+
+      if (convexUser) {
+        console.log('[Upload] Auto-saving profile with new imageUrl...');
+        await saveProfile({
+          userId: convexUser._id as any,
+          displayName: form.displayName,
+          phone: form.phone || undefined,
+          bio: form.bio || undefined,
+          tagline: form.tagline || undefined,
+          gender: form.gender || undefined,
+          dateOfBirth: form.dateOfBirth || undefined,
+          country: form.country || undefined,
+          state: form.state || undefined,
+          city: form.city || undefined,
+          height: form.height || undefined,
+          weight: form.weight || undefined,
+          bust: form.bust || undefined,
+          waist: form.waist || undefined,
+          hips: form.hips || undefined,
+          dressSize: form.dressSize || undefined,
+          suitSize: form.suitSize || undefined,
+          collarSize: form.collarSize || undefined,
+          inseam: form.inseam || undefined,
+          shoeSize: form.shoeSize || undefined,
+          eyeColor: form.eyeColor || undefined,
+          hairColor: form.hairColor || undefined,
+          skinTone: form.skinTone || undefined,
+          tattoos: form.tattoos || undefined,
+          piercings: form.piercings || undefined,
+          categories: form.categories ? form.categories.split(',').map(c => c.trim()).filter(Boolean) : undefined,
+          hourlyRate: form.hourlyRate || undefined,
+          dailyRate: form.dailyRate || undefined,
+          isAvailable: form.isAvailable,
+          socials: (form.instagram || form.tiktok || form.twitter) ? {
+            instagram: form.instagram || undefined,
+            tiktok: form.tiktok || undefined,
+            twitter: form.twitter || undefined,
+          } : undefined,
+          imageUrl,
+        });
+        console.log('[Upload] Profile saved with new imageUrl');
+      }
+
+      showToastMsg('Profile photo updated');
     } catch (err) {
-      console.error('Image upload error:', err);
-      setToastMessage('Failed to upload image');
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+      console.error('[Upload] Error:', err);
+      setLocalPreviewUrl(null);
+      showToastMsg(`Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`, true);
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = '';
       setUploading(false);
@@ -198,18 +283,15 @@ export default function MyProfile() {
         } : undefined,
         imageUrl: form.imageUrl || undefined,
       });
-      setToastMessage('Profile saved successfully!');
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+      showToastMsg('Profile saved successfully!');
     } catch (err) {
       console.error('Save profile error:', err);
-      setToastMessage('Failed to save profile.');
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+      showToastMsg('Failed to save profile.', true);
     }
   };
 
   const handleCancel = () => {
+    if (localPreviewUrl) { URL.revokeObjectURL(localPreviewUrl); setLocalPreviewUrl(null); }
     if (modelProfile) {
       setForm({
         displayName: modelProfile.displayName || '',
@@ -287,17 +369,20 @@ export default function MyProfile() {
           <div className="flex items-center gap-6 mb-8">
             <div className="relative group">
               {uploading ? (
-                <div className="w-24 h-24 rounded-full bg-gray-100 border-2 border-white shadow-sm flex items-center justify-center">
-                  <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+                <div className="relative w-24 h-24">
+                  <img src={localPreviewUrl || form.imageUrl || ''} alt="Profile" className="w-24 h-24 rounded-full object-cover border-2 border-white shadow-sm opacity-50" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 text-[#D4AF37] animate-spin" />
+                  </div>
                 </div>
-              ) : form.imageUrl ? (
-                <img src={form.imageUrl} alt="Profile" className="w-24 h-24 rounded-full object-cover border-2 border-white shadow-sm" />
+              ) : (localPreviewUrl || form.imageUrl) ? (
+                <img src={localPreviewUrl || form.imageUrl} alt="Profile" className="w-24 h-24 rounded-full object-cover border-2 border-white shadow-sm" />
               ) : (
                 <div className="w-24 h-24 rounded-full bg-gray-100 border-2 border-white shadow-sm flex items-center justify-center">
                   <span className="text-2xl font-bold text-gray-400">{(form.displayName || '?').charAt(0).toUpperCase()}</span>
                 </div>
               )}
-              <button onClick={() => fileInputRef.current?.click()} className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                 <Camera className="w-5 h-5 text-white" />
               </button>
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
@@ -750,8 +835,8 @@ export default function MyProfile() {
       </div>
 
       {showToast && (
-        <div className="fixed bottom-8 right-8 bg-[#111111] text-white px-6 py-4 rounded-xl shadow-xl text-sm font-bold flex items-center gap-3 z-50">
-          <div className={`w-2 h-2 rounded-full ${toastMessage.includes('Failed') ? 'bg-red-500' : 'bg-green-500'}`} />
+        <div className={`fixed bottom-8 right-8 text-white px-6 py-4 rounded-xl shadow-xl text-sm font-bold flex items-center gap-3 z-50 ${toastIsError ? 'bg-red-600' : 'bg-[#111111]'}`}>
+          <div className={`w-2 h-2 rounded-full ${toastIsError ? 'bg-red-300' : 'bg-green-400'}`} />
           {toastMessage}
         </div>
       )}
