@@ -30,6 +30,7 @@ export const add = mutation({
     modelProfileId: v.id("modelProfiles"),
     userId: v.id("users"),
     imageUrl: v.string(),
+    imageStorageId: v.optional(v.string()),
     title: v.optional(v.string()),
     category: v.union(
       v.literal("portrait"),
@@ -42,14 +43,22 @@ export const add = mutation({
     description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    let imageUrl = args.imageUrl;
+    if (args.imageStorageId) {
+      const resolved = await ctx.storage.getUrl(args.imageStorageId);
+      if (resolved) imageUrl = resolved;
+    }
     const existing = await ctx.db
       .query("portfolio")
       .withIndex("by_modelProfileId", (q) =>
         q.eq("modelProfileId", args.modelProfileId)
       )
       .collect();
+    const { imageStorageId, ...rest } = args;
     return await ctx.db.insert("portfolio", {
-      ...args,
+      ...rest,
+      imageUrl,
+      imageStorageId,
       order: existing.length,
       createdAt: Date.now(),
     });

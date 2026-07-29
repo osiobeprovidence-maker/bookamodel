@@ -89,6 +89,7 @@ export default defineSchema({
     modelProfileId: v.id("modelProfiles"),
     userId: v.id("users"),
     imageUrl: v.string(),
+    imageStorageId: v.optional(v.string()),
     title: v.optional(v.string()),
     type: v.optional(v.union(v.literal("image"), v.literal("video"))),
     videoUrl: v.optional(v.string()),

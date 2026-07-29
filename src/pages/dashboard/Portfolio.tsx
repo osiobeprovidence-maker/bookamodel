@@ -26,6 +26,8 @@ export default function Portfolio() {
   const [uploading, setUploading] = useState(false);
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadCategory, setUploadCategory] = useState('portrait');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredItems = !portfolioItems ? [] :
@@ -96,7 +98,8 @@ export default function Portfolio() {
               <motion.div key={item._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.06 }}
                 className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
                 <div className="relative aspect-[3/4] overflow-hidden">
-                  <img src={item.imageUrl} alt={item.title || ''} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <img src={item.imageUrl} alt={item.title || ''} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" onError={(e) => { (e.target as HTMLImageElement).src = ''; (e.target as HTMLImageElement).classList.add('hidden'); (e.target as HTMLImageElement).parentElement!.querySelector('.img-fallback')?.classList.remove('hidden'); }} />
+                  <div className="img-fallback hidden absolute inset-0 flex items-center justify-center bg-gray-100"><ImageIcon size={40} className="text-gray-300" /></div>
                   <div className="absolute right-3 top-3 rounded-full bg-black/50 p-1.5 backdrop-blur-sm">
                     <Globe size={14} className="text-white" />
                   </div>
@@ -169,52 +172,61 @@ export default function Portfolio() {
               </div>
             </div>
 
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={async (e: ChangeEvent<HTMLInputElement>) => {
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e: ChangeEvent<HTMLInputElement>) => {
               const file = e.target.files?.[0];
-              if (!file || !convexUser || !modelProfile) return;
-              setUploading(true);
-              try {
-                const uploadUrl = await generateUploadUrl();
-                const result = await fetch(uploadUrl, { method: 'POST', body: file });
-                if (!result.ok) {
-                  const text = await result.text();
-                  throw new Error(`Upload failed (${result.status}): ${text.slice(0, 200)}`);
-                }
-                const { storageId } = await result.json();
-                if (!storageId) throw new Error('No storageId in upload response');
-                const imageUrl = `${import.meta.env.VITE_CONVEX_URL}/api/storage/${storageId}`;
-                await addPortfolioItem({
-                  modelProfileId: modelProfile._id as any,
-                  userId: convexUser._id as any,
-                  imageUrl,
-                  title: uploadTitle || undefined,
-                  category: uploadCategory as any,
-                });
-                setIsUploadOpen(false);
-                setUploadTitle('');
-                setUploadCategory('portrait');
-              } catch (err) {
-                console.error('Upload error:', err);
-              } finally {
-                if (e.target) e.target.value = '';
-                setUploading(false);
-              }
+              if (!file) return;
+              setSelectedFile(file);
+              setPreviewUrl(URL.createObjectURL(file));
             }} />
 
-            <div onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-[#F8F8F8] px-6 py-16 transition-colors hover:border-[#D4AF37] cursor-pointer">
-              {uploading ? (
-                <Loader2 size={32} className="text-gray-400 animate-spin" />
-              ) : (
-                <>
-                  <div className="mb-4 rounded-2xl bg-gray-100 p-4"><Upload size={32} className="text-gray-400" /></div>
-                  <p className="text-sm font-medium" style={{ color: '#111111' }}>Click to select a photo</p>
-                  <p className="mt-1 text-xs text-gray-400">JPG, PNG or WebP</p>
-                </>
-              )}
-            </div>
+            {previewUrl ? (
+              <div className="relative rounded-2xl overflow-hidden bg-gray-100">
+                <img src={previewUrl} alt="Preview" className="w-full h-64 object-cover" />
+                <button onClick={() => { setSelectedFile(null); setPreviewUrl(null); if (fileInputRef.current) fileInputRef.current.value = ''; }} className="absolute top-2 right-2 rounded-full bg-black/50 p-1.5 backdrop-blur-sm text-white hover:bg-black/70"><X size={16} /></button>
+              </div>
+            ) : (
+              <div onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-[#F8F8F8] px-6 py-16 transition-colors hover:border-[#D4AF37] cursor-pointer">
+                <div className="mb-4 rounded-2xl bg-gray-100 p-4"><Upload size={32} className="text-gray-400" /></div>
+                <p className="text-sm font-medium" style={{ color: '#111111' }}>Click to select a photo</p>
+                <p className="mt-1 text-xs text-gray-400">JPG, PNG or WebP</p>
+              </div>
+            )}
 
             <div className="mt-6 flex justify-end gap-3">
-              <button onClick={() => setIsUploadOpen(false)} className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50">Cancel</button>
+              <button onClick={async () => {
+                if (!selectedFile || !convexUser || !modelProfile || uploading) return;
+                setUploading(true);
+                try {
+                  const uploadUrl = await generateUploadUrl();
+                  const result = await fetch(uploadUrl, { method: 'POST', body: selectedFile });
+                  if (!result.ok) {
+                    const text = await result.text();
+                    throw new Error(`Upload failed (${result.status}): ${text.slice(0, 200)}`);
+                  }
+                  const { storageId } = await result.json();
+                  if (!storageId) throw new Error('No storageId in upload response');
+                  await addPortfolioItem({
+                    modelProfileId: modelProfile._id as any,
+                    userId: convexUser._id as any,
+                    imageUrl: previewUrl || '',
+                    imageStorageId: storageId,
+                    title: uploadTitle || undefined,
+                    category: uploadCategory as any,
+                  });
+                  setIsUploadOpen(false);
+                  setUploadTitle('');
+                  setUploadCategory('portrait');
+                  setSelectedFile(null);
+                  setPreviewUrl(null);
+                } catch (err) {
+                  console.error('Upload error:', err);
+                } finally {
+                  setUploading(false);
+                }
+              }} disabled={!selectedFile || uploading} className={`rounded-full px-5 py-2.5 text-sm font-medium transition-colors ${!selectedFile || uploading ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#D4AF37] text-white hover:bg-[#c9a430]'}`}>
+                {uploading ? <><Loader2 size={16} className="animate-spin mr-2 inline" /> Uploading...</> : 'Upload'}
+              </button>
+              <button onClick={() => { setIsUploadOpen(false); setSelectedFile(null); setPreviewUrl(null); }} className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50">Cancel</button>
             </div>
           </motion.div>
         </div>
