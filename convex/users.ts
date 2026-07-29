@@ -154,13 +154,18 @@ export const saveModelProfile = mutation({
   },
   handler: async (ctx, args) => {
     const { userId, phone, ...profile } = args;
+    let resolvedImageUrl = profile.imageUrl;
+    if (profile.profilePhotoStorageId) {
+      const url = await ctx.storage.getUrl(profile.profilePhotoStorageId);
+      if (url) resolvedImageUrl = url;
+    }
     const existing = await ctx.db
       .query("modelProfiles")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .unique();
-    await ctx.db.patch(userId, { phone, imageUrl: profile.imageUrl });
+    await ctx.db.patch(userId, { phone, imageUrl: resolvedImageUrl });
     if (existing) {
-      await ctx.db.patch(existing._id, { ...profile, updatedAt: Date.now() });
+      await ctx.db.patch(existing._id, { ...profile, imageUrl: resolvedImageUrl, updatedAt: Date.now() });
       return existing._id;
     }
     return await ctx.db.insert("modelProfiles", {
@@ -171,6 +176,7 @@ export const saveModelProfile = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
       ...profile,
+      imageUrl: resolvedImageUrl,
     });
   },
 });

@@ -182,13 +182,12 @@ export default function MyProfile() {
       const storageId = responseBody.storageId;
       if (!storageId) throw new Error('No storageId in upload response');
 
-      const imageUrl = `${import.meta.env.VITE_CONVEX_URL}/api/storage/${storageId}`;
-      console.log('[Upload] Image URL constructed:', imageUrl);
+      console.log('[Upload] Storage ID received:', storageId);
 
-      setForm((prev) => ({ ...prev, imageUrl }));
+      setForm((prev) => ({ ...prev, imageUrl: localPreviewUrl || prev.imageUrl }));
 
       if (convexUser) {
-        console.log('[Upload] Auto-saving profile with new imageUrl...');
+        console.log('[Upload] Auto-saving profile with profilePhotoStorageId...');
         await saveProfile({
           userId: convexUser._id as any,
           displayName: form.displayName,
@@ -224,9 +223,9 @@ export default function MyProfile() {
             tiktok: form.tiktok || undefined,
             twitter: form.twitter || undefined,
           } : undefined,
-          imageUrl,
+          profilePhotoStorageId: storageId,
         });
-        console.log('[Upload] Profile saved with new imageUrl');
+        console.log('[Upload] Profile saved with profilePhotoStorageId');
       }
 
       showToastMsg('Profile photo updated');
