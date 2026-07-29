@@ -19,6 +19,29 @@ const inputClass =
 const selectClass =
   'w-full px-6 py-4 bg-white rounded-xl border border-gray-100 focus:border-[#D4AF37] outline-none transition-all text-sm font-medium appearance-none';
 
+const FEMALE_FIELDS = [
+  { key: 'height', label: 'Height (cm)', type: 'number' },
+  { key: 'bust', label: 'Bust (cm)', type: 'number' },
+  { key: 'waist', label: 'Waist (cm)', type: 'number' },
+  { key: 'hips', label: 'Hips (cm)', type: 'number' },
+  { key: 'dressSize', label: 'Dress Size', type: 'text' },
+  { key: 'shoeSize', label: 'Shoe Size', type: 'text' },
+];
+
+const MALE_FIELDS = [
+  { key: 'height', label: 'Height (cm)', type: 'number' },
+  { key: 'chest', label: 'Chest (cm)', type: 'number' },
+  { key: 'waist', label: 'Waist (cm)', type: 'number' },
+  { key: 'suitSize', label: 'Suit Size', type: 'text' },
+  { key: 'collarSize', label: 'Collar / Neck Size', type: 'text' },
+  { key: 'inseam', label: 'Inseam (cm)', type: 'number' },
+  { key: 'shoeSize', label: 'Shoe Size', type: 'text' },
+];
+
+const COMMON_FIELDS = [
+  { key: 'weight', label: 'Weight (kg, optional)', type: 'number' },
+];
+
 export default function MyProfile() {
   const { convexUser } = useUser();
   const modelProfile = useQuery(
@@ -45,10 +68,16 @@ export default function MyProfile() {
     bust: '',
     waist: '',
     hips: '',
+    dressSize: '',
+    suitSize: '',
+    collarSize: '',
+    inseam: '',
     shoeSize: '',
     eyeColor: '',
-    skinTone: '',
     hairColor: '',
+    skinTone: '',
+    tattoos: '',
+    piercings: '',
     categories: '',
     hourlyRate: '',
     dailyRate: '',
@@ -78,10 +107,16 @@ export default function MyProfile() {
         bust: modelProfile.bust || '',
         waist: modelProfile.waist || '',
         hips: modelProfile.hips || '',
+        dressSize: (modelProfile as any).dressSize || '',
+        suitSize: (modelProfile as any).suitSize || '',
+        collarSize: (modelProfile as any).collarSize || '',
+        inseam: (modelProfile as any).inseam || '',
         shoeSize: modelProfile.shoeSize || '',
         eyeColor: modelProfile.eyeColor || '',
-        skinTone: modelProfile.skinTone || '',
         hairColor: (modelProfile as any).hairColor || '',
+        skinTone: modelProfile.skinTone || '',
+        tattoos: (modelProfile as any).tattoos || '',
+        piercings: (modelProfile as any).piercings || '',
         categories: (modelProfile.categories || []).join(', '),
         hourlyRate: modelProfile.hourlyRate || '',
         dailyRate: modelProfile.dailyRate || '',
@@ -136,10 +171,16 @@ export default function MyProfile() {
         bust: form.bust || undefined,
         waist: form.waist || undefined,
         hips: form.hips || undefined,
+        dressSize: form.dressSize || undefined,
+        suitSize: form.suitSize || undefined,
+        collarSize: form.collarSize || undefined,
+        inseam: form.inseam || undefined,
         shoeSize: form.shoeSize || undefined,
         eyeColor: form.eyeColor || undefined,
-        skinTone: form.skinTone || undefined,
         hairColor: form.hairColor || undefined,
+        skinTone: form.skinTone || undefined,
+        tattoos: form.tattoos || undefined,
+        piercings: form.piercings || undefined,
         categories: form.categories ? form.categories.split(',').map(c => c.trim()).filter(Boolean) : undefined,
         hourlyRate: form.hourlyRate || undefined,
         dailyRate: form.dailyRate || undefined,
@@ -154,7 +195,8 @@ export default function MyProfile() {
       setToastMessage('Profile saved successfully!');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
-    } catch {
+    } catch (err) {
+      console.error('Save profile error:', err);
       setToastMessage('Failed to save profile.');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
@@ -178,10 +220,16 @@ export default function MyProfile() {
         bust: modelProfile.bust || '',
         waist: modelProfile.waist || '',
         hips: modelProfile.hips || '',
+        dressSize: (modelProfile as any).dressSize || '',
+        suitSize: (modelProfile as any).suitSize || '',
+        collarSize: (modelProfile as any).collarSize || '',
+        inseam: (modelProfile as any).inseam || '',
         shoeSize: modelProfile.shoeSize || '',
         eyeColor: modelProfile.eyeColor || '',
-        skinTone: modelProfile.skinTone || '',
         hairColor: (modelProfile as any).hairColor || '',
+        skinTone: modelProfile.skinTone || '',
+        tattoos: (modelProfile as any).tattoos || '',
+        piercings: (modelProfile as any).piercings || '',
         categories: (modelProfile.categories || []).join(', '),
         hourlyRate: modelProfile.hourlyRate || '',
         dailyRate: modelProfile.dailyRate || '',
@@ -193,6 +241,12 @@ export default function MyProfile() {
       });
     }
   };
+
+  const measurementFields = form.gender === 'Female'
+    ? FEMALE_FIELDS
+    : form.gender === 'Male'
+    ? MALE_FIELDS
+    : [];
 
   if (!convexUser) return <SkeletonLoading />;
 
@@ -408,124 +462,129 @@ export default function MyProfile() {
                 placeholder="e.g. ₦200,000/day"
               />
             </div>
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                Height (cm)
-              </label>
-              <input
-                type="number"
-                value={form.height}
-                onChange={(e) => update('height', e.target.value)}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                Weight (kg)
-              </label>
-              <input
-                type="number"
-                value={form.weight}
-                onChange={(e) => update('weight', e.target.value)}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                Bust
-              </label>
-              <input
-                type="text"
-                value={form.bust}
-                onChange={(e) => update('bust', e.target.value)}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                Waist
-              </label>
-              <input
-                type="text"
-                value={form.waist}
-                onChange={(e) => update('waist', e.target.value)}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                Hip
-              </label>
-              <input
-                type="text"
-                value={form.hips}
-                onChange={(e) => update('hips', e.target.value)}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                Shoe Size
-              </label>
-              <input
-                type="text"
-                value={form.shoeSize}
-                onChange={(e) => update('shoeSize', e.target.value)}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                Hair Color
-              </label>
-              <select
-                value={form.hairColor}
-                onChange={(e) => update('hairColor', e.target.value)}
-                className={selectClass}
-              >
-                <option value="">Select...</option>
-                <option>Black</option>
-                <option>Brown</option>
-                <option>Blonde</option>
-                <option>Red</option>
-                <option>Other</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                Eye Color
-              </label>
-              <select
-                value={form.eyeColor}
-                onChange={(e) => update('eyeColor', e.target.value)}
-                className={selectClass}
-              >
-                <option value="">Select...</option>
-                <option>Brown</option>
-                <option>Black</option>
-                <option>Green</option>
-                <option>Blue</option>
-                <option>Hazel</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                Skin Tone
-              </label>
-              <select
-                value={form.skinTone}
-                onChange={(e) => update('skinTone', e.target.value)}
-                className={selectClass}
-              >
-                <option value="">Select...</option>
-                <option>Fair</option>
-                <option>Light</option>
-                <option>Medium</option>
-                <option>Deep</option>
-                <option>Ebony</option>
-              </select>
-            </div>
           </div>
+
+          {form.gender && (
+            <>
+              <div className="border-t border-gray-100 my-8" />
+              <h3 className="text-sm font-bold text-[#111111] mb-6 uppercase tracking-wider">
+                {form.gender === 'Female' ? 'Female Measurements' : form.gender === 'Male' ? 'Male Measurements' : 'Measurements'}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {measurementFields.map((field) => (
+                  <div key={field.key}>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                      {field.label}
+                    </label>
+                    <input
+                      type={field.type}
+                      value={(form as any)[field.key]}
+                      onChange={(e) => update(field.key, e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                ))}
+                {COMMON_FIELDS.map((field) => (
+                  <div key={field.key}>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                      {field.label}
+                    </label>
+                    <input
+                      type={field.type}
+                      value={(form as any)[field.key]}
+                      onChange={(e) => update(field.key, e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                ))}
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                    Hair Colour
+                  </label>
+                  <select
+                    value={form.hairColor}
+                    onChange={(e) => update('hairColor', e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="">Select...</option>
+                    <option>Black</option>
+                    <option>Brown</option>
+                    <option>Blonde</option>
+                    <option>Red</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                    Eye Colour
+                  </label>
+                  <select
+                    value={form.eyeColor}
+                    onChange={(e) => update('eyeColor', e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="">Select...</option>
+                    <option>Brown</option>
+                    <option>Black</option>
+                    <option>Green</option>
+                    <option>Blue</option>
+                    <option>Hazel</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                    Skin Tone
+                  </label>
+                  <select
+                    value={form.skinTone}
+                    onChange={(e) => update('skinTone', e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="">Select...</option>
+                    <option>Fair</option>
+                    <option>Light</option>
+                    <option>Medium</option>
+                    <option>Deep</option>
+                    <option>Ebony</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                    Tattoos
+                  </label>
+                  <select
+                    value={form.tattoos}
+                    onChange={(e) => update('tattoos', e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="">Select...</option>
+                    <option>No</option>
+                    <option>Yes</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                    Piercings
+                  </label>
+                  <select
+                    value={form.piercings}
+                    onChange={(e) => update('piercings', e.target.value)}
+                    className={selectClass}
+                  >
+                    <option value="">Select...</option>
+                    <option>No</option>
+                    <option>Yes</option>
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
+
+          {!form.gender && (
+            <p className="text-sm text-gray-400 mt-6">
+              Select a gender above to show industry-standard measurement fields.
+            </p>
+          )}
         </motion.div>
 
         {/* Social Media */}
