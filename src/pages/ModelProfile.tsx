@@ -9,7 +9,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { useUser } from '../contexts/UserContext';
 import { useToast } from '../components/ui/Toast';

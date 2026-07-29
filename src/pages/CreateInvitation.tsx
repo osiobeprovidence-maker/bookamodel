@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { models } from '../data/mockData';
 import { Button } from '../components/ui/Button';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const CreateInvitation = () => {
   const { id } = useParams();

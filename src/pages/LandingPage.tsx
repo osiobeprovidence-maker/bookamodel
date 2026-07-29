@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Search, MapPin, Grid, ArrowRight, Star, CheckCircle, Zap } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { models, categories } from '../data/mockData';

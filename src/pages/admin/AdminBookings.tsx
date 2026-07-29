@@ -5,7 +5,7 @@
 
 import { useState, useMemo } from 'react';
 import { CalendarCheck, X, MoreHorizontal, Eye, Ban, RotateCcw, AlertTriangle } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { adminBookings } from '../../data/adminData';
 import { AdminDataTable } from '../../components/admin/AdminDataTable';

@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import {
   Mail, Check, Camera, AlertCircle, Loader2, Building2,
 } from 'lucide-react';

@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { Clock, CheckCircle, XCircle, ChevronDown, ChevronUp, FileText, Camera, Link2, User } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { adminVerificationQueue } from '../../data/adminData';
 import { useToast } from '../../components/ui/Toast';

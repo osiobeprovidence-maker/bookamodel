@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Crown, Check, Star, TrendingUp, Shield, Zap,
   MessageSquare, FileText, BarChart3, Headphones,

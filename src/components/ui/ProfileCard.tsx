@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Star, MapPin, CheckCircle2, User } from 'lucide-react';
 import { Badge } from './Badge';
 import { Button } from './Button';

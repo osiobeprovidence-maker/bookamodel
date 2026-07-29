@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { GripVertical, Plus, Trash2, ArrowUp, ArrowDown, Star, Home, Clock, TrendingUp, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { adminModels } from '../../data/adminData';
 import { useToast } from '../../components/ui/Toast';

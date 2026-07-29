@@ -5,7 +5,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
 
 interface AdminConfirmModalProps {

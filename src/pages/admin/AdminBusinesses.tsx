@@ -5,7 +5,7 @@
 
 import { useState, useMemo } from 'react';
 import { Building2, Search, X, MoreHorizontal, Eye, Ban, Trash2, CreditCard, CalendarCheck, UserCheck } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { adminBusinesses } from '../../data/adminData';
 import { AdminDataTable } from '../../components/admin/AdminDataTable';

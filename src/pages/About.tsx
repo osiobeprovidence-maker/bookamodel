@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Button } from '../components/ui/Button';
 import { Star, Shield, Users, Globe } from 'lucide-react';
 

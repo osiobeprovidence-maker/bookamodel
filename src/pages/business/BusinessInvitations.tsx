@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import {
   Send, CheckCircle, Clock, XCircle, AlertCircle,
   Trophy, Calendar, MapPin, Wallet, MessageSquare,

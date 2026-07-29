@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import {
   Users,
   Briefcase,

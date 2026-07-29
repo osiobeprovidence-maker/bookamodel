@@ -1,5 +1,5 @@
 import { useState, useCallback, createContext, useContext, type ReactNode } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 

@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { Tag, Plus, GripVertical, Pencil, Trash2, ArrowUp, ArrowDown, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { adminCategories } from '../../data/adminData';
 import { AdminConfirmModal } from '../../components/admin/AdminConfirmModal';

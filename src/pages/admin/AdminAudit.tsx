@@ -4,7 +4,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Shield, Download, Filter } from 'lucide-react';
 import { adminAuditLogs } from '../../data/adminData';
 import { AdminDataTable } from '../../components/admin/AdminDataTable';

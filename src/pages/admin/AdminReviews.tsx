@@ -5,7 +5,7 @@
 
 import { useState, useMemo } from 'react';
 import { Star, Eye, EyeOff, Trash2, MessageSquare, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { adminReviews } from '../../data/adminData';
 import { AdminDataTable } from '../../components/admin/AdminDataTable';

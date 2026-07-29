@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, type ElementType } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Shield, Bell, CreditCard, Link as LinkIcon,
   Palette, HelpCircle, AlertTriangle, Eye, EyeOff,
