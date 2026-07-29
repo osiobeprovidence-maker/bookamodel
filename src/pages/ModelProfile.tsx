@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   MapPin, Star, MessageSquare, CheckCircle2, Heart, Award,
   Check, Mail, Calendar, Phone, Globe, X, ChevronLeft, ChevronRight,
-  ZoomIn, ZoomOut, Share2, ShieldCheck, Clock, Wallet, Send, Loader2, Play, Film, Image as ImageIcon,
+  ZoomIn, ZoomOut, Share2, ShieldCheck, Clock, Wallet, Send, Loader2, Play, Film, Folder, Image as ImageIcon,
 } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';

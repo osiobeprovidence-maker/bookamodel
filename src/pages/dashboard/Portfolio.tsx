@@ -1,6 +1,6 @@
-import { useState, useRef, type ChangeEvent } from 'react';
+import React, { useState, useRef, type ChangeEvent } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Video, FolderPlus, Camera, Folder, Eye, Globe, MoreVertical, Pencil, Trash2, Download, Image as ImageIcon, X, Loader2, Play, AlertCircle, Plus, Check, Film } from 'lucide-react';
+import { Upload, Video, FolderPlus, Camera, Folder, Eye, Globe, Lock, MoreVertical, Pencil, Trash2, Download, Image as ImageIcon, X, Loader2, Play, AlertCircle, Plus, Check, Film } from 'lucide-react';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
