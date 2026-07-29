@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useUser } from '../contexts/UserContext';
 import { useToast } from '../components/ui/Toast';
-import MuxPlayer from '@mux/mux-player-react';
+import VideoPlayer from '../components/ui/VideoPlayer';
 
 const bookingTypes = ['Fashion', 'Commercial', 'Runway', 'Editorial', 'Beauty', 'Fitness', 'Lifestyle'];
 
@@ -212,12 +212,9 @@ export const ModelProfile = () => {
                     <motion.div key={video._id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                       className="rounded-2xl overflow-hidden bg-black group relative aspect-video">
                       {video.playbackId ? (
-                        <MuxPlayer
-                          streamType="on-demand"
+                        <VideoPlayer
                           playbackId={video.playbackId}
-                          metadata={{ video_title: video.title || 'Portfolio Video' }}
                           className="w-full h-full"
-                          thumbnailTime={0}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gray-900">

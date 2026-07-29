@@ -4,7 +4,7 @@ import { Upload, Video, FolderPlus, Camera, Folder, Eye, Globe, MoreVertical, Pe
 import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
-import MuxPlayer from '@mux/mux-player-react';
+import VideoPlayer from '../../components/ui/VideoPlayer';
 
 const filters = ['All', 'Photos', 'Videos', 'Portrait', 'Runway', 'Editorial', 'Commercial', 'Beauty', 'Lifestyle', 'Fitness', 'Swimwear', 'Fashion', 'Product'];
 
@@ -352,18 +352,12 @@ export default function Portfolio() {
                 <div className="relative aspect-[3/4] overflow-hidden">
                   {item.type === 'video' ? (
                     item.status === 'ready' && item.playbackId ? (
-                      <div className="relative w-full h-full">
-                        <MuxPlayer
-                          streamType="on-demand"
-                          playbackId={item.playbackId}
-                          metadata={{ video_title: item.title || 'Portfolio Video' }}
-                          thumbnailTime={0}
-                          className="w-full h-full object-cover"
-                          muted
-                          loop
-                          playsOnReady={false}
-                        />
-                      </div>
+                      <VideoPlayer
+                        playbackId={item.playbackId}
+                        className="w-full h-full object-cover"
+                        muted
+                        loop
+                      />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center bg-gray-900">
                         {item.status === 'processing' ? (
