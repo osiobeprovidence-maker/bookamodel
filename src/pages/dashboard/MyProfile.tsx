@@ -136,15 +136,21 @@ export default function MyProfile() {
     try {
       const uploadUrl = await generateUploadUrl();
       const result = await fetch(uploadUrl, { method: 'POST', body: file });
-      if (!result.ok) throw new Error('Upload failed');
+      if (!result.ok) {
+        const text = await result.text();
+        throw new Error(`Upload failed (${result.status}): ${text.slice(0, 200)}`);
+      }
       const { storageId } = await result.json();
+      if (!storageId) throw new Error('No storageId in upload response');
       const imageUrl = `${import.meta.env.VITE_CONVEX_URL}/api/storage/${storageId}`;
       setForm((prev) => ({ ...prev, imageUrl }));
-    } catch {
+    } catch (err) {
+      console.error('Image upload error:', err);
       setToastMessage('Failed to upload image');
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
     } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
       setUploading(false);
     }
   };
