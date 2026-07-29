@@ -1,5 +1,5 @@
 import {
-  Send, Eye, Trophy, Wallet, CheckCircle, AlertCircle, ArrowRight
+  Send, Eye, Trophy, Wallet, CheckCircle, AlertCircle, ArrowRight, RefreshCw
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuery } from 'convex/react';
@@ -14,8 +14,26 @@ export const ModelDashboardHome = () => {
     convexUser ? { userId: convexUser._id as any } : 'skip'
   );
 
-  if (!convexUser || !dashboardData) {
+  const isLoading = !convexUser || dashboardData === undefined;
+
+  if (isLoading) {
     return <SkeletonLoading />;
+  }
+
+  if (convexUser && dashboardData === null) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <AlertCircle className="w-12 h-12 text-gray-300 mb-4" />
+        <h2 className="text-xl font-bold text-gray-500 mb-2">Unable to load dashboard</h2>
+        <p className="text-sm text-gray-400 mb-6">We could not retrieve your dashboard data.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="inline-flex items-center gap-2 bg-[#111111] text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-all"
+        >
+          <RefreshCw className="w-4 h-4" /> Retry
+        </button>
+      </div>
+    );
   }
 
   const { user, profile, stats, recentInvitations, upcomingBookings, profileCompletion } = dashboardData;

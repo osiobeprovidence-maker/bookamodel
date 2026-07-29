@@ -7,7 +7,7 @@ import { useState, type ReactNode } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, User, Image, FileText, Send,
-  Bell, Settings, Trophy, Menu, X, Crown, Sparkles
+  Bell, Settings, Trophy, Menu, X, Crown
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -80,9 +80,6 @@ export const DashboardLayout = ({ children }: { children: ReactNode }) => {
                 <item.icon className="w-4 h-4" />
                 {item.label}
               </div>
-              {'highlight' in item && item.highlight && (
-                <Sparkles className="w-3 h-3 text-[#D4AF37]" />
-              )}
             </NavLink>
           ))}
         </nav>
