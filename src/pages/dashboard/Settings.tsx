@@ -13,7 +13,7 @@ import {
   Check, X, Loader2, Sun, Moon, Monitor,
   CheckCircle2, AlertCircle,
 } from 'lucide-react';
-import { useQuery } from 'convex/react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
 
@@ -104,6 +104,8 @@ export default function Settings() {
     api.users.getModelProfile,
     convexUser ? { userId: convexUser._id as any } : 'skip'
   );
+  const saveProfile = useMutation(api.users.saveModelProfile);
+  const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('General');
   const [toast, setToast] = useState<string | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
@@ -270,10 +272,28 @@ export default function Settings() {
             </div>
             <div className="flex gap-3 pt-2">
               <button
-                onClick={() => showToast('Changes saved successfully')}
-                className="bg-[#111111] text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-all active:scale-95"
+                onClick={async () => {
+                  if (!convexUser) return;
+                  setSaving(true);
+                  try {
+                    await saveProfile({
+                      userId: convexUser._id as any,
+                      displayName: generalForm.fullName,
+                      phone: generalForm.phone || undefined,
+                      country: generalForm.country || undefined,
+                    });
+                    showToast('Changes saved successfully');
+                  } catch (err) {
+                    console.error('Save error:', err);
+                    showToast('Failed to save changes');
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                disabled={saving}
+                className="bg-[#111111] text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-all active:scale-95 disabled:opacity-50"
               >
-                Save Changes
+                {saving ? 'Saving...' : 'Save Changes'}
               </button>
               <button
                 onClick={() => {

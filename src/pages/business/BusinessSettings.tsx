@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, type ElementType } from 'react';
+import { useState, useEffect, type ElementType } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Building2, Shield, Bell, CreditCard, Users, Code,
@@ -11,6 +11,9 @@ import {
   Lock, Globe, Mail, MessageSquare, CheckCircle2, X,
   Upload, Trash2, Power, Key,
 } from 'lucide-react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { useUser } from '../../contexts/UserContext';
 
 type Tab = 'General' | 'Company' | 'Security' | 'Notifications' | 'Billing' | 'Team Members' | 'API' | 'Appearance' | 'Support' | 'Danger Zone';
 
@@ -94,25 +97,54 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
 }
 
 export default function BusinessSettings() {
+  const { convexUser } = useUser();
+  const businessProfile = useQuery(
+    api.users.getBusinessProfile,
+    convexUser ? { userId: convexUser._id as any } : 'skip'
+  );
+  const saveBusinessProfile = useMutation(api.users.saveBusinessProfile);
+  const [saving, setSaving] = useState(false);
+
   const [activeTab, setActiveTab] = useState<Tab>('General');
   const [toast, setToast] = useState<string | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ title: string; message: string; onConfirm: () => void } | null>(null);
 
   const [generalForm, setGeneralForm] = useState({
-    businessName: 'Nike Nigeria',
-    businessEmail: 'contact@nike.ng',
-    phone: '+234 800 123 4567',
-    website: 'nike.com/ng',
-    address: '14 Adeola Odeku, Victoria Island, Lagos',
+    businessName: '',
+    businessEmail: '',
+    phone: '',
+    website: '',
+    address: '',
     industry: 'Fashion',
     description: '',
   });
 
   const [company, setCompany] = useState({
-    verified: true,
-    cacNumber: 'RC1234567',
-    taxId: 'NG-TAX-98765',
+    verified: false,
+    cacNumber: '',
+    taxId: '',
   });
+
+  useEffect(() => {
+    if (convexUser) {
+      setGeneralForm(prev => ({ ...prev, businessEmail: convexUser.email || '' }));
+    }
+    if (businessProfile) {
+      setGeneralForm(prev => ({
+        ...prev,
+        businessName: businessProfile.companyName || '',
+        phone: businessProfile.phone || businessProfile.contactPhone || '',
+        website: businessProfile.website || '',
+        address: businessProfile.address || '',
+        industry: businessProfile.industry || 'Fashion',
+        description: businessProfile.description || '',
+      }));
+      setCompany(prev => ({
+        ...prev,
+        verified: businessProfile.isVerified || false,
+      }));
+    }
+  }, [convexUser, businessProfile]);
 
   const [passwordForm, setPasswordForm] = useState({ current: '', newPass: '', confirm: '' });
   const [showCurrentPass, setShowCurrentPass] = useState(false);
@@ -245,18 +277,43 @@ export default function BusinessSettings() {
             </div>
             <div className="flex gap-3 pt-2">
               <button
-                onClick={() => showToast('Changes saved successfully')}
-                className="bg-[#111111] text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-all active:scale-95"
+                onClick={async () => {
+                  if (!convexUser) return;
+                  setSaving(true);
+                  try {
+                    await saveBusinessProfile({
+                      userId: convexUser._id as any,
+                      businessName: generalForm.businessName,
+                      contactPerson: convexUser.name || '',
+                      phone: generalForm.phone || undefined,
+                      website: generalForm.website || undefined,
+                      description: generalForm.description || undefined,
+                    });
+                    showToast('Changes saved successfully');
+                  } catch (err) {
+                    console.error('Save error:', err);
+                    showToast('Failed to save changes');
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+                disabled={saving}
+                className="bg-[#111111] text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-all active:scale-95 disabled:opacity-50"
               >
-                Save Changes
+                {saving ? 'Saving...' : 'Save Changes'}
               </button>
               <button
-                onClick={() => setGeneralForm({
-                  businessName: 'Nike Nigeria', businessEmail: 'contact@nike.ng',
-                  phone: '+234 800 123 4567', website: 'nike.com/ng',
-                  address: '14 Adeola Odeku, Victoria Island, Lagos',
-                  industry: 'Fashion', description: '',
-                })}
+                onClick={() => {
+                  setGeneralForm({
+                    businessName: businessProfile?.companyName || '',
+                    businessEmail: convexUser?.email || '',
+                    phone: businessProfile?.phone || businessProfile?.contactPhone || '',
+                    website: businessProfile?.website || '',
+                    address: businessProfile?.address || '',
+                    industry: businessProfile?.industry || 'Fashion',
+                    description: businessProfile?.description || '',
+                  });
+                }}
                 className="bg-gray-100 text-gray-600 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-all"
               >
                 Reset

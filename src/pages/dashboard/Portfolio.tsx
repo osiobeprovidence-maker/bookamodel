@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, type ChangeEvent } from 'react';
 import { motion } from 'motion/react';
-import { Upload, Video, FolderPlus, Camera, Folder, Eye, Globe, Lock, MoreVertical, Pencil, Trash2, Download, Image as ImageIcon, X } from 'lucide-react';
-import { useQuery } from 'convex/react';
+import { Upload, Video, FolderPlus, Camera, Folder, Eye, Globe, Lock, MoreVertical, Pencil, Trash2, Download, Image as ImageIcon, X, Loader2 } from 'lucide-react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
 
@@ -13,9 +13,20 @@ export default function Portfolio() {
     api.portfolio.getByUser,
     convexUser ? { userId: convexUser._id as any } : 'skip'
   );
+  const modelProfile = useQuery(
+    api.users.getModelProfile,
+    convexUser ? { userId: convexUser._id as any } : 'skip'
+  );
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
+  const addPortfolioItem = useMutation(api.portfolio.add);
+  const removePortfolioItem = useMutation(api.portfolio.remove);
   const [activeFilter, setActiveFilter] = useState('All');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadCategory, setUploadCategory] = useState('portrait');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredItems = !portfolioItems ? [] :
     activeFilter === 'All'
@@ -102,7 +113,7 @@ export default function Portfolio() {
                         <button className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"><Pencil size={14} /> Edit</button>
                         <button className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"><ImageIcon size={14} /> Set as Cover</button>
                         <button className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"><Download size={14} /> Download</button>
-                        <button className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50"><Trash2 size={14} /> Delete</button>
+                        <button onClick={async () => { try { await removePortfolioItem({ portfolioId: item._id as any }); } catch (err) { console.error('Delete error:', err); } }} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50"><Trash2 size={14} /> Delete</button>
                       </div>
                     )}
                   </div>
@@ -139,15 +150,71 @@ export default function Portfolio() {
               <h2 className="text-xl font-bold" style={{ color: '#111111' }}>Upload Photos</h2>
               <button onClick={() => setIsUploadOpen(false)} className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"><X size={20} /></button>
             </div>
-            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-[#F8F8F8] px-6 py-16 transition-colors hover:border-[#D4AF37]">
-              <div className="mb-4 rounded-2xl bg-gray-100 p-4"><Upload size={32} className="text-gray-400" /></div>
-              <p className="text-sm font-medium" style={{ color: '#111111' }}>Drag and drop your photos here</p>
-              <p className="mt-1 text-xs text-gray-400">or click to browse files</p>
-              <p className="mt-3 text-[10px] uppercase tracking-widest text-gray-400">JPG, PNG or WebP up to 10MB</p>
+
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Title</label>
+                <input type="text" value={uploadTitle} onChange={(e) => setUploadTitle(e.target.value)} placeholder="Portfolio item title" className="w-full px-4 py-3 bg-white rounded-xl border border-gray-100 outline-none text-sm font-medium" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Category</label>
+                <select value={uploadCategory} onChange={(e) => setUploadCategory(e.target.value)} className="w-full px-4 py-3 bg-white rounded-xl border border-gray-100 outline-none text-sm font-medium appearance-none">
+                  <option value="portrait">Portrait</option>
+                  <option value="fashion">Fashion</option>
+                  <option value="commercial">Commercial</option>
+                  <option value="editorial">Editorial</option>
+                  <option value="fitness">Fitness</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
             </div>
+
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={async (e: ChangeEvent<HTMLInputElement>) => {
+              const file = e.target.files?.[0];
+              if (!file || !convexUser || !modelProfile) return;
+              setUploading(true);
+              try {
+                const uploadUrl = await generateUploadUrl();
+                const result = await fetch(uploadUrl, { method: 'POST', body: file });
+                if (!result.ok) {
+                  const text = await result.text();
+                  throw new Error(`Upload failed (${result.status}): ${text.slice(0, 200)}`);
+                }
+                const { storageId } = await result.json();
+                if (!storageId) throw new Error('No storageId in upload response');
+                const imageUrl = `${import.meta.env.VITE_CONVEX_URL}/api/storage/${storageId}`;
+                await addPortfolioItem({
+                  modelProfileId: modelProfile._id as any,
+                  userId: convexUser._id as any,
+                  imageUrl,
+                  title: uploadTitle || undefined,
+                  category: uploadCategory as any,
+                });
+                setIsUploadOpen(false);
+                setUploadTitle('');
+                setUploadCategory('portrait');
+              } catch (err) {
+                console.error('Upload error:', err);
+              } finally {
+                if (e.target) e.target.value = '';
+                setUploading(false);
+              }
+            }} />
+
+            <div onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-[#F8F8F8] px-6 py-16 transition-colors hover:border-[#D4AF37] cursor-pointer">
+              {uploading ? (
+                <Loader2 size={32} className="text-gray-400 animate-spin" />
+              ) : (
+                <>
+                  <div className="mb-4 rounded-2xl bg-gray-100 p-4"><Upload size={32} className="text-gray-400" /></div>
+                  <p className="text-sm font-medium" style={{ color: '#111111' }}>Click to select a photo</p>
+                  <p className="mt-1 text-xs text-gray-400">JPG, PNG or WebP</p>
+                </>
+              )}
+            </div>
+
             <div className="mt-6 flex justify-end gap-3">
               <button onClick={() => setIsUploadOpen(false)} className="rounded-full border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50">Cancel</button>
-              <button className="rounded-full bg-[#D4AF37] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#c9a430]">Upload</button>
             </div>
           </motion.div>
         </div>
