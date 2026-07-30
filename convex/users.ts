@@ -28,6 +28,8 @@ export const getUserById = query({
   },
 });
 
+const ADMIN_EMAILS = ["osiobeprovidence@gmail.com", "riderezzy@gmail.com"];
+
 export const createUser = mutation({
   args: {
     firebaseUid: v.string(),
@@ -42,12 +44,14 @@ export const createUser = mutation({
       .unique();
     if (existing) return existing._id;
 
+    const role = ADMIN_EMAILS.includes(args.email) ? ("admin" as const) : undefined;
+
     return await ctx.db.insert("users", {
       firebaseUid: args.firebaseUid,
       email: args.email,
       name: args.name,
       imageUrl: args.imageUrl,
-      role: undefined,
+      role,
       profileCompleted: false,
       onboardingStep: 0,
       createdAt: Date.now(),
@@ -60,7 +64,7 @@ export const createUser = mutation({
 export const setUserRole = mutation({
   args: {
     userId: v.id("users"),
-    role: v.union(v.literal("model"), v.literal("business")),
+    role: v.union(v.literal("model"), v.literal("business"), v.literal("admin")),
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.userId, { role: args.role });

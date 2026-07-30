@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   User,
@@ -43,6 +44,7 @@ const COMMON_FIELDS = [
 ];
 
 export default function MyProfile() {
+  const navigate = useNavigate();
   const { convexUser } = useUser();
   const modelProfile = useQuery(
     api.users.getModelProfile,
@@ -340,12 +342,24 @@ export default function MyProfile() {
   return (
     <div className="p-4 sm:p-6 lg:p-10">
       <header className="mb-10">
-        <h1 className="text-3xl font-black tracking-tight text-[#111111]">
-          My Profile
-        </h1>
-        <p className="text-gray-400 font-medium text-sm mt-1">
-          Manage your personal information and modeling details.
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black tracking-tight text-[#111111]">
+              My Profile
+            </h1>
+            <p className="text-gray-400 font-medium text-sm mt-1">
+              Manage your personal information and modeling details.
+            </p>
+          </div>
+          {modelProfile && (
+            <button
+              onClick={() => navigate(`/profile/${modelProfile._id}`)}
+              className="shrink-0 flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-gray-600 transition-all hover:border-[#D4AF37] hover:text-[#D4AF37]"
+            >
+              <Eye size={14} /> View Profile
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="space-y-8">

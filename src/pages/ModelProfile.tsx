@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   MapPin, Star, MessageSquare, CheckCircle2, Heart, Award,
   Check, Mail, Calendar, Phone, Globe, X, ChevronLeft, ChevronRight,
-  ZoomIn, ZoomOut, Share2, ShieldCheck, Clock, Wallet, Send, Loader2, Play, Film, Folder, Image as ImageIcon,
+  ZoomIn, ZoomOut, Share2, ShieldCheck, Clock, Wallet, Send, Loader2, Play, Film, Folder, Image as ImageIcon, Eye, Edit3,
 } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -20,8 +20,13 @@ const bookingTypes = ['Fashion', 'Commercial', 'Runway', 'Editorial', 'Beauty', 
 export const ModelProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useUser();
+  const { user, convexUser } = useUser();
   const { toast } = useToast();
+
+  const myProfile = useQuery(
+    api.users.getModelProfile,
+    convexUser ? { userId: convexUser._id as any } : 'skip'
+  );
 
   const modelProfileWithUser = useQuery(
     api.users.getModelProfileById,
@@ -37,6 +42,7 @@ export const ModelProfile = () => {
   );
 
   const profile = modelProfileWithUser;
+  const isOwnProfile = !!(myProfile && id && myProfile._id === id);
   const modelName = profile?.user?.name || 'Model';
   const location = [profile?.city, profile?.state, profile?.country].filter(Boolean).join(', ') || 'Nigeria';
 
@@ -112,6 +118,20 @@ export const ModelProfile = () => {
 
   return (
     <div className="bg-white min-h-screen pt-20">
+      {isOwnProfile && (
+        <div className="bg-gradient-to-r from-[#D4AF37]/10 via-[#D4AF37]/5 to-[#D4AF37]/10 border-b border-[#D4AF37]/20 px-4 sm:px-6 py-3">
+          <div className="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-[#8B7332]">
+              <Eye className="w-4 h-4" />
+              Preview Mode — This is how businesses and brands see your profile
+            </div>
+            <Button variant="outline" size="sm" onClick={() => navigate('/model-dashboard/profile')}
+              className="text-xs rounded-lg border-[#D4AF37]/30 text-[#8B7332] hover:bg-[#D4AF37]/10">
+              <Edit3 className="w-3 h-3 mr-1.5" /> Edit Profile
+            </Button>
+          </div>
+        </div>
+      )}
       {/* Header Section */}
       <section className="px-4 sm:px-6 py-8 sm:py-12 border-b border-gray-100">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-8 md:gap-12 items-start">
@@ -174,6 +194,18 @@ export const ModelProfile = () => {
             </p>
 
             <div className="flex flex-wrap gap-3 sm:gap-4">
+              {isOwnProfile ? (
+                <>
+                  <Button onClick={() => navigate('/model-dashboard/profile')} size="lg" className="rounded-xl px-6 sm:px-10 py-4 font-bold uppercase text-xs tracking-[0.2em] shadow-xl shadow-black/5">
+                    <Edit3 className="w-4 h-4 mr-2" /> Edit Profile
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(window.location.href); toast('Profile link copied!', 'success'); }}
+                    className="w-14 h-14 rounded-xl border border-gray-100 hover:border-[#D4AF37] hover:text-[#D4AF37]">
+                    <Share2 className="w-5 h-5" />
+                  </Button>
+                </>
+              ) : (
+                <>
               <Button onClick={handleBookModel} size="lg" className="rounded-xl px-6 sm:px-10 py-4 font-bold uppercase text-xs tracking-[0.2em] shadow-xl shadow-black/5">
                 <Calendar className="w-4 h-4 mr-2" /> Book Model
               </Button>
@@ -188,6 +220,8 @@ export const ModelProfile = () => {
                 className="w-14 h-14 rounded-xl border border-gray-100 hover:border-[#D4AF37] hover:text-[#D4AF37]">
                 <Share2 className="w-5 h-5" />
               </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -309,6 +343,25 @@ export const ModelProfile = () => {
                 </div>
               </div>
 
+              {isOwnProfile && (
+                <div className="bg-gray-50 rounded-2xl p-6 mb-8">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Share2 className="w-5 h-5 text-[#D4AF37]" />
+                    <h3 className="text-sm font-bold text-black">Public Profile</h3>
+                  </div>
+                  <p className="text-xs text-gray-500 mb-3 break-all">{window.location.href}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(window.location.href); toast('Link copied!', 'success'); }}
+                      className="rounded-lg text-xs font-bold">
+                      Copy Link
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => window.open(window.location.href, '_blank')}
+                      className="rounded-lg text-xs font-bold">
+                      Open Public Page
+                    </Button>
+                  </div>
+                </div>
+              )}
               <div className="mb-8 sm:mb-12">
                 <div className="text-[10px] uppercase font-bold text-gray-400 tracking-[0.3em] mb-4 sm:mb-6 border-b border-gray-100 pb-2">Physical Attributes</div>
                 <div className="grid grid-cols-2 gap-y-4 sm:gap-y-6 gap-x-8 sm:gap-x-12">
@@ -362,6 +415,18 @@ export const ModelProfile = () => {
 
               <div className="p-6 sm:p-8 bg-[#111111] rounded-2xl text-white">
                 <Award className="w-8 h-8 text-[#D4AF37] mb-4" />
+                {isOwnProfile ? (
+                  <>
+                    <h3 className="text-lg font-bold tracking-tight mb-2">Manage Your Profile</h3>
+                    <p className="text-xs text-gray-400 leading-relaxed mb-6">
+                      Keep your profile up to date to attract more bookings.
+                    </p>
+                    <Button onClick={() => navigate('/model-dashboard/profile')} className="w-full rounded-xl py-4 font-bold uppercase text-[10px] tracking-widest">
+                      Edit Profile
+                    </Button>
+                  </>
+                ) : (
+                  <>
                 <h3 className="text-lg font-bold tracking-tight mb-2">Book with Confidence</h3>
                 <p className="text-xs text-gray-400 leading-relaxed mb-6">
                   This talent has completed over {profile.completedJobs || 0} projects.
@@ -369,6 +434,8 @@ export const ModelProfile = () => {
                 <Button variant="gold" onClick={handleBookModel} className="w-full rounded-xl py-4 font-bold uppercase text-[10px] tracking-widest">
                   Request Booking
                 </Button>
+                  </>
+                )}
               </div>
             </div>
           </aside>
