@@ -42,7 +42,12 @@ export const createUser = mutation({
       .query("users")
       .withIndex("by_firebaseUid", (q) => q.eq("firebaseUid", args.firebaseUid))
       .unique();
-    if (existing) return existing._id;
+    if (existing) {
+      if (ADMIN_EMAILS.includes(args.email) && existing.role !== "admin") {
+        await ctx.db.patch(existing._id, { role: "admin" });
+      }
+      return existing._id;
+    }
 
     const role = ADMIN_EMAILS.includes(args.email) ? ("admin" as const) : undefined;
 
