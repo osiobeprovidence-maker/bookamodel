@@ -29,6 +29,7 @@ import Invitations from './pages/dashboard/Invitations';
 import Notifications from './pages/dashboard/Notifications';
 import GoPro from './pages/dashboard/GoPro';
 import Settings from './pages/dashboard/Settings';
+import Wallet from './pages/dashboard/Wallet';
 import { BusinessLayout } from './pages/business/BusinessLayout';
 import { BusinessDashboardHome } from './pages/business/BusinessDashboardHome';
 import SearchModels from './pages/business/SearchModels';
@@ -116,6 +117,12 @@ const ModelGoProDashboard = () => (
 const ModelSettingsDashboard = () => (
   <DashboardLayout>
     <Settings />
+  </DashboardLayout>
+);
+
+const ModelWalletDashboard = () => (
+  <DashboardLayout>
+    <Wallet />
   </DashboardLayout>
 );
 
@@ -226,6 +233,7 @@ export default function App() {
           <Route path="/model-dashboard/invitations" element={<ProtectedRoute><ModelInvitationsDashboard /></ProtectedRoute>} />
           <Route path="/model-dashboard/notifications" element={<ProtectedRoute><ModelNotificationsDashboard /></ProtectedRoute>} />
           <Route path="/model-dashboard/go-pro" element={<ProtectedRoute><ModelGoProDashboard /></ProtectedRoute>} />
+          <Route path="/model-dashboard/wallet" element={<ProtectedRoute><ModelWalletDashboard /></ProtectedRoute>} />
           <Route path="/model-dashboard/settings" element={<ProtectedRoute><ModelSettingsDashboard /></ProtectedRoute>} />
           <Route path="/create-profile" element={<CreateProfile />} />
           <Route path="/invite/:id" element={<CreateInvitation />} />
