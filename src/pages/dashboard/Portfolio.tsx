@@ -653,15 +653,29 @@ export default function Portfolio() {
 
       {/* Video Player Modal */}
       {playingVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
           onClick={() => setPlayingVideo(null)}>
-          <div className="relative w-full max-w-4xl mx-4 aspect-video"
+          <div className="relative w-full max-w-5xl mx-4"
             onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setPlayingVideo(null)}
-              className="absolute -top-12 right-0 text-white/70 hover:text-white text-sm font-medium">
+              className="absolute -top-10 right-0 text-white/60 hover:text-white text-sm font-medium uppercase tracking-widest z-10">
               Close
             </button>
-            <VideoPlayer playbackId={playingVideo} className="w-full h-full rounded-2xl" />
+            <div className="rounded-2xl overflow-hidden bg-black shadow-2xl" style={{ maxHeight: '85vh' }}>
+              <video
+                key={playingVideo}
+                className="w-full h-full"
+                style={{ maxHeight: '85vh' }}
+                controls
+                autoPlay
+                muted
+                playsInline
+                poster={`https://image.mux.com/${playingVideo}/thumbnail.jpg`}
+              >
+                <source src={`https://stream.mux.com/${playingVideo}.m3u8`} type="application/x-mpegURL" />
+                <source src={`https://stream.mux.com/${playingVideo}/high.mp4`} type="video/mp4" />
+              </video>
+            </div>
           </div>
         </div>
       )}
