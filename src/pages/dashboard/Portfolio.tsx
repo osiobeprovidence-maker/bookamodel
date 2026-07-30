@@ -78,6 +78,7 @@ export default function Portfolio() {
   const [albumVisibility, setAlbumVisibility] = useState('public');
   const [editingAlbum, setEditingAlbum] = useState<string | null>(null);
 
+  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const [processingVideos, setProcessingVideos] = useState<string[]>([]);
   const checkVideoStatus = useAction(api.mux.checkAndUpdateStatus);
 
@@ -383,7 +384,8 @@ export default function Portfolio() {
                           className="w-full h-full object-cover"
                           onError={(e) => { (e.target as HTMLImageElement).src = `https://image.mux.com/${item.playbackId}/thumbnail.jpg`; }}
                         />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/video:bg-black/30 transition-all duration-300">
+                        <div onClick={() => setPlayingVideo(item.playbackId!)}
+                          className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/video:bg-black/30 transition-all duration-300 cursor-pointer">
                           <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg transform group-hover/video:scale-110 transition-transform duration-300">
                             <Play size={22} className="text-black ml-0.5" fill="black" />
                           </div>
@@ -436,22 +438,23 @@ export default function Portfolio() {
                   <div className="absolute left-3 top-3 mt-7 rounded-full bg-black/50 px-3 py-1 backdrop-blur-sm">
                     <span className="text-[10px] font-medium uppercase tracking-widest text-white">{item.category}</span>
                   </div>
-                  <div className="absolute right-3 top-3 mt-7">
-                    <button onClick={() => setOpenMenuId(openMenuId === item._id ? null : item._id)}
-                      className="rounded-full bg-black/50 p-1.5 backdrop-blur-sm transition-colors hover:bg-black/70">
-                      <MoreVertical size={14} className="text-white" />
-                    </button>
-                    {openMenuId === item._id && (
-                      <div className="absolute right-0 z-[9999] mt-1 w-44 rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
-                        <button onClick={() => { setIsAlbumPickerOpen(true); setPickerPortfolioId(item._id); setOpenMenuId(null); }} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"><Plus size={14} /> Add to Album</button>
-                        {item.albumId && (
-                          <button onClick={async () => { await handleRemoveFromAlbum(item._id, item.albumId!); setOpenMenuId(null); }} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"><X size={14} /> Remove from Album</button>
-                        )}
-                        <button onClick={() => setOpenMenuId(null)} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"><Download size={14} /> Download</button>
-                        <button onClick={() => handleDelete(item)} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50"><Trash2 size={14} /> Delete</button>
-                      </div>
-                    )}
-                  </div>
+                </div>
+                {/* Menu moved outside overflow-hidden container so dropdown is never clipped */}
+                <div className="absolute right-3 top-[2.5rem]">
+                  <button onClick={() => setOpenMenuId(openMenuId === item._id ? null : item._id)}
+                    className="rounded-full bg-black/50 p-1.5 backdrop-blur-sm transition-colors hover:bg-black/70">
+                    <MoreVertical size={14} className="text-white" />
+                  </button>
+                  {openMenuId === item._id && (
+                    <div className="absolute right-0 z-[9999] mt-1 w-44 rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                      <button onClick={() => { setIsAlbumPickerOpen(true); setPickerPortfolioId(item._id); setOpenMenuId(null); }} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"><Plus size={14} /> Add to Album</button>
+                      {item.albumId && (
+                        <button onClick={async () => { await handleRemoveFromAlbum(item._id, item.albumId!); setOpenMenuId(null); }} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"><X size={14} /> Remove from Album</button>
+                      )}
+                      <button onClick={() => setOpenMenuId(null)} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"><Download size={14} /> Download</button>
+                      <button onClick={() => handleDelete(item)} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50"><Trash2 size={14} /> Delete</button>
+                    </div>
+                  )}
                 </div>
                 <div className="p-4">
                   <h3 className="truncate text-sm font-semibold" style={{ color: '#111111' }}>{item.title || 'Untitled'}</h3>
@@ -645,6 +648,21 @@ export default function Portfolio() {
               ))}
             </div>
           </motion.div>
+        </div>
+      )}
+
+      {/* Video Player Modal */}
+      {playingVideo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+          onClick={() => setPlayingVideo(null)}>
+          <div className="relative w-full max-w-4xl mx-4 aspect-video"
+            onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setPlayingVideo(null)}
+              className="absolute -top-12 right-0 text-white/70 hover:text-white text-sm font-medium">
+              Close
+            </button>
+            <VideoPlayer playbackId={playingVideo} className="w-full h-full rounded-2xl" />
+          </div>
         </div>
       )}
     </div>
