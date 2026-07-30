@@ -79,6 +79,7 @@ export default function Portfolio() {
   const [editingAlbum, setEditingAlbum] = useState<string | null>(null);
 
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
+  const [inlinePlayingId, setInlinePlayingId] = useState<string | null>(null);
   const [processingVideos, setProcessingVideos] = useState<string[]>([]);
   const checkVideoStatus = useAction(api.mux.checkAndUpdateStatus);
 
@@ -377,6 +378,29 @@ export default function Portfolio() {
                 <div className="relative aspect-[3/4] overflow-hidden">
                   {item.type === 'video' ? (
                     item.status === 'ready' && item.playbackId ? (
+                      inlinePlayingId === item._id ? (
+                        <div className="relative w-full h-full bg-black">
+                          <video
+                            key={item._id}
+                            className="w-full h-full object-contain"
+                            src={`https://stream.mux.com/${item.playbackId}/high.mp4`}
+                            controls
+                            autoPlay
+                            muted
+                            playsInline
+                          />
+                          <div className="absolute top-2 right-2 flex gap-1">
+                            <button onClick={() => { setInlinePlayingId(null); setPlayingVideo(item.playbackId!); }}
+                              className="rounded-full bg-black/60 p-1.5 backdrop-blur-sm text-white/80 hover:text-white z-10">
+                              <Eye size={12} />
+                            </button>
+                            <button onClick={() => setInlinePlayingId(null)}
+                              className="rounded-full bg-black/60 p-1.5 backdrop-blur-sm text-white/80 hover:text-white z-10">
+                              <X size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
                       <div className="relative w-full h-full group/video">
                         <img
                           src={`https://image.mux.com/${item.playbackId}/thumbnail.jpg?width=640`}
@@ -384,13 +408,14 @@ export default function Portfolio() {
                           className="w-full h-full object-cover"
                           onError={(e) => { (e.target as HTMLImageElement).src = `https://image.mux.com/${item.playbackId}/thumbnail.jpg`; }}
                         />
-                        <div onClick={() => setPlayingVideo(item.playbackId!)}
+                        <div onClick={() => setInlinePlayingId(item._id)}
                           className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/video:bg-black/30 transition-all duration-300 cursor-pointer">
                           <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg transform group-hover/video:scale-110 transition-transform duration-300">
                             <Play size={22} className="text-black ml-0.5" fill="black" />
                           </div>
                         </div>
                       </div>
+                      )
                     ) : item.status === 'processing' || !item.status ? (
                       <div className="relative w-full h-full bg-gray-100">
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -426,18 +451,22 @@ export default function Portfolio() {
                       <div className="img-fallback hidden absolute inset-0 flex items-center justify-center bg-gray-100"><ImageIcon size={40} className="text-gray-300" /></div>
                     </>
                   )}
-                  <div className="absolute right-3 top-3 rounded-full bg-black/50 p-1.5 backdrop-blur-sm">
-                    {item.visibility === 'public' ? <Globe size={14} className="text-white" /> : <Lock size={14} className="text-white" />}
-                  </div>
-                  {item.type === 'video' && item.status === 'ready' && (
+                  {inlinePlayingId !== item._id && (
+                    <div className="absolute right-3 top-3 rounded-full bg-black/50 p-1.5 backdrop-blur-sm">
+                      {item.visibility === 'public' ? <Globe size={14} className="text-white" /> : <Lock size={14} className="text-white" />}
+                    </div>
+                  )}
+                  {item.type === 'video' && item.status === 'ready' && inlinePlayingId !== item._id && (
                     <div className="absolute left-3 top-3 rounded-full bg-black/50 px-2 py-0.5 backdrop-blur-sm flex items-center gap-1">
                       <Play size={10} className="text-white" fill="white" />
                       <span className="text-[10px] text-white font-medium">Video</span>
                     </div>
                   )}
+                  {inlinePlayingId !== item._id && (
                   <div className="absolute left-3 top-3 mt-7 rounded-full bg-black/50 px-3 py-1 backdrop-blur-sm">
                     <span className="text-[10px] font-medium uppercase tracking-widest text-white">{item.category}</span>
                   </div>
+                  )}
                 </div>
                 {/* Menu moved outside overflow-hidden container so dropdown is never clipped */}
                 <div className="absolute right-3 top-[2.5rem]">
@@ -451,6 +480,7 @@ export default function Portfolio() {
                       {item.albumId && (
                         <button onClick={async () => { await handleRemoveFromAlbum(item._id, item.albumId!); setOpenMenuId(null); }} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"><X size={14} /> Remove from Album</button>
                       )}
+                      <button onClick={() => { window.open(`/profile/${modelProfile?._id}`, '_blank'); setOpenMenuId(null); }} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"><Eye size={14} /> View Page</button>
                       <button onClick={() => setOpenMenuId(null)} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"><Download size={14} /> Download</button>
                       <button onClick={() => handleDelete(item)} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50"><Trash2 size={14} /> Delete</button>
                     </div>
