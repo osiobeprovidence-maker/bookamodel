@@ -21,6 +21,7 @@
     "react-dom": "^19.2.0-canary-eaee5308-20250728",
     "react-router-dom": "^7.18.1",
     "recharts": "^3.10.1",
+    "source-map": "^0.8.0",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

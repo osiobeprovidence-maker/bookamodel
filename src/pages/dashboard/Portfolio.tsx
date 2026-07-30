@@ -1,6 +1,6 @@
-import React, { useState, useRef, type ChangeEvent } from 'react';
+import React, { useState, useRef, useEffect, type ChangeEvent } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Video, FolderPlus, Camera, Folder, Eye, Globe, Lock, MoreVertical, Pencil, Trash2, Download, Image as ImageIcon, X, Loader2, Play, AlertCircle, Plus, Check, Film } from 'lucide-react';
+import { Upload, Video, FolderPlus, Camera, Folder, Eye, Globe, Lock, MoreVertical, Pencil, Trash2, Download, Image as ImageIcon, X, Loader2, Play, AlertCircle, Plus, Check, Film, RefreshCw } from 'lucide-react';
 import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
@@ -79,6 +79,30 @@ export default function Portfolio() {
   const [editingAlbum, setEditingAlbum] = useState<string | null>(null);
 
   const [processingVideos, setProcessingVideos] = useState<string[]>([]);
+  const checkVideoStatus = useAction(api.mux.checkAndUpdateStatus);
+
+  useEffect(() => {
+    if (!portfolioItems) return;
+    const processing = portfolioItems.filter((i) => i.type === 'video' && i.status === 'processing');
+    if (processing.length === 0) return;
+    const interval = setInterval(async () => {
+      for (const item of processing) {
+        if (!item.muxUploadId) continue;
+        try {
+          const result = await checkVideoStatus({
+            portfolioId: item._id as any,
+            muxUploadId: item.muxUploadId,
+          });
+          if ((result as any).updated) {
+            setProcessingVideos((prev) => prev.filter((id) => id !== item.muxUploadId));
+          }
+        } catch (err) {
+          // polling error — will retry on next interval
+        }
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [portfolioItems, checkVideoStatus]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -282,7 +306,7 @@ export default function Portfolio() {
           <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4">Albums</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {albums?.map((album) => (
-              <div key={album._id} className="group relative rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+              <div key={album._id} className="group relative rounded-2xl border border-gray-100 bg-white shadow-sm overflow-visible">
                 <div className="aspect-[4/3] bg-gray-50 flex items-center justify-center">
                   {album.coverImageUrl ? (
                     <img src={album.coverImageUrl} alt={album.title} className="w-full h-full object-cover" />
@@ -296,7 +320,7 @@ export default function Portfolio() {
                     <div className="relative">
                       <button onClick={() => setOpenAlbumMenuId(openAlbumMenuId === album._id ? null : album._id)} className="p-1 rounded-full hover:bg-gray-100"><MoreVertical size={14} className="text-gray-400" /></button>
                       {openAlbumMenuId === album._id && (
-                        <div className="absolute right-0 z-20 mt-1 w-40 rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                        <div className="absolute right-0 z-[9999] mt-1 w-40 rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
                           <button onClick={() => { setEditingAlbum(album._id); setAlbumTitle(album.title); setAlbumDescription(album.description || ''); setAlbumCategory(album.category as any); setAlbumVisibility(album.visibility as any); setIsAlbumOpen(true); setOpenAlbumMenuId(null); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"><Pencil size={14} /> Rename</button>
                           <button onClick={async () => { try { await deleteAlbum({ albumId: album._id as any }); } catch (err) { console.error(err); } setOpenAlbumMenuId(null); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50"><Trash2 size={14} /> Delete</button>
                         </div>
@@ -348,34 +372,49 @@ export default function Portfolio() {
           <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
             {filteredItems.map((item, index) => (
               <motion.div key={item._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.06 }}
-                className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                className="group relative rounded-2xl border border-gray-100 bg-white shadow-sm">
                 <div className="relative aspect-[3/4] overflow-hidden">
                   {item.type === 'video' ? (
                     item.status === 'ready' && item.playbackId ? (
-                      <VideoPlayer
-                        playbackId={item.playbackId}
-                        className="w-full h-full object-cover"
-                        muted
-                        loop
-                      />
+                      <div className="relative w-full h-full group/video">
+                        <img
+                          src={`https://image.mux.com/${item.playbackId}/thumbnail.jpg?width=640`}
+                          alt={item.title || 'Video thumbnail'}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).src = `https://image.mux.com/${item.playbackId}/thumbnail.jpg`; }}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/video:bg-black/30 transition-all duration-300">
+                          <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg transform group-hover/video:scale-110 transition-transform duration-300">
+                            <Play size={22} className="text-black ml-0.5" fill="black" />
+                          </div>
+                        </div>
+                      </div>
+                    ) : item.status === 'processing' || !item.status ? (
+                      <div className="relative w-full h-full bg-gray-100">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-center">
+                            <Loader2 size={24} className="text-gray-400 animate-spin mx-auto mb-2" />
+                          </div>
+                        </div>
+                        <div className="absolute top-2 left-2 rounded-full bg-black/60 px-2.5 py-1 backdrop-blur-sm flex items-center gap-1.5">
+                          <Loader2 size={10} className="text-white animate-spin" />
+                          <span className="text-[10px] text-white font-medium">Processing</span>
+                        </div>
+                      </div>
+                    ) : item.status === 'errored' ? (
+                      <div className="relative w-full h-full bg-red-50 flex flex-col items-center justify-center gap-2">
+                        <AlertCircle size={24} className="text-red-400" />
+                        <p className="text-xs text-red-500 font-medium">Processing failed</p>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDelete(item); }}
+                          className="text-[10px] text-red-400 underline hover:text-red-600"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center bg-gray-900">
-                        {item.status === 'processing' ? (
-                          <>
-                            <Loader2 size={32} className="text-white/60 animate-spin mb-3" />
-                            <p className="text-xs text-white/60">Processing video...</p>
-                          </>
-                        ) : item.status === 'errored' ? (
-                          <>
-                            <AlertCircle size={32} className="text-red-400 mb-3" />
-                            <p className="text-xs text-red-400">Upload failed</p>
-                          </>
-                        ) : (
-                          <>
-                            <Film size={32} className="text-white/40 mb-3" />
-                            <p className="text-xs text-white/40">Video</p>
-                          </>
-                        )}
+                      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                        <Film size={32} className="text-gray-300" />
                       </div>
                     )
                   ) : (
@@ -403,7 +442,7 @@ export default function Portfolio() {
                       <MoreVertical size={14} className="text-white" />
                     </button>
                     {openMenuId === item._id && (
-                      <div className="absolute right-0 z-20 mt-1 w-44 rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                      <div className="absolute right-0 z-[9999] mt-1 w-44 rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
                         <button onClick={() => { setIsAlbumPickerOpen(true); setPickerPortfolioId(item._id); setOpenMenuId(null); }} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"><Plus size={14} /> Add to Album</button>
                         {item.albumId && (
                           <button onClick={async () => { await handleRemoveFromAlbum(item._id, item.albumId!); setOpenMenuId(null); }} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"><X size={14} /> Remove from Album</button>

@@ -23,6 +23,7 @@ import { HelpPage } from './pages/Help';
 import { DashboardLayout } from './pages/dashboard/DashboardLayout';
 import { ModelDashboardHome } from './pages/dashboard/ModelDashboardHome';
 import MyProfile from './pages/dashboard/MyProfile';
+import MyPortfolio from './pages/dashboard/MyPortfolio';
 import Portfolio from './pages/dashboard/Portfolio';
 import Applications from './pages/dashboard/Applications';
 import Invitations from './pages/dashboard/Invitations';
@@ -38,6 +39,7 @@ import JobRequests from './pages/business/JobRequests';
 import Messages from './pages/business/Messages';
 import BusinessSettings from './pages/business/BusinessSettings';
 import { useEffect, type ReactNode } from 'react';
+
 import { UserProvider, useUser } from './contexts/UserContext';
 import { ToastProvider } from './components/ui/Toast';
 
@@ -79,6 +81,12 @@ const ModelDashboard = () => (
 const ModelProfileDashboard = () => (
   <DashboardLayout>
     <MyProfile />
+  </DashboardLayout>
+);
+
+const ModelMyPortfolioDashboard = () => (
+  <DashboardLayout>
+    <MyPortfolio />
   </DashboardLayout>
 );
 
@@ -220,6 +228,7 @@ export default function App() {
           <Route path="/business-dashboard/settings" element={<ProtectedRoute><BizSettings /></ProtectedRoute>} />
           <Route path="/model-dashboard" element={<ProtectedRoute><ModelDashboard /></ProtectedRoute>} />
           <Route path="/model-dashboard/profile" element={<ProtectedRoute><ModelProfileDashboard /></ProtectedRoute>} />
+          <Route path="/model-dashboard/my-portfolio" element={<ProtectedRoute><ModelMyPortfolioDashboard /></ProtectedRoute>} />
           <Route path="/model-dashboard/portfolio" element={<ProtectedRoute><ModelPortfolioDashboard /></ProtectedRoute>} />
           <Route path="/model-dashboard/applications" element={<ProtectedRoute><ModelApplicationsDashboard /></ProtectedRoute>} />
           <Route path="/model-dashboard/invitations" element={<ProtectedRoute><ModelInvitationsDashboard /></ProtectedRoute>} />

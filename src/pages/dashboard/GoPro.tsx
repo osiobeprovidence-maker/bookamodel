@@ -1,9 +1,4 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Crown, Check, Star, TrendingUp, Shield, Zap,
@@ -11,6 +6,9 @@ import {
   X, CreditCard, ChevronDown, ChevronUp, Download,
   Receipt, Loader2, CheckCircle2, AlertCircle, Sparkles,
 } from 'lucide-react';
+import { useQuery, useMutation, useAction } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { useUser } from '../../contexts/UserContext';
 
 const benefits = [
   { icon: FileText, title: 'Unlimited Portfolio Uploads', description: 'Upload as many photos as you want to showcase your work.' },
@@ -27,34 +25,38 @@ const benefits = [
 
 const plans = [
   {
-    name: 'Free',
-    price: '0',
-    period: 'forever',
-    description: 'Get started with basic features',
-    features: ['Limited uploads (10 photos)', 'Basic profile', 'Standard invitations', '5 applications/month', 'Community support'],
-    isCurrent: true,
-    cta: 'Current Plan',
-  },
-  {
+    id: 'pro_monthly',
     name: 'Pro Monthly',
     price: '5,000',
     period: '/month',
-    description: 'Perfect for serious models',
-    features: ['Everything in Free', 'Unlimited uploads', 'Unlimited applications', 'Verified badge', 'Priority support', 'Advanced analytics', 'Direct messaging'],
-    isCurrent: false,
-    popular: true,
-    cta: 'Upgrade',
+    description: 'Perfect for getting started with Pro features.',
+    features: ['Unlimited portfolio uploads', 'Verified Pro badge', 'Priority brand invitations', 'Advanced analytics', 'Direct brand messaging', 'Priority support'],
+    popular: false,
   },
   {
-    name: 'Pro Annual',
+    id: 'pro_quarterly',
+    name: 'Pro Quarterly',
+    price: '13,500',
+    period: '/quarter',
+    description: 'Best value - save 10% compared to monthly.',
+    features: ['Everything in Pro Monthly', 'Save ₦1,500 vs monthly', 'Performance reports', 'Early access to features'],
+    popular: false,
+    save: 'Save 10%',
+  },
+  {
+    id: 'pro_yearly',
+    name: 'Pro Yearly',
     price: '50,000',
     period: '/year',
-    description: 'Best value - save 17%',
-    features: ['Everything in Free', 'Unlimited uploads', 'Unlimited applications', 'Verified badge', 'Priority support', 'Advanced analytics', 'Direct messaging', 'Performance reports', 'Early access to features'],
-    isCurrent: false,
+    description: 'Maximum savings for serious models.',
+    features: ['Everything in Pro Quarterly', 'Save ₦10,000 vs monthly', 'Priority customer support', 'Exclusive event invitations'],
+    popular: true,
     save: 'Save 17%',
-    cta: 'Upgrade',
   },
+];
+
+const paymentProviders = [
+  { id: 'paystack', name: 'Paystack', description: 'Pay with card, USSD, bank transfer' },
 ];
 
 const billingHistory: { date: string; plan: string; amount: string; method: string; invoice: string; status: string }[] = [];
@@ -62,54 +64,142 @@ const billingHistory: { date: string; plan: string; amount: string; method: stri
 const faqs = [
   { q: 'What happens if I cancel?', a: 'You can cancel your Pro subscription at any time. Your Pro features will remain active until the end of your current billing period. After that, your account will revert to the Free plan.' },
   { q: 'Can I switch plans?', a: 'Yes! You can upgrade from Free to Pro Monthly or Pro Annual at any time. If you\'re on Pro Monthly, you can switch to Pro Annual and we\'ll prorate the difference.' },
-  { q: 'Is my payment secure?', a: 'Absolutely. We use industry-standard encryption and partner with Paystack, Flutterwave, and Stripe to process payments. We never store your card details on our servers.' },
+  { q: 'Is my payment secure?', a: 'Absolutely. We use industry-standard encryption and partner with Paystack, Flutterwave, and Stripe to process payments. We never collect your card details on our servers.' },
   { q: 'Will my portfolio remain active?', a: 'Yes. All your portfolio items will remain visible. However, if you downgrade from Pro, you may need to remove items if you exceed the Free plan limit of 10 uploads.' },
   { q: 'Can I get a refund?', a: 'We offer a 7-day money-back guarantee. If you\'re not satisfied with Pro within 7 days of upgrading, contact support for a full refund.' },
   { q: 'Do I need a verified badge?', a: 'While not required, the Verified Pro badge significantly increases your chances of being noticed by brands. Models with verified badges receive 5x more invitations on average.' },
 ];
 
-const paymentMethods = [
-  { id: 'paystack', name: 'Paystack', icon: 'P' },
-  { id: 'flutterwave', name: 'Flutterwave', icon: 'F' },
-  { id: 'stripe', name: 'Stripe', icon: 'S' },
-];
+type Step = 'select_plan' | 'select_provider' | 'processing' | 'success' | 'error';
 
-type PaymentState = 'idle' | 'loading' | 'success' | 'error';
+function loadScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error(`Failed to load ${src}`));
+    document.head.appendChild(s);
+  });
+}
 
 export default function GoPro() {
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('paystack');
-  const [paymentState, setPaymentState] = useState<PaymentState>('idle');
+  const { convexUser } = useUser();
+  const modelProfile = useQuery(
+    api.users.getModelProfile,
+    convexUser ? { userId: convexUser._id as any } : 'skip'
+  );
+  const userPlan = useQuery(
+    api.subscriptions.getUserPlan,
+    modelProfile ? { modelProfileId: modelProfile._id as any } : 'skip'
+  );
+
+  const [step, setStep] = useState<Step>('select_plan');
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<string>('paystack');
+  const [errorMessage, setErrorMessage] = useState('');
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
-  const [cardForm, setCardForm] = useState({
-    name: '', number: '', expiry: '', cvv: '', address: '',
-  });
+  const [modalOpen, setModalOpen] = useState(false);
+  const sessionRef = useRef<{ subscriptionId: string; reference: string; amount: number } | null>(null);
 
-  const handleUpgrade = (planName: string) => {
-    setSelectedPlan(planName);
-    setShowPaymentModal(true);
-    setPaymentState('idle');
+  const createPaymentSession = useAction(api.subscriptions.createPaymentSession);
+  const verifyAndActivate = useAction(api.subscriptions.verifyAndActivate);
+
+  const openModal = (planId: string) => {
+    setSelectedPlanId(planId);
+    setSelectedProvider('paystack');
+    setStep('select_plan');
+    setErrorMessage('');
+    sessionRef.current = null;
+    setModalOpen(true);
   };
 
-  const handlePayment = () => {
-    setPaymentState('loading');
-    setTimeout(() => {
-      const success = Math.random() > 0.2;
-      setPaymentState(success ? 'success' : 'error');
-    }, 2500);
+  const closeModal = () => {
+    setModalOpen(false);
+    setStep('select_plan');
+    setSelectedPlanId(null);
+    sessionRef.current = null;
+    setErrorMessage('');
   };
 
-  const resetPayment = () => {
-    setShowPaymentModal(false);
-    setPaymentState('idle');
-    setCardForm({ name: '', number: '', expiry: '', cvv: '', address: '' });
-    setSelectedPlan(null);
+  const plan = plans.find(p => p.id === selectedPlanId);
+
+  const handleContinueToProvider = () => {
+    if (selectedPlanId) setStep('select_provider');
   };
+
+  const handlePayNow = async () => {
+    if (!convexUser || !selectedPlanId || !modelProfile) return;
+
+    setStep('processing');
+    setErrorMessage('');
+
+    try {
+      const session = await createPaymentSession({
+        userId: convexUser._id as any,
+        modelProfileId: modelProfile._id as any,
+        planId: selectedPlanId,
+        paymentProvider: selectedProvider as any,
+      });
+
+      sessionRef.current = {
+        subscriptionId: (session as any).subscriptionId,
+        reference: (session as any).reference,
+        amount: (session as any).amount,
+      };
+
+      const paystackKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
+      if (!paystackKey) { throw new Error('Paystack is not configured. Please set VITE_PAYSTACK_PUBLIC_KEY in your environment.'); }
+
+      await loadScript('https://js.paystack.co/v1/inline.js');
+
+      const paystackHandler = (window as any).PaystackPop.setup({
+        key: paystackKey,
+        email: convexUser.email || '',
+        amount: (session as any).amount * 100,
+        currency: 'NGN',
+        ref: (session as any).reference,
+        metadata: {
+          custom_fields: [
+            { display_name: 'Plan ID', variable_name: 'plan_id', value: selectedPlanId },
+            { display_name: 'Subscription ID', variable_name: 'subscription_id', value: (session as any).subscriptionId },
+          ],
+        },
+        callback: (response: { reference: string }) => {
+          verifyAndActivate({
+            subscriptionId: (session as any).subscriptionId,
+            transactionReference: response.reference,
+            paymentProvider: 'paystack',
+          }).then((result: any) => {
+            if (result.success) setStep('success');
+            else { setErrorMessage('Verification failed'); setStep('error'); }
+          }).catch((err: any) => {
+            setErrorMessage(err.message || 'Payment verification failed');
+            setStep('error');
+          });
+        },
+        onClose: () => {
+          setErrorMessage('Payment was cancelled');
+          setStep('select_provider');
+        },
+      });
+      paystackHandler.openIframe();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Something went wrong');
+      setStep('error');
+    }
+  };
+
+  if (!convexUser) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
     <div>
-      {/* Header */}
       <header className="mb-6 sm:mb-10">
         <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[#111111]">Go Pro</h1>
         <p className="text-gray-400 font-medium text-sm mt-1">
@@ -117,7 +207,6 @@ export default function GoPro() {
         </p>
       </header>
 
-      {/* Hero Banner */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -132,22 +221,24 @@ export default function GoPro() {
             <Crown className="w-7 h-7 sm:w-10 sm:h-10 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-xl sm:text-3xl font-black text-white tracking-tight mb-2">Become a Pro Model</h2>
+            <h2 className="text-xl sm:text-3xl font-black text-white tracking-tight mb-2">{userPlan?.isPro ? 'You are a Pro Model' : 'Become a Pro Model'}</h2>
             <p className="text-white/80 text-xs sm:text-sm font-medium max-w-lg">
-              Join thousands of top Nigerian models who use BOOKAMODEL Pro to connect with premium brands,
-              get priority invitations, and grow their careers.
+              {userPlan?.isPro
+                ? 'Enjoy all the premium features. Your Pro benefits are active.'
+                : 'Join thousands of top Nigerian models who use BOOKAMODEL Pro to connect with premium brands, get priority invitations, and grow their careers.'}
             </p>
           </div>
-          <button
-            onClick={() => handleUpgrade('Pro Monthly')}
-            className="w-full sm:w-auto bg-white text-[#D4AF37] px-8 py-4 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-50 transition-all active:scale-95 shrink-0"
-          >
-            Upgrade Now
-          </button>
+          {!userPlan?.isPro && (
+            <button
+              onClick={() => openModal('pro_monthly')}
+              className="w-full sm:w-auto bg-white text-[#D4AF37] px-8 py-4 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-50 transition-all active:scale-95 shrink-0"
+            >
+              Upgrade Now
+            </button>
+          )}
         </div>
       </motion.div>
 
-      {/* Current Plan */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -157,29 +248,34 @@ export default function GoPro() {
         <h3 className="text-lg font-bold tracking-tight text-[#111111] mb-6">Current Plan</h3>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center">
-              <span className="text-lg font-black text-gray-400">F</span>
+            <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${userPlan?.isPro ? 'bg-[#D4AF37]/10' : 'bg-gray-100'}`}>
+              {userPlan?.isPro ? <Crown className="w-6 h-6 text-[#D4AF37]" /> : <span className="text-lg font-black text-gray-400">F</span>}
             </div>
             <div>
-              <p className="text-sm font-bold text-[#111111]">Free Plan</p>
-              <p className="text-xs text-gray-400 mt-0.5">No renewal date</p>
+              <p className="text-sm font-bold text-[#111111]">{userPlan?.isPro ? (userPlan.subscription?.planName || 'Pro Plan') : 'Free Plan'}</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {userPlan?.isPro && userPlan.subscription?.expiresAt
+                  ? `Renewal: ${new Date(userPlan.subscription.expiresAt).toLocaleDateString()}`
+                  : 'No renewal date'}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <span className="px-3 py-1 bg-green-50 text-green-700 rounded-full text-[10px] font-bold uppercase tracking-widest">
-              Active
+            <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${userPlan?.isPro ? 'bg-[#D4AF37]/10 text-[#D4AF37]' : 'bg-green-50 text-green-700'}`}>
+              {userPlan?.isPro ? 'Pro' : 'Active'}
             </span>
-            <button
-              onClick={() => handleUpgrade('Pro Monthly')}
-              className="bg-[#D4AF37] text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95"
-            >
-              Upgrade
-            </button>
+            {!userPlan?.isPro && (
+              <button
+                onClick={() => openModal('pro_monthly')}
+                className="bg-[#D4AF37] text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95"
+              >
+                Upgrade
+              </button>
+            )}
           </div>
         </div>
       </motion.div>
 
-      {/* Pro Benefits */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -206,7 +302,6 @@ export default function GoPro() {
         </div>
       </motion.div>
 
-      {/* Pricing Plans */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -215,34 +310,34 @@ export default function GoPro() {
       >
         <h3 className="text-lg font-bold tracking-tight text-[#111111] mb-6">Pricing Plans</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {plans.map((plan, i) => (
+          {plans.map((p, i) => (
             <motion.div
-              key={plan.name}
+              key={p.id}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.25 + i * 0.08 }}
               className={`relative bg-white rounded-2xl border shadow-sm p-4 sm:p-8 ${
-                plan.popular ? 'border-[#D4AF37] shadow-[#D4AF37]/10' : 'border-gray-100'
+                p.popular ? 'border-[#D4AF37] shadow-[#D4AF37]/10' : 'border-gray-100'
               }`}
             >
-              {plan.popular && (
+              {p.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#D4AF37] text-white px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
                   <Sparkles className="w-3 h-3" /> Most Popular
                 </div>
               )}
-              {plan.save && (
+              {p.save && (
                 <div className="absolute -top-3 right-6 bg-green-500 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
-                  {plan.save}
+                  {p.save}
                 </div>
               )}
-              <h4 className="text-sm font-bold text-[#111111] uppercase tracking-widest mb-2">{plan.name}</h4>
+              <h4 className="text-sm font-bold text-[#111111] uppercase tracking-widest mb-2">{p.name}</h4>
               <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-3xl font-black text-[#111111]">\u20A6{plan.price}</span>
-                <span className="text-xs text-gray-400 font-medium">{plan.period}</span>
+                <span className="text-3xl font-black text-[#111111]">₦{p.price}</span>
+                <span className="text-xs text-gray-400 font-medium">{p.period}</span>
               </div>
-              <p className="text-xs text-gray-400 mb-6">{plan.description}</p>
+              <p className="text-xs text-gray-400 mb-6">{p.description}</p>
               <ul className="space-y-3 mb-8">
-                {plan.features.map((f) => (
+                {p.features.map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-xs text-gray-600">
                     <Check className="w-4 h-4 text-[#D4AF37] shrink-0 mt-0.5" />
                     {f}
@@ -250,24 +345,20 @@ export default function GoPro() {
                 ))}
               </ul>
               <button
-                onClick={() => !plan.isCurrent && handleUpgrade(plan.name)}
-                disabled={plan.isCurrent}
+                onClick={() => openModal(p.id)}
                 className={`w-full py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
-                  plan.isCurrent
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : plan.popular
+                  p.popular
                     ? 'bg-[#D4AF37] text-white hover:bg-[#c9a430] active:scale-95 shadow-xl shadow-[#D4AF37]/20'
                     : 'bg-[#111111] text-white hover:bg-black active:scale-95'
                 }`}
               >
-                {plan.cta}
+                Upgrade
               </button>
             </motion.div>
           ))}
         </div>
       </motion.div>
 
-      {/* Billing History */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -319,7 +410,6 @@ export default function GoPro() {
         )}
       </motion.div>
 
-      {/* FAQs */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -360,15 +450,14 @@ export default function GoPro() {
         </div>
       </motion.div>
 
-      {/* Payment Modal */}
       <AnimatePresence>
-        {showPaymentModal && (
+        {modalOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-            onClick={resetPayment}
+            onClick={closeModal}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -378,8 +467,7 @@ export default function GoPro() {
               className="mx-4 w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              {paymentState === 'success' ? (
-                /* Success Screen */
+              {step === 'success' ? (
                 <div className="p-6 sm:p-10 text-center">
                   <motion.div
                     initial={{ scale: 0 }}
@@ -389,180 +477,173 @@ export default function GoPro() {
                   >
                     <CheckCircle2 className="w-10 h-10 text-green-500" />
                   </motion.div>
-                  <h2 className="text-2xl font-black text-[#111111] mb-2">Congratulations!</h2>
-                  <p className="text-sm text-gray-400 mb-1">Welcome to BOOKAMODEL Pro</p>
-                  <p className="text-xs text-gray-400 mb-8">
-                    Your account has been upgraded. Enjoy all premium features!
-                  </p>
+                  <h2 className="text-2xl font-black text-[#111111] mb-2">Upgrade Successful!</h2>
+                  <p className="text-sm text-gray-400 mb-1">Your subscription has been activated successfully.</p>
+                  <p className="text-xs text-gray-400 mb-8">{plan?.name} &middot; ₦{plan?.price}{plan?.period}</p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <button
-                      onClick={resetPayment}
+                      onClick={closeModal}
                       className="bg-[#D4AF37] text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all"
                     >
-                      Explore Benefits
+                      Go to Dashboard
                     </button>
                     <button
-                      onClick={resetPayment}
+                      onClick={closeModal}
                       className="bg-gray-100 text-gray-600 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-all"
                     >
-                      Return to Dashboard
+                      View Subscription
                     </button>
                   </div>
                 </div>
-              ) : paymentState === 'error' ? (
-                /* Error Screen */
+              ) : step === 'error' ? (
                 <div className="p-6 sm:p-10 text-center">
                   <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
                     <AlertCircle className="w-10 h-10 text-red-500" />
                   </div>
                   <h2 className="text-2xl font-black text-[#111111] mb-2">Payment Failed</h2>
-                  <p className="text-sm text-gray-400 mb-8">
-                    Something went wrong. Please try again or use a different payment method.
-                  </p>
+                  <p className="text-sm text-gray-400 mb-6">{errorMessage || 'Something went wrong. Please try again.'}</p>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <button
-                      onClick={handlePayment}
+                      onClick={() => { setStep('select_provider'); setErrorMessage(''); }}
                       className="bg-[#111111] text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-all"
                     >
                       Try Again
                     </button>
                     <button
-                      onClick={resetPayment}
+                      onClick={closeModal}
                       className="bg-gray-100 text-gray-600 px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-all"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
-              ) : (
-                /* Payment Form */
+              ) : step === 'processing' ? (
+                <div className="p-6 sm:p-10 text-center">
+                  <Loader2 className="w-12 h-12 animate-spin text-[#D4AF37] mx-auto mb-6" />
+                  <h2 className="text-xl font-bold text-[#111111] mb-2">Preparing Checkout</h2>
+                  <p className="text-sm text-gray-400">Please wait while we set up your secure payment session...</p>
+                </div>
+              ) : step === 'select_provider' ? (
                 <>
                   <div className="flex items-center justify-between p-6 border-b border-gray-100">
                     <div>
-                      <h2 className="text-lg font-bold text-[#111111]">Upgrade to {selectedPlan}</h2>
-                      <p className="text-xs text-gray-400 mt-0.5">Complete your payment securely</p>
+                      <h2 className="text-lg font-bold text-[#111111]">Choose Payment Method</h2>
+                      <p className="text-xs text-gray-400 mt-0.5">{plan?.name} &middot; ₦{plan?.price}{plan?.period}</p>
                     </div>
-                    <button
-                      onClick={resetPayment}
-                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
-                    >
+                    <button onClick={closeModal} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all">
                       <X className="w-5 h-5" />
                     </button>
                   </div>
 
-                  <div className="p-6 space-y-5">
-                    {/* Payment Method Selector */}
-                    <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-                        Payment Method
-                      </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {paymentMethods.map((pm) => (
-                          <button
-                            key={pm.id}
-                            onClick={() => setPaymentMethod(pm.id)}
-                            className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
-                              paymentMethod === pm.id
-                                ? 'border-[#D4AF37] bg-[#D4AF37]/5'
-                                : 'border-gray-100 hover:border-gray-200'
-                            }`}
-                          >
-                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                              <CreditCard className="w-5 h-5 text-gray-500" />
-                            </div>
-                            <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">{pm.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Card Form */}
-                    <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                        Cardholder Name
-                      </label>
-                      <input
-                        type="text"
-                        value={cardForm.name}
-                        onChange={(e) => setCardForm({ ...cardForm, name: e.target.value })}
-                        placeholder="Cardholder name"
-                        className="w-full px-4 py-3 bg-white rounded-xl border border-gray-100 focus:border-[#D4AF37] outline-none transition-all text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                        Card Number
-                      </label>
-                      <input
-                        type="text"
-                        value={cardForm.number}
-                        onChange={(e) => setCardForm({ ...cardForm, number: e.target.value })}
-                        placeholder="1234 5678 9012 3456"
-                        maxLength={19}
-                        className="w-full px-4 py-3 bg-white rounded-xl border border-gray-100 focus:border-[#D4AF37] outline-none transition-all text-sm"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                          Expiry Date
-                        </label>
-                        <input
-                          type="text"
-                          value={cardForm.expiry}
-                          onChange={(e) => setCardForm({ ...cardForm, expiry: e.target.value })}
-                          placeholder="MM/YY"
-                          maxLength={5}
-                          className="w-full px-4 py-3 bg-white rounded-xl border border-gray-100 focus:border-[#D4AF37] outline-none transition-all text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                          CVV
-                        </label>
-                        <input
-                          type="text"
-                          value={cardForm.cvv}
-                          onChange={(e) => setCardForm({ ...cardForm, cvv: e.target.value })}
-                          placeholder="123"
-                          maxLength={4}
-                          className="w-full px-4 py-3 bg-white rounded-xl border border-gray-100 focus:border-[#D4AF37] outline-none transition-all text-sm"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-                        Billing Address
-                      </label>
-                      <input
-                        type="text"
-                        value={cardForm.address}
-                        onChange={(e) => setCardForm({ ...cardForm, address: e.target.value })}
-                        placeholder="Enter billing address"
-                        className="w-full px-4 py-3 bg-white rounded-xl border border-gray-100 focus:border-[#D4AF37] outline-none transition-all text-sm"
-                      />
-                    </div>
+                  <div className="p-6 space-y-4">
+                    <p className="text-xs font-medium text-gray-500">Select your preferred payment provider. You will be redirected to their secure checkout.</p>
+                    {paymentProviders.map((pp) => (
+                      <button
+                        key={pp.id}
+                        onClick={() => setSelectedProvider(pp.id)}
+                        className={`w-full p-4 rounded-xl border-2 flex items-center gap-4 transition-all text-left ${
+                          selectedProvider === pp.id
+                            ? 'border-[#D4AF37] bg-[#D4AF37]/5'
+                            : 'border-gray-100 hover:border-gray-200'
+                        }`}
+                      >
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                          selectedProvider === pp.id ? 'bg-[#D4AF37] text-white' : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          <CreditCard className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-[#111111]">{pp.name}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{pp.description}</p>
+                        </div>
+                        {selectedProvider === pp.id && (
+                          <div className="ml-auto">
+                            <Check className="w-5 h-5 text-[#D4AF37]" />
+                          </div>
+                        )}
+                      </button>
+                    ))}
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-3 p-6 border-t border-gray-100">
                     <button
-                      onClick={resetPayment}
+                      onClick={() => setStep('select_plan')}
+                      className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-all"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handlePayNow}
+                      className="flex-1 bg-[#D4AF37] text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95"
+                    >
+                      Pay Now &middot; ₦{plan?.price}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                    <div>
+                      <h2 className="text-lg font-bold text-[#111111]">Select Plan</h2>
+                      <p className="text-xs text-gray-400 mt-0.5">Choose a subscription plan</p>
+                    </div>
+                    <button onClick={closeModal} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="p-6 space-y-3">
+                    {plans.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => setSelectedPlanId(p.id)}
+                        className={`w-full p-4 rounded-xl border-2 flex items-center gap-4 transition-all text-left ${
+                          selectedPlanId === p.id
+                            ? 'border-[#D4AF37] bg-[#D4AF37]/5'
+                            : 'border-gray-100 hover:border-gray-200'
+                        }`}
+                      >
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                          selectedPlanId === p.id ? 'bg-[#D4AF37] text-white' : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          <Crown className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-bold text-[#111111]">{p.name}</p>
+                            {p.save && <span className="text-[10px] bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-bold">{p.save}</span>}
+                          </div>
+                          <div className="flex items-baseline gap-1 mt-1">
+                            <span className="text-lg font-black text-[#111111]">₦{p.price}</span>
+                            <span className="text-xs text-gray-400">{p.period}</span>
+                          </div>
+                        </div>
+                        {selectedPlanId === p.id && (
+                          <div className="w-6 h-6 rounded-full bg-[#D4AF37] flex items-center justify-center">
+                            <Check className="w-3.5 h-3.5 text-white" />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 p-6 border-t border-gray-100">
+                    <button
+                      onClick={closeModal}
                       className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-all"
                     >
                       Cancel
                     </button>
                     <button
-                      onClick={handlePayment}
-                      disabled={paymentState === 'loading'}
-                      className="flex-1 bg-[#D4AF37] text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-[#c9a430] transition-all active:scale-95 flex items-center justify-center gap-2"
+                      onClick={handleContinueToProvider}
+                      disabled={!selectedPlanId}
+                      className={`flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+                        selectedPlanId
+                          ? 'bg-[#D4AF37] text-white hover:bg-[#c9a430] active:scale-95'
+                          : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                      }`}
                     >
-                      {paymentState === 'loading' ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" /> Processing...
-                        </>
-                      ) : (
-                        'Pay Now'
-                      )}
+                      Continue
                     </button>
                   </div>
                 </>

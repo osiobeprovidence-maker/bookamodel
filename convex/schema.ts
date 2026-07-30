@@ -404,6 +404,26 @@ export default defineSchema({
     .index("by_reportedUserId", ["reportedUserId"])
     .index("by_status", ["status"]),
 
+  subscriptions: defineTable({
+    userId: v.id("users"),
+    modelProfileId: v.id("modelProfiles"),
+    planId: v.string(),
+    planName: v.string(),
+    status: v.union(v.literal("active"), v.literal("expired"), v.literal("cancelled"), v.literal("pending")),
+    paymentProvider: v.literal("paystack"),
+    transactionReference: v.string(),
+    amount: v.number(),
+    currency: v.string(),
+    startedAt: v.optional(v.number()),
+    expiresAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_modelProfileId", ["modelProfileId"])
+    .index("by_transactionReference", ["transactionReference"])
+    .index("by_status", ["status"]),
+
   auditLogs: defineTable({
     adminId: v.id("users"),
     action: v.string(),

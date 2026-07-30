@@ -6,7 +6,7 @@
 import { useState, type ReactNode } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, User, Image, FileText, Send,
+  LayoutDashboard, User, Image, Eye, FileText, Send,
   Bell, Settings, Trophy, Menu, X, Crown
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -15,6 +15,7 @@ const navLinks = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/model-dashboard' },
   { label: 'My Profile', icon: User, path: '/model-dashboard/profile' },
   { label: 'Portfolio', icon: Image, path: '/model-dashboard/portfolio' },
+  { label: 'My Portfolio', icon: Eye, path: '/model-dashboard/my-portfolio' },
   { label: 'Applications', icon: FileText, path: '/model-dashboard/applications' },
   { label: 'Invitations', icon: Send, path: '/model-dashboard/invitations' },
   { label: 'Notifications', icon: Bell, path: '/model-dashboard/notifications' },

@@ -73,6 +73,45 @@ export const getUploadStatus = action({
   },
 });
 
+export const checkAndUpdateStatus = action({
+  args: {
+    portfolioId: v.id("portfolio"),
+    muxUploadId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const uploadData = await muxFetch(`/video/v1/uploads/${args.muxUploadId}`);
+    const upload = uploadData.data;
+    if (!upload.asset_id) return { updated: false, reason: "no_asset_yet" };
+
+    const assetData = await muxFetch(`/video/v1/assets/${upload.asset_id}`);
+    const asset = assetData.data;
+    const playbackId = asset.playback_ids?.[0]?.id;
+
+    if (asset.status === "ready" && playbackId) {
+      await ctx.runMutation(api.mux.onAssetReady, {
+        assetId: upload.asset_id,
+        playbackId,
+        duration: asset.duration || null,
+        aspectRatio: asset.aspect_ratio || null,
+        status: "ready",
+        uploadId: args.muxUploadId,
+      });
+      return { updated: true, status: "ready", playbackId };
+    }
+
+    if (asset.status === "errored") {
+      await ctx.runMutation(api.mux.onAssetErrored, {
+        assetId: upload.asset_id,
+        status: "errored",
+        uploadId: args.muxUploadId,
+      });
+      return { updated: true, status: "errored" };
+    }
+
+    return { updated: false, reason: "still_processing", status: asset.status };
+  },
+});
+
 export const deleteAsset = action({
   args: { assetId: v.string() },
   handler: async (_ctx, args) => {
@@ -106,8 +145,46 @@ export const getMuxUpload = query({
   },
 });
 
+async function verifyMuxSignature(rawBody: string, signatureHeader: string | null): Promise<boolean> {
+  if (!signatureHeader) return false;
+  const secret = process.env.MUX_WEBHOOK_SIGNING_SECRET;
+  if (!secret) return false;
+
+  const parts = signatureHeader.split(',').reduce<Record<string, string>>((acc, part) => {
+    const [k, v] = part.split('=');
+    if (k && v) acc[k.trim()] = v.trim();
+    return acc;
+  }, {});
+  const timestamp = parts['t'];
+  const sig = parts['v1'];
+  if (!timestamp || !sig) return false;
+
+  const now = Math.floor(Date.now() / 1000);
+  if (Math.abs(now - parseInt(timestamp, 10)) > 300) return false;
+
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false, ['verify']
+  );
+  const expected = await crypto.subtle.sign(
+    'HMAC', key,
+    new TextEncoder().encode(`${timestamp}.${rawBody}`)
+  );
+  const expectedHex = Array.from(new Uint8Array(expected)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return expectedHex === sig;
+}
+
 export const handleMuxWebhook = httpAction(async (ctx, request) => {
-  const body = await request.json();
+  const rawBody = await request.text();
+  const signature = request.headers.get('Mux-Signature');
+  const verified = await verifyMuxSignature(rawBody, signature);
+  if (!verified) {
+    console.warn("[Mux Webhook] Signature verification failed — check MUX_WEBHOOK_SIGNING_SECRET");
+    return new Response("unauthorized", { status: 401 });
+  }
+
+  const body = JSON.parse(rawBody);
   console.log("[Mux Webhook]", body.type, JSON.stringify(body.data).slice(0, 500));
 
   const event = body.type as string;
@@ -146,6 +223,7 @@ export const handleMuxWebhook = httpAction(async (ctx, request) => {
       await ctx.runMutation(api.mux.onAssetErrored, {
         assetId,
         status: data.status || "errored",
+        uploadId: data.upload_id || null,
       });
     }
   }
@@ -177,6 +255,15 @@ export const updateUpload = mutation({
         status: args.status,
       });
     }
+    if (args.assetId) {
+      const portfolio = await ctx.db
+        .query("portfolio")
+        .filter((q) => q.eq(q.field("muxUploadId"), args.uploadId))
+        .first();
+      if (portfolio) {
+        await ctx.db.patch(portfolio._id, { muxAssetId: args.assetId });
+      }
+    }
   },
 });
 
@@ -199,12 +286,19 @@ export const onAssetReady = mutation({
         await ctx.db.patch(upload._id, { status: "ready" });
       }
     }
-    const portfolio = await ctx.db
+    let portfolio = await ctx.db
       .query("portfolio")
       .filter((q) => q.eq(q.field("muxAssetId"), args.assetId))
       .first();
+    if (!portfolio && args.uploadId) {
+      portfolio = await ctx.db
+        .query("portfolio")
+        .filter((q) => q.eq(q.field("muxUploadId"), args.uploadId))
+        .first();
+    }
     if (portfolio) {
       await ctx.db.patch(portfolio._id, {
+        muxAssetId: args.assetId,
         playbackId: args.playbackId,
         duration: args.duration ?? undefined,
         aspectRatio: args.aspectRatio ?? undefined,
@@ -219,12 +313,19 @@ export const onAssetErrored = mutation({
   args: {
     assetId: v.string(),
     status: v.string(),
+    uploadId: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
-    const portfolio = await ctx.db
+    let portfolio = await ctx.db
       .query("portfolio")
       .filter((q) => q.eq(q.field("muxAssetId"), args.assetId))
       .first();
+    if (!portfolio && args.uploadId) {
+      portfolio = await ctx.db
+        .query("portfolio")
+        .filter((q) => q.eq(q.field("muxUploadId"), args.uploadId))
+        .first();
+    }
     if (portfolio) {
       await ctx.db.patch(portfolio._id, { status: "errored" });
     }
