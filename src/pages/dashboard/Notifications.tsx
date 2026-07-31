@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCheck, Settings, Send, Mail, Wallet, MessageSquare, Bell, X, Briefcase, UserCheck, UserX, CreditCard, Info } from 'lucide-react';
+import { CheckCheck, Settings, Send, Mail, Wallet, MessageSquare, Bell, X, Briefcase, UserCheck, UserX, CreditCard, Info, Image as ImageIcon } from 'lucide-react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../components/ui/Toast';
+import { EmptyState, ListSkeleton } from '../../components/ui/EmptyState';
 
 type Category = 'All' | 'jobs' | 'applications' | 'invitations' | 'payments' | 'messages' | 'system';
 
@@ -33,6 +34,15 @@ const typeIconMap: Record<string, typeof Bell> = {
   payment_status_changed: CreditCard,
   system: Info,
 };
+
+const notificationCategories = [
+  { label: 'Jobs', icon: Briefcase, desc: 'New modelling opportunities' },
+  { label: 'Applications', icon: Send, desc: 'Status updates on your applications' },
+  { label: 'Invitations', icon: Mail, desc: 'Invitations from businesses' },
+  { label: 'Messages', icon: MessageSquare, desc: 'Direct messages from businesses' },
+  { label: 'Payments', icon: Wallet, desc: 'Wallet credits and payouts' },
+  { label: 'System Updates', icon: Bell, desc: 'Account and platform news' },
+];
 
 const Notifications = () => {
   const navigate = useNavigate();
@@ -156,7 +166,8 @@ const Notifications = () => {
       </div>
 
       {/* Category Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}
+        className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
         {categories.map((cat) => {
           const Icon = categoryIconMap[cat];
           const count = cat === 'All' ? unreadCount : categoryCounts[cat] || 0;
@@ -172,17 +183,42 @@ const Notifications = () => {
             </button>
           );
         })}
-      </div>
+      </motion.div>
 
       {/* Notifications List */}
       {notifications === undefined ? (
-        <div className="text-center py-20 text-gray-400">Loading notifications...</div>
+        <ListSkeleton rows={5} />
       ) : filteredNotifications.length === 0 ? (
-        <div className="text-center py-20">
-          <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-[#111111] mb-2">No notifications</h3>
-          <p className="text-gray-500">You're all caught up!</p>
-        </div>
+        <EmptyState
+          icon={<Bell className="w-7 h-7" />}
+          title="You're All Caught Up 🎉"
+          description="We'll notify you when businesses send invitations, messages, payments or application updates."
+          actions={[
+            { label: 'Browse Jobs', primary: true, icon: <Briefcase className="w-4 h-4" />, onClick: () => navigate('/model-dashboard/jobs') },
+            { label: 'Go to Portfolio', icon: <ImageIcon className="w-4 h-4" />, onClick: () => navigate('/model-dashboard/portfolio') },
+          ]}
+          footer={
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-5">Notification Categories</p>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-left max-w-2xl mx-auto">
+                {notificationCategories.map((cat) => {
+                  const Icon = cat.icon;
+                  return (
+                    <div key={cat.label} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <div className="p-2 rounded-lg bg-white border border-gray-100 shadow-sm shrink-0">
+                        <Icon className="w-4 h-4 text-[#D4AF37]" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-[#111111]">{cat.label}</p>
+                        <p className="text-xs text-gray-500">{cat.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          }
+        />
       ) : (
         <div className="space-y-2">
           {filteredNotifications.map((n: any) => {
@@ -191,8 +227,8 @@ const Notifications = () => {
               <motion.div key={n._id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
                 onClick={() => handleNotificationClick(n)}
                 className={`flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all ${
-                  n.isRead ? 'bg-white border border-gray-100' : 'bg-[#D4AF37]/[0.03] border border-[#D4AF37]/20'
-                } hover:bg-gray-50`}
+                  n.isRead ? 'bg-white border border-gray-100 shadow-sm' : 'bg-[#D4AF37]/[0.03] border border-[#D4AF37]/20'
+                } hover:bg-gray-50 hover:shadow-md`}
               >
                 <div className={`p-2 rounded-lg shrink-0 ${n.isRead ? 'bg-gray-100 text-gray-500' : 'bg-[#D4AF37]/10 text-[#D4AF37]'}`}>
                   <Icon className="w-4 h-4" />

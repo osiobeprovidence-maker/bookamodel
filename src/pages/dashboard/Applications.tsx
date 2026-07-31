@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Send, CheckCircle, Clock, XCircle, Trophy, X, FileText, MapPin, DollarSign, Calendar, ExternalLink } from 'lucide-react';
+import { Search, Send, CheckCircle, Clock, XCircle, Trophy, X, Calendar, ExternalLink, Briefcase, UserRound, ChevronRight } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
+import { EmptyState } from '../../components/ui/EmptyState';
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-50 text-yellow-700',
@@ -14,8 +16,11 @@ const statusColors: Record<string, string> = {
 
 const filters = ['All', 'Pending', 'Accepted', 'Rejected'];
 
+const timelineSteps = ['Find Job', 'Submit Application', 'Business Reviews', 'Get Invited', 'Booked'];
+
 export default function Applications() {
   const { convexUser } = useUser();
+  const navigate = useNavigate();
   const applications = useQuery(
     api.applications.listByModel,
     convexUser ? { modelUserId: convexUser._id as any } : 'skip'
@@ -43,7 +48,7 @@ export default function Applications() {
   if (!convexUser) return <SkeletonLoading />;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-10">
+    <div className="max-w-5xl mx-auto">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <h1 className="text-2xl font-bold text-[#111111]">Applications</h1>
         <p className="text-gray-400 mt-1">Track every application you've submitted.</p>
@@ -54,7 +59,7 @@ export default function Applications() {
           const Icon = stat.icon;
           return (
             <motion.div key={stat.label} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: i * 0.07 }}
-              className="bg-white rounded-2xl p-5 border border-gray-100">
+              className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-gray-400">{stat.label}</p>
@@ -70,7 +75,7 @@ export default function Applications() {
       {applicationList.length > 0 ? (
         <>
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }}
-            className="bg-white rounded-2xl p-5 border border-gray-100 mt-6">
+            className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm mt-6">
             <div className="flex items-center gap-4 flex-wrap">
               <div className="relative flex-1">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -89,7 +94,7 @@ export default function Applications() {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.45 }}
-            className="bg-white rounded-2xl border border-gray-100 mt-6 overflow-hidden hidden lg:block">
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm mt-6 overflow-hidden hidden lg:block">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-100">
@@ -123,7 +128,7 @@ export default function Applications() {
           <div className="lg:hidden mt-6 space-y-4">
             {filtered.map((app, i) => (
               <motion.div key={app._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: i * 0.05 }}
-                className="bg-white rounded-2xl p-5 border border-gray-100">
+                className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                 <div className="flex items-start justify-between">
                   <div><p className="font-semibold text-[#111111]">{app._id.slice(0, 8)}...</p></div>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[app.status] || 'bg-gray-100 text-gray-500'}`}>{app.status}</span>
@@ -138,12 +143,34 @@ export default function Applications() {
           </div>
         </>
       ) : (
-        <div className="mt-8 text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
-          <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Send className="w-8 h-8 text-gray-300" />
-          </div>
-          <h3 className="text-lg font-bold text-[#111111] mb-2">No applications yet</h3>
-          <p className="text-sm text-gray-400">Start applying for opportunities to see them here.</p>
+        <div className="mt-8">
+          <EmptyState
+            icon={<Send className="w-7 h-7" />}
+            title="You haven't applied for any jobs yet"
+            description="Browse available opportunities and submit your first application."
+            actions={[
+              { label: 'Browse Jobs', primary: true, icon: <Briefcase className="w-4 h-4" />, onClick: () => navigate('/model-dashboard/jobs') },
+              { label: 'Complete Profile', icon: <UserRound className="w-4 h-4" />, onClick: () => navigate('/model-dashboard/profile') },
+            ]}
+            footer={
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-6">How it works</p>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-center gap-4 sm:gap-2 max-w-2xl mx-auto">
+                  {timelineSteps.map((step, i) => (
+                    <div key={step} className="flex items-center gap-2 sm:gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-full bg-[#D4AF37]/10 text-[#D4AF37] font-bold text-sm flex items-center justify-center shrink-0">{i + 1}</div>
+                        <span className="text-sm text-gray-600 font-medium whitespace-nowrap">{step}</span>
+                      </div>
+                      {i < timelineSteps.length - 1 && (
+                        <ChevronRight className="hidden sm:block w-4 h-4 text-gray-300 shrink-0" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            }
+          />
         </div>
       )}
 
@@ -191,10 +218,10 @@ export default function Applications() {
 
 function SkeletonLoading() {
   return (
-    <div className="p-4 sm:p-6 lg:p-10 animate-pulse">
-      <div className="h-8 w-40 bg-gray-200 rounded-lg mb-6" />
-      <div className="grid grid-cols-5 gap-4 mb-6">
-        {[1, 2, 3, 4, 5].map((i) => (<div key={i} className="bg-white p-5 rounded-2xl border border-gray-100"><div className="h-10 w-10 bg-gray-200 rounded-xl mb-4" /><div className="h-3 w-16 bg-gray-200 rounded mb-2" /><div className="h-8 w-8 bg-gray-200 rounded" /></div>))}
+    <div className="animate-pulse">
+      <div className="h-8 w-40 bg-gray-200 rounded-lg mb-8" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {[1, 2, 3, 4, 5].map((i) => (<div key={i} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm"><div className="h-10 w-10 bg-gray-200 rounded-xl mb-4" /><div className="h-3 w-16 bg-gray-200 rounded mb-2" /><div className="h-8 w-8 bg-gray-200 rounded" /></div>))}
       </div>
     </div>
   );
