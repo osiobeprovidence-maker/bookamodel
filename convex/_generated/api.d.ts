@@ -29,6 +29,7 @@ import type * as reviews from "../reviews.js";
 import type * as savedModels from "../savedModels.js";
 import type * as storage from "../storage.js";
 import type * as subscriptions from "../subscriptions.js";
+import type * as testimonials from "../testimonials.js";
 import type * as users from "../users.js";
 import type * as wallets from "../wallets.js";
 
@@ -60,6 +61,7 @@ declare const fullApi: ApiFromModules<{
   savedModels: typeof savedModels;
   storage: typeof storage;
   subscriptions: typeof subscriptions;
+  testimonials: typeof testimonials;
   users: typeof users;
   wallets: typeof wallets;
 }>;

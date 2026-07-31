@@ -422,6 +422,22 @@ export default defineSchema({
     .index("by_order", ["order"])
     .index("by_status", ["status"]),
 
+  testimonials: defineTable({
+    companyName: v.string(),
+    personName: v.optional(v.string()),
+    jobTitle: v.optional(v.string()),
+    companyLogoStorageId: v.optional(v.string()),
+    companyLogoUrl: v.optional(v.string()),
+    testimonial: v.string(),
+    rating: v.number(),
+    displayOrder: v.number(),
+    status: v.optional(v.union(v.literal("active"), v.literal("hidden"), v.literal("pending"))),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_displayOrder", ["displayOrder"]),
+
   verificationRequests: defineTable({
     modelUserId: v.id("users"),
     status: v.union(

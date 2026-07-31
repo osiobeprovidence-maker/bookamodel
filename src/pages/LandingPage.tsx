@@ -34,6 +34,7 @@ export const LandingPage = () => {
   const categories = useQuery(api.categories.listFeatured);
   const allCategories = useQuery(api.categories.listActive);
   const availableTodayData = useQuery(api.explore.listAvailableToday, { limit: 50 });
+  const testimonials = useQuery(api.testimonials.listPublished);
   const popularCategories = (categories ?? []).slice(0, 8);
   const heroChips = (allCategories ?? []).slice(0, 7);
   const [visibleCount, setVisibleCount] = useState(AVAILABLE_STEP * 2);
@@ -244,28 +245,45 @@ export const LandingPage = () => {
       <section className="py-24 px-6 bg-white">
         <div className="max-w-7xl mx-auto">
           <h2 className="text-4xl font-black text-center mb-16">What businesses say</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { name: 'Adelola Fashion', role: 'Creative Director', quote: 'BookAModel has revolutionized how we find talent for our seasonal lookbooks. Fast, reliable, and premium models.' },
-              { name: 'Glow Skincare', role: 'Marketing Manager', quote: 'The ability to filter by skin tone and specific categories saved us hours of casting. Highly recommend for any brand.' },
-              { name: 'Vibe Media', role: 'Producer', quote: 'Professional models, clear communication, and easy payment tracking. This is the future of modeling in Nigeria.' }
-            ].map((t, i) => (
-              <motion.div
-                key={i}
-                whileHover={{ y: -5 }}
-                className="p-8 rounded-2xl bg-white border border-gray-100 shadow-sm"
-              >
-                <div className="flex gap-1 mb-6">
-                  {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-4 h-4 text-[#D4AF37] fill-[#D4AF37]" />)}
+          {testimonials === null ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="p-8 rounded-2xl bg-white border border-gray-100 shadow-sm">
+                  <div className="flex gap-1 mb-6">
+                    {[1, 2, 3, 4, 5].map((s) => <div key={s} className="w-4 h-4 bg-gray-100 rounded-full animate-pulse" />)}
+                  </div>
+                  <div className="h-3 bg-gray-100 rounded-full animate-pulse mb-2" />
+                  <div className="h-3 bg-gray-100 rounded-full animate-pulse mb-2 w-11/12" />
+                  <div className="h-3 bg-gray-100 rounded-full animate-pulse mb-8 w-2/3" />
+                  <div className="h-3 w-1/3 bg-gray-100 rounded-full animate-pulse mb-2" />
+                  <div className="h-3 w-1/4 bg-gray-100 rounded-full animate-pulse" />
                 </div>
-                <p className="text-gray-700 italic mb-8">"{t.quote}"</p>
-                <div>
-                  <h4 className="font-bold">{t.name}</h4>
-                  <p className="text-sm text-gray-500">{t.role}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : testimonials.length === 0 ? (
+            <p className="text-center text-gray-400 py-16">No testimonials available yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {testimonials.map((t) => (
+                <motion.div
+                  key={t._id}
+                  whileHover={{ y: -5 }}
+                  className="p-8 rounded-2xl bg-white border border-gray-100 shadow-sm"
+                >
+                  <div className="flex gap-1 mb-6">
+                    {Array.from({ length: t.rating }).map((_, s) => (
+                      <Star key={s} className="w-4 h-4 text-[#D4AF37] fill-[#D4AF37]" />
+                    ))}
+                  </div>
+                  <p className="text-gray-700 italic mb-8">"{t.testimonial}"</p>
+                  <div>
+                    <h4 className="font-bold">{t.companyName}</h4>
+                    <p className="text-sm text-gray-500">{t.jobTitle}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>
