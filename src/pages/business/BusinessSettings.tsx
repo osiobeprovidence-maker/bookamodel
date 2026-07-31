@@ -12,7 +12,9 @@ import {
   Upload, Trash2, Power, Key,
 } from 'lucide-react';
 import { useQuery, useMutation } from 'convex/react';
+import { updatePassword, reauthenticateWithCredential, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { api } from '../../../convex/_generated/api';
+import { auth } from '../../lib/firebase';
 import { useUser } from '../../contexts/UserContext';
 
 type Tab = 'General' | 'Company' | 'Security' | 'Notifications' | 'Billing' | 'Team Members' | 'API' | 'Appearance' | 'Support' | 'Danger Zone';
@@ -97,7 +99,7 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
 }
 
 export default function BusinessSettings() {
-  const { convexUser } = useUser();
+  const { convexUser, firebaseUser } = useUser();
   const businessProfile = useQuery(
     api.users.getBusinessProfile,
     convexUser ? { userId: convexUser._id as any } : 'skip'
@@ -187,6 +189,49 @@ export default function BusinessSettings() {
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const hasPasswordProvider = (firebaseUser?.providerData ?? []).some((p) => p.providerId === 'password');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const handlePasswordSubmit = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    if (!passwordForm.newPass || passwordForm.newPass.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return;
+    }
+    if (passwordForm.newPass !== passwordForm.confirm) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+    setPasswordLoading(true);
+    setPasswordError(null);
+    try {
+      if (hasPasswordProvider) {
+        await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email || '', passwordForm.current));
+        await updatePassword(user, passwordForm.newPass);
+        showToast('Password updated successfully');
+      } else {
+        await linkWithCredential(user, EmailAuthProvider.credential(user.email || '', passwordForm.newPass));
+        showToast('Password set successfully. You can now sign in with email and password.');
+      }
+      setPasswordForm({ current: '', newPass: '', confirm: '' });
+    } catch (err: any) {
+      const code = err?.code || '';
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials') {
+        setPasswordError('Current password is incorrect');
+      } else if (code === 'auth/requires-recent-login') {
+        setPasswordError('Please sign out and sign back in, then try again');
+      } else if (code === 'auth/email-already-in-use' || code === 'auth/credential-already-in-use') {
+        setPasswordError('This email already has a password set');
+      } else {
+        setPasswordError(err?.message || 'Failed to update password');
+      }
+    } finally {
+      setPasswordLoading(false);
+    }
   };
 
   const toggleNotifications = (key: keyof typeof notifications) => {
@@ -384,18 +429,27 @@ export default function BusinessSettings() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-2.5 rounded-xl bg-green-50"><Lock className="w-4 h-4 text-green-600" /></div>
-                <h4 className="text-sm font-bold text-[#111111]">Change Password</h4>
+                <div>
+                  <h4 className="text-sm font-bold text-[#111111]">{hasPasswordProvider ? 'Change Password' : 'Set Password'}</h4>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {hasPasswordProvider
+                      ? 'Update the password you use to sign in'
+                      : 'You signed up with Google. Set a password to also sign in with email and password.'}
+                  </p>
+                </div>
               </div>
               <div className="space-y-4 max-w-md">
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Current Password</label>
-                  <div className="relative">
-                    <input type={showCurrentPass ? 'text' : 'password'} value={passwordForm.current} onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })} className={`${inputClass} pr-10`} />
-                    <button type="button" onClick={() => setShowCurrentPass(!showCurrentPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                      {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                {hasPasswordProvider && (
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Current Password</label>
+                    <div className="relative">
+                      <input type={showCurrentPass ? 'text' : 'password'} value={passwordForm.current} onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })} className={`${inputClass} pr-10`} />
+                      <button type="button" onClick={() => setShowCurrentPass(!showCurrentPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div>
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">New Password</label>
                   <div className="relative">
@@ -409,8 +463,9 @@ export default function BusinessSettings() {
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Confirm Password</label>
                   <input type="password" value={passwordForm.confirm} onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })} className={inputClass} />
                 </div>
-                <button onClick={() => { setPasswordForm({ current: '', newPass: '', confirm: '' }); showToast('Password updated successfully'); }} className="bg-[#111111] text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-all active:scale-95">
-                  Update Password
+                {passwordError && <p className="text-xs font-semibold text-red-500">{passwordError}</p>}
+                <button onClick={handlePasswordSubmit} disabled={passwordLoading} className="bg-[#111111] text-white px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-all active:scale-95 disabled:opacity-50">
+                  {passwordLoading ? 'Saving...' : hasPasswordProvider ? 'Update Password' : 'Set Password'}
                 </button>
               </div>
             </div>

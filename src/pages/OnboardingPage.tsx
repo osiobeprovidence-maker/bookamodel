@@ -246,7 +246,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (convexUser?.role) {
-      navigate(convexUser.role === 'business' ? '/business-dashboard' : '/model-dashboard', { replace: true });
+      navigate(convexUser.role === 'business' ? '/business-dashboard' : convexUser.role === 'admin' ? '/admin' : '/model-dashboard', { replace: true });
     }
   }, [convexUser, navigate]);
 
