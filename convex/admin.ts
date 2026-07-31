@@ -201,7 +201,7 @@ export const listModels = query({
     const bookingCounts = new Map<string, number>();
     for (const p of profiles) {
       if (!p) continue;
-      const count = await ctx.db.query("bookings").withIndex("by_modelUserId", (q) => q.eq("modelUserId", p.userId)).count();
+      const count = (await ctx.db.query("bookings").withIndex("by_modelUserId", (q) => q.eq("modelUserId", p.userId)).collect()).length;
       bookingCounts.set(p.userId, count);
     }
     return users
@@ -240,7 +240,7 @@ export const listBusinesses = query({
     for (const p of profiles) {
       if (!p) continue;
       const [count, txns] = await Promise.all([
-        ctx.db.query("bookings").withIndex("by_businessUserId", (q) => q.eq("businessUserId", p.userId)).count(),
+        (await ctx.db.query("bookings").withIndex("by_businessUserId", (q) => q.eq("businessUserId", p.userId)).collect()).length,
         ctx.db.query("walletTransactions").withIndex("by_userId", (q) => q.eq("userId", p.userId)).collect(),
       ]);
       bookingCounts.set(p.userId, count);
