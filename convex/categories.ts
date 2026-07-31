@@ -171,17 +171,43 @@ export const update = mutation({
     order: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { categoryId, ...updates } = args;
-    if (updates.slug) {
+    const { categoryId, imageStorageId, imageUrl, ...rest } = args;
+    const current = await ctx.db.get(categoryId);
+    if (!current) throw new Error("Category not found");
+    if (rest.slug) {
       const existing = await ctx.db
         .query("categories")
-        .withIndex("by_slug", (q) => q.eq("slug", updates.slug))
+        .withIndex("by_slug", (q) => q.eq("slug", rest.slug))
         .first();
       if (existing && existing._id !== categoryId) {
-        throw new Error(`A category with the slug "${updates.slug}" already exists`);
+        throw new Error(`A category with the slug "${rest.slug}" already exists`);
       }
     }
-    await ctx.db.patch(categoryId, updates);
+    const patch: Record<string, unknown> = { ...rest };
+    if (imageStorageId !== undefined) {
+      if (current.imageStorageId && current.imageStorageId !== imageStorageId) {
+        await ctx.storage.delete(current.imageStorageId);
+      }
+      patch.imageStorageId = imageStorageId;
+    }
+    if (imageUrl !== undefined) patch.imageUrl = imageUrl;
+    await ctx.db.patch(categoryId, patch);
+  },
+});
+
+export const removeImage = mutation({
+  args: { categoryId: v.id("categories") },
+  handler: async (ctx, args) => {
+    const category = await ctx.db.get(args.categoryId);
+    if (!category) return { ok: false, message: "Category not found" };
+    if (category.imageStorageId) {
+      await ctx.storage.delete(category.imageStorageId);
+    }
+    await ctx.db.patch(args.categoryId, {
+      imageStorageId: undefined,
+      imageUrl: undefined,
+    });
+    return { ok: true };
   },
 });
 
@@ -197,6 +223,9 @@ export const remove = mutation({
         ok: false,
         message: `This category is currently assigned to ${counts.models} model${counts.models === 1 ? "" : "s"}, ${counts.jobs} job${counts.jobs === 1 ? "" : "s"} and ${counts.businesses} business${counts.businesses === 1 ? "" : "es"}. Archive it instead.`,
       };
+    }
+    if (category.imageStorageId) {
+      await ctx.storage.delete(category.imageStorageId);
     }
     await ctx.db.delete(args.categoryId);
     return { ok: true };

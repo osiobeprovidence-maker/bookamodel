@@ -20,6 +20,7 @@ interface CategoryRow {
   slug: string;
   description?: string;
   image?: string | null;
+  imageStorageId?: string | null;
   color?: string;
   status?: string;
   isFeatured?: boolean;
@@ -40,6 +41,7 @@ const AdminCategories = () => {
   const updateCategory = useMutation(api.categories.update);
   const removeCategory = useMutation(api.categories.remove);
   const setStatus = useMutation(api.categories.setStatus);
+  const removeImage = useMutation(api.categories.removeImage);
   const generateUploadUrl = useAction(api.categories.generateUploadUrl);
 
   const [categories, setCategories] = useState<CategoryRow[] | null>(null);
@@ -77,7 +79,7 @@ const AdminCategories = () => {
       name: cat.name,
       slug: cat.slug,
       description: cat.description || '',
-      imageStorageId: '',
+      imageStorageId: cat.imageStorageId || '',
       imagePreview: cat.image || '',
       color: cat.color || COLOR_SWATCHES[0],
       status: (cat.status as any) || 'active',
@@ -116,30 +118,62 @@ const AdminCategories = () => {
           name: form.name.trim(),
           slug,
           description: form.description.trim() || undefined,
-          imageStorageId: form.imageStorageId || undefined,
+          ...(form.imageStorageId ? { imageStorageId: form.imageStorageId } : {}),
           color: form.color,
           status: form.status,
           isFeatured: form.isFeatured,
           order: form.order,
         });
+        setCategories((prev) =>
+          prev
+            ? prev.map((c) =>
+                c._id === editing._id
+                  ? {
+                      ...c,
+                      name: form.name.trim(),
+                      slug,
+                      description: form.description.trim() || undefined,
+                      imageStorageId: form.imageStorageId || c.imageStorageId || null,
+                      image: form.imagePreview || c.image,
+                      color: form.color,
+                      status: form.status,
+                      isFeatured: form.isFeatured,
+                      order: form.order,
+                    }
+                  : c
+              )
+            : prev
+        );
         toast('Category updated successfully', 'success');
       } else {
         await createCategory({
           name: form.name.trim(),
           slug,
           description: form.description.trim() || undefined,
-          imageStorageId: form.imageStorageId || undefined,
+          ...(form.imageStorageId ? { imageStorageId: form.imageStorageId } : {}),
           color: form.color,
           status: form.status,
           isFeatured: form.isFeatured,
           order: form.order,
         });
+        setShowModal(false);
         toast('Category created successfully', 'success');
       }
-      setShowModal(false);
+      if (editing) setShowModal(false);
     } catch (e: any) {
       toast(e?.message || 'Failed to save category', 'error');
     }
+  };
+
+  const handleRemoveImage = async () => {
+    if (editing) {
+      await removeImage({ categoryId: editing._id as any });
+      setCategories((prev) =>
+        prev ? prev.map((c) => (c._id === editing._id ? { ...c, image: null, imageStorageId: null } : c)) : prev
+      );
+    }
+    setForm((f) => ({ ...f, imageStorageId: '', imagePreview: '' }));
+    toast('Image removed', 'success');
   };
 
   const handleDelete = async (category: CategoryRow) => {
@@ -366,6 +400,15 @@ const AdminCategories = () => {
                         }}
                       />
                     </label>
+                    {form.imagePreview && (
+                      <button
+                        onClick={handleRemoveImage}
+                        className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 bg-red-600/90 hover:bg-red-600 text-white rounded-xl text-[11px] font-bold transition-colors"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Remove Image
+                      </button>
+                    )}
                   </div>
                 </div>
 
