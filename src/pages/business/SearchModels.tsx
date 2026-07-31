@@ -29,7 +29,9 @@ import {
   Calendar,
   Wallet,
 } from 'lucide-react';
-import { businessModels } from '../../data/businessData';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../components/ui/Toast';
 
 const ITEMS_PER_PAGE = 6;
@@ -44,13 +46,13 @@ const sortByOptions = ['Newest', 'Most Popular', 'Highest Rated', 'Recently Acti
 export default function SearchModels() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { convexUser } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState('Name');
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState('Newest');
-  const [savedModels, setSavedModels] = useState<Set<string>>(new Set());
-  const [inviteModal, setInviteModal] = useState<typeof businessModels[number] | null>(null);
+  const [inviteModal, setInviteModal] = useState<any>(null);
   const [inviteForm, setInviteForm] = useState({ date: '', time: '', location: '', budget: '', message: '' });
   const [filters, setFilters] = useState({
     gender: 'All',
@@ -61,13 +63,41 @@ export default function SearchModels() {
     proOnly: false,
   });
 
+  const models = useQuery(api.users.listDiscoverableModels, {});
+  const savedRecords = useQuery(
+    api.savedModels.listByBusiness,
+    convexUser ? { businessUserId: convexUser._id as any } : 'skip'
+  );
+  const toggleSavedModel = useMutation(api.savedModels.toggle);
+  const sendInvitation = useMutation(api.invitations.send);
+
+  const savedModels = useMemo(
+    () => new Set((savedRecords ?? []).map((record) => record.modelUserId)),
+    [savedRecords]
+  );
+
+  const discoverableModels = useMemo(() => {
+    return (models ?? []).map((model: any) => {
+      const location = [model.city, model.state, model.country].filter(Boolean).join(', ') || 'Nigeria';
+      const category = model.categories?.[0] || 'General';
+      return {
+        ...model,
+        name: model.displayName || model.user?.name || 'Model',
+        photo: model.imageUrl || model.user?.imageUrl || '',
+        location,
+        category,
+        price: model.dailyRate || model.hourlyRate || '',
+      };
+    });
+  }, [models]);
+
   const updateFilter = (key: string, value: string | boolean) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setCurrentPage(1);
   };
 
   const filteredModels = useMemo(() => {
-    let result = [...businessModels];
+    let result = [...discoverableModels];
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -82,13 +112,15 @@ export default function SearchModels() {
     }
 
     if (filters.gender !== 'All') {
-      result = result.filter((model) => model.gender === filters.gender);
+      result = result.filter((model) => model.gender?.toLowerCase() === filters.gender.toLowerCase());
     }
     if (filters.category !== 'All') {
-      result = result.filter((model) => model.category === filters.category);
+      result = result.filter((model) =>
+        model.categories?.some((category: string) => category.toLowerCase() === filters.category.toLowerCase())
+      );
     }
     if (filters.location !== 'All') {
-      result = result.filter((model) => model.location === filters.location);
+      result = result.filter((model) => model.location.toLowerCase().includes(filters.location.toLowerCase()));
     }
     if (filters.availability === 'Available Now') {
       result = result.filter((model) => model.isAvailable);
@@ -118,7 +150,7 @@ export default function SearchModels() {
     }
 
     return result;
-  }, [searchQuery, searchType, filters, sortBy]);
+  }, [discoverableModels, searchQuery, searchType, filters, sortBy]);
 
   const totalPages = Math.ceil(filteredModels.length / ITEMS_PER_PAGE);
   const paginatedModels = filteredModels.slice(
@@ -151,29 +183,55 @@ export default function SearchModels() {
     setCurrentPage(1);
   };
 
-  const toggleSave = (modelId: string, modelName: string) => {
-    setSavedModels((prev) => {
-      const next = new Set(prev);
-      if (next.has(modelId)) {
-        next.delete(modelId);
-        toast(`Removed ${modelName} from saved`, 'info');
-      } else {
-        next.add(modelId);
-        toast(`Saved ${modelName}`, 'success');
-      }
-      return next;
-    });
+  const formatRate = (rate?: string) => {
+    if (!rate) return 'Request rate';
+    return rate.toLowerCase().includes('ngn') || rate.includes('₦') ? rate : `NGN ${rate}`;
   };
 
-  const handleSendInvite = () => {
+  const toggleSave = async (model: any) => {
+    if (!convexUser) {
+      toast('Please sign in to save models', 'warning');
+      navigate('/login');
+      return;
+    }
+    try {
+      const saved = await toggleSavedModel({
+        businessUserId: convexUser._id as any,
+        modelUserId: model.userId,
+        folder: 'Favorites',
+      });
+      toast(saved ? `Saved ${model.name}` : `Removed ${model.name} from saved`, saved ? 'success' : 'info');
+    } catch {
+      toast('Unable to update saved models', 'error');
+    }
+  };
+
+  const handleSendInvite = async () => {
     if (!inviteModal) return;
+    if (!convexUser) {
+      toast('Please sign in to send invitations', 'warning');
+      navigate('/login');
+      return;
+    }
     if (!inviteForm.date || !inviteForm.message) {
       toast('Please fill in date and message', 'warning');
       return;
     }
-    toast(`Invitation sent to ${inviteModal.name}!`, 'success');
-    setInviteModal(null);
-    setInviteForm({ date: '', time: '', location: '', budget: '', message: '' });
+    try {
+      await sendInvitation({
+        businessUserId: convexUser._id as any,
+        modelUserId: inviteModal.userId,
+        title: `Invitation for ${inviteModal.name}`,
+        message: inviteForm.message,
+        proposedDate: inviteForm.date,
+        proposedRate: inviteForm.budget ? `NGN ${inviteForm.budget}` : undefined,
+      });
+      toast(`Invitation sent to ${inviteModal.name}!`, 'success');
+      setInviteModal(null);
+      setInviteForm({ date: '', time: '', location: '', budget: '', message: '' });
+    } catch {
+      toast('Failed to send invitation', 'error');
+    }
   };
 
   return (
@@ -296,7 +354,7 @@ export default function SearchModels() {
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
             <span className="text-sm text-gray-500">
-              {filteredModels.length} model{filteredModels.length !== 1 ? 's' : ''} found
+              {models === undefined ? 'Loading models...' : `${filteredModels.length} model${filteredModels.length !== 1 ? 's' : ''} found`}
             </span>
           </div>
         </motion.div>
@@ -443,11 +501,26 @@ export default function SearchModels() {
         </AnimatePresence>
 
         {/* Results Grid */}
-        {paginatedModels.length > 0 ? (
+        {models === undefined ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center mb-10"
+          >
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Search className="w-10 h-10 text-gray-300" />
+            </div>
+            <h3 className="text-xl font-bold text-[#111111] mb-2">Loading model profiles</h3>
+            <p className="text-gray-500 text-sm max-w-md mx-auto">
+              Pulling the latest completed model profiles for your business account.
+            </p>
+          </motion.div>
+        ) : paginatedModels.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
             {paginatedModels.map((model, index) => (
               <motion.div
-                key={model.id || index}
+                key={model._id || index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
@@ -455,11 +528,17 @@ export default function SearchModels() {
               >
                 {/* Photo */}
                 <div className="relative">
-                  <img
-                    src={model.photo || model.image || ''}
-                    alt={model.name}
-                    className="w-full h-64 object-cover rounded-t-2xl"
-                  />
+                  {model.photo ? (
+                    <img
+                      src={model.photo}
+                      alt={model.name}
+                      className="w-full h-64 object-cover rounded-t-2xl bg-gray-100"
+                    />
+                  ) : (
+                    <div className="w-full h-64 rounded-t-2xl bg-gray-100 flex items-center justify-center">
+                      <User className="w-12 h-12 text-gray-300" />
+                    </div>
+                  )}
                   {/* Availability Badge */}
                   <span
                     className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-bold ${
@@ -535,14 +614,14 @@ export default function SearchModels() {
                       Starting Price
                     </span>
                     <p className="text-lg font-bold text-[#D4AF37]">
-                      ₦{(model.price || 50000).toLocaleString()}
+                      {formatRate(model.price)}
                     </p>
                   </div>
 
                   {/* Action Buttons */}
                   <div className="flex gap-2">
                     <button
-                      onClick={() => navigate(`/profile/${model.id}`)}
+                      onClick={() => navigate(`/profile/${model._id}`)}
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-[#D4AF37] text-white rounded-xl text-xs font-bold hover:bg-[#C5A028] transition-colors"
                     >
                       <User className="w-3.5 h-3.5" />
@@ -559,14 +638,14 @@ export default function SearchModels() {
                       Invite
                     </button>
                     <button
-                      onClick={() => toggleSave(model.id, model.name)}
+                      onClick={() => toggleSave(model)}
                       className={`flex items-center justify-center px-3 py-2.5 border rounded-xl transition-colors ${
-                        savedModels.has(model.id)
+                        savedModels.has(model.userId)
                           ? 'bg-red-50 border-red-200 text-red-500'
                           : 'border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200'
                       }`}
                     >
-                      <Heart className={`w-4 h-4 ${savedModels.has(model.id) ? 'fill-current' : ''}`} />
+                      <Heart className={`w-4 h-4 ${savedModels.has(model.userId) ? 'fill-current' : ''}`} />
                     </button>
                   </div>
                 </div>
@@ -665,7 +744,7 @@ export default function SearchModels() {
               </div>
 
               <div className="flex items-center gap-3 mb-6 p-3 bg-gray-50 rounded-xl">
-                <img src={inviteModal.image} alt={inviteModal.name} className="w-12 h-12 rounded-lg object-cover" />
+                <img src={inviteModal.photo} alt={inviteModal.name} className="w-12 h-12 rounded-lg object-cover bg-gray-100" />
                 <div>
                   <p className="font-bold text-sm">{inviteModal.name}</p>
                   <p className="text-xs text-gray-400">{inviteModal.category} · {inviteModal.location}</p>

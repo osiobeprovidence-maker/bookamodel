@@ -7,7 +7,7 @@ import { useState, type ReactNode } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Search, Send, Heart, Briefcase,
-  MessageSquare, Settings, LogOut, Menu, X
+  MessageSquare, Settings, LogOut, Menu, X, Wallet
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useUser } from '../../contexts/UserContext';
@@ -20,6 +20,7 @@ const navLinks = [
   { label: 'Saved Models', icon: Heart, path: '/business-dashboard/saved' },
   { label: 'Job Requests', icon: Briefcase, path: '/business-dashboard/jobs' },
   { label: 'Messages', icon: MessageSquare, path: '/business-dashboard/messages' },
+  { label: 'Wallet', icon: Wallet, path: '/business-dashboard/wallet' },
 ];
 
 export const BusinessLayout = ({ children }: { children: ReactNode }) => {

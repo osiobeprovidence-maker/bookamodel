@@ -162,6 +162,12 @@ const BizMessages = () => (
   </BusinessLayout>
 );
 
+const BizWallet = () => (
+  <BusinessLayout>
+    <Wallet />
+  </BusinessLayout>
+);
+
 const BizSettings = () => (
   <BusinessLayout>
     <BusinessSettings />
@@ -225,6 +231,7 @@ export default function App() {
           <Route path="/business-dashboard/saved" element={<ProtectedRoute><BizSaved /></ProtectedRoute>} />
           <Route path="/business-dashboard/jobs" element={<ProtectedRoute><BizJobs /></ProtectedRoute>} />
           <Route path="/business-dashboard/messages" element={<ProtectedRoute><BizMessages /></ProtectedRoute>} />
+          <Route path="/business-dashboard/wallet" element={<ProtectedRoute><BizWallet /></ProtectedRoute>} />
           <Route path="/business-dashboard/settings" element={<ProtectedRoute><BizSettings /></ProtectedRoute>} />
           <Route path="/model-dashboard" element={<ProtectedRoute><ModelDashboard /></ProtectedRoute>} />
           <Route path="/model-dashboard/profile" element={<ProtectedRoute><ModelProfileDashboard /></ProtectedRoute>} />

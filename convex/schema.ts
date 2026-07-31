@@ -334,6 +334,37 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_isRead", ["isRead"]),
 
+  wallets: defineTable({
+    userId: v.id("users"),
+    role: v.union(v.literal("model"), v.literal("business")),
+    balance: v.number(),
+    currency: v.literal("NGN"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"]),
+
+  walletTransactions: defineTable({
+    walletId: v.id("wallets"),
+    userId: v.id("users"),
+    type: v.union(v.literal("funding"), v.literal("withdrawal"), v.literal("booking_credit"), v.literal("adjustment")),
+    direction: v.union(v.literal("credit"), v.literal("debit")),
+    amount: v.number(),
+    grossAmount: v.optional(v.number()),
+    feeAmount: v.optional(v.number()),
+    currency: v.literal("NGN"),
+    status: v.union(v.literal("pending"), v.literal("completed"), v.literal("failed"), v.literal("cancelled")),
+    provider: v.optional(v.literal("paystack")),
+    reference: v.optional(v.string()),
+    description: v.string(),
+    metadata: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_walletId", ["walletId"])
+    .index("by_userId", ["userId"])
+    .index("by_reference", ["reference"]),
+
   categories: defineTable({
     name: v.string(),
     slug: v.string(),

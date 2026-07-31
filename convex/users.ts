@@ -120,6 +120,32 @@ export const getModelProfileById = query({
   },
 });
 
+export const listDiscoverableModels = query({
+  args: {},
+  handler: async (ctx) => {
+    const profiles = await ctx.db.query("modelProfiles").order("desc").collect();
+    const completedProfiles = profiles.filter((profile) => profile.profileCompleted);
+
+    return await Promise.all(
+      completedProfiles.map(async (profile) => {
+        const user = await ctx.db.get(profile.userId);
+        return {
+          ...profile,
+          user: user
+            ? {
+                name: user.name,
+                email: user.email,
+                imageUrl: user.imageUrl,
+                lastActive: user.lastActive,
+                isOnline: user.isOnline,
+              }
+            : null,
+        };
+      })
+    );
+  },
+});
+
 export const getBusinessProfile = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
