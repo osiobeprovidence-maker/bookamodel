@@ -34,7 +34,7 @@ export const LandingPage = () => {
   const categories = useQuery(api.categories.listFeatured);
   const allCategories = useQuery(api.categories.listActive);
   const availableTodayData = useQuery(api.explore.listAvailableToday, { limit: 50 });
-  const testimonials = useQuery(api.testimonials.listPublished);
+  const testimonials = useQuery(api.testimonials.listPublished) ?? null;
   const popularCategories = (categories ?? []).slice(0, 8);
   const heroChips = (allCategories ?? []).slice(0, 7);
   const [visibleCount, setVisibleCount] = useState(AVAILABLE_STEP * 2);
