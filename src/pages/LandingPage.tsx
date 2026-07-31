@@ -4,7 +4,7 @@
  */
 
 import { motion } from 'framer-motion';
-import { Search, ArrowRight, Star, CheckCircle, Zap, Users } from 'lucide-react';
+import { Search, ArrowRight, Star, CheckCircle, Users } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useQuery } from 'convex/react';
@@ -150,14 +150,9 @@ export const LandingPage = () => {
       {/* Available Today */}
       <section className="py-24 px-6 bg-[#F8F8F8]">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="p-3 bg-green-100 rounded-2xl">
-              <Zap className="w-6 h-6 text-green-600 fill-current" />
-            </div>
-            <div>
-              <h2 className="text-4xl font-black">Available Today</h2>
-              <p className="text-gray-500">Book these models for last-minute shoots.</p>
-            </div>
+          <div className="mb-12">
+            <h2 className="text-4xl font-black">Available Today</h2>
+            <p className="text-gray-500">Book these models for last-minute shoots.</p>
           </div>
 
           {availableModels === null ? (
