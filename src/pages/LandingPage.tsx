@@ -4,23 +4,40 @@
  */
 
 import { motion } from 'framer-motion';
-import { Search, MapPin, Grid, ArrowRight, Star, CheckCircle, Zap } from 'lucide-react';
+import { Search, ArrowRight, Star, CheckCircle, Zap, Users } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { models } from '../data/mockData';
+import { useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { ProfileCard } from '../components/ui/ProfileCard';
 import { Button } from '../components/ui/Button';
-import { Badge } from '../components/ui/Badge';
+import { cn } from '../lib/utils';
+
+const AVAILABLE_STEP = 4;
+
+const CardSkeleton = () => (
+  <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+    <div className="aspect-[3/4] bg-gray-100 animate-pulse" />
+    <div className="p-4 space-y-3">
+      <div className="h-3 w-2/3 bg-gray-100 rounded-full animate-pulse" />
+      <div className="h-2 w-1/2 bg-gray-100 rounded-full animate-pulse" />
+      <div className="grid grid-cols-2 gap-2 pt-1">
+        <div className="h-8 bg-gray-100 rounded-xl animate-pulse" />
+        <div className="h-8 bg-gray-100 rounded-xl animate-pulse" />
+      </div>
+    </div>
+  </div>
+);
 
 export const LandingPage = () => {
   const navigate = useNavigate();
   const categories = useQuery(api.categories.listFeatured);
   const allCategories = useQuery(api.categories.listActive);
-  const featuredModels = models.slice(0, 4);
-  const availableToday = models.filter(m => m.isAvailableToday).slice(0, 4);
+  const availableTodayData = useQuery(api.explore.listAvailableToday, { limit: 50 });
   const popularCategories = (categories ?? []).slice(0, 8);
   const heroChips = (allCategories ?? []).slice(0, 7);
+  const [visibleCount, setVisibleCount] = useState(AVAILABLE_STEP * 2);
+  const availableModels = availableTodayData?.models ?? null;
 
   return (
     <div className="bg-[#F8F8F8] min-h-screen">
@@ -142,11 +159,55 @@ export const LandingPage = () => {
               <p className="text-gray-500">Book these models for last-minute shoots.</p>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {availableToday.map(model => (
-              <ProfileCard key={model.id} model={model as any} onViewProfile={(id) => navigate(`/profile/${id}`)} onInvite={(id) => navigate(`/invite/${id}`)} />
-            ))}
-          </div>
+
+          {availableModels === null ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              {Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)}
+            </div>
+          ) : availableModels.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-16 text-center">
+              <div className="mx-auto w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-6">
+                <Users className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-2xl font-black mb-3">No models are currently available for immediate booking</h3>
+              <p className="text-gray-500 mb-8">
+                Check back soon or browse all models to find the right talent for your project.
+              </p>
+              <Link to="/models">
+                <Button variant="gold" className="rounded-2xl">
+                  Browse All Models <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                {availableModels.slice(0, visibleCount).map((model) => (
+                  <ProfileCard
+                    key={model._id}
+                    model={model}
+                    onViewProfile={(id) => navigate(`/profile/${id}`)}
+                    onInvite={(id) => navigate(`/invite/${id}`)}
+                  />
+                ))}
+              </div>
+              {availableModels.length > visibleCount && (
+                <div className="flex justify-center mt-12">
+                  <button
+                    onClick={() => setVisibleCount((c) => Math.min(c + AVAILABLE_STEP, availableModels.length))}
+                    className={cn(
+                      'flex items-center gap-2 px-8 py-3.5 rounded-2xl border-2 border-[#D4AF37]',
+                      'text-[#B8960E] hover:bg-[#D4AF37] hover:text-white font-bold text-xs uppercase tracking-widest',
+                      'transition-all active:scale-95'
+                    )}
+                  >
+                    View More
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </section>
 

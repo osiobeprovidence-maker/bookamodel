@@ -59,6 +59,8 @@ export const ProfileCard = ({ model, className, onInvite, onViewProfile }: Profi
           <img
             src={model.imageUrl}
             alt={displayName}
+            loading="lazy"
+            referrerPolicy="no-referrer"
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
         ) : (
@@ -70,7 +72,7 @@ export const ProfileCard = ({ model, className, onInvite, onViewProfile }: Profi
 
         <div className="absolute top-3 left-3 flex flex-col gap-2">
           {model.isAvailable && (
-            <Badge variant="success">Available</Badge>
+            <Badge variant="success">Available Now</Badge>
           )}
         </div>
 
