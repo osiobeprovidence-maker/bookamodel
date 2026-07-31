@@ -137,19 +137,19 @@ const Notifications = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Notifications</h1>
+          <h1 className="text-2xl font-bold text-[#111111]">Notifications</h1>
           <p className="text-gray-400 mt-1">Stay updated on your platform activity.</p>
         </div>
         <div className="flex items-center gap-2">
           {unreadCount > 0 && (
-            <button onClick={handleMarkAllRead} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 text-gray-300 text-xs font-medium hover:bg-white/10 transition-colors">
+            <button onClick={handleMarkAllRead} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200 transition-colors">
               <CheckCheck className="w-3.5 h-3.5" /> Mark All Read
             </button>
           )}
-          <button onClick={openSettings} className="p-2 rounded-xl bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-colors">
+          <button onClick={openSettings} className="p-2 rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-[#111111] transition-colors">
             <Settings className="w-4 h-4" />
           </button>
         </div>
@@ -163,12 +163,12 @@ const Notifications = () => {
           return (
             <button key={cat} onClick={() => setActiveCategory(cat)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
-                activeCategory === cat ? 'bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/20' : 'bg-white/[0.03] text-gray-400 border border-white/5 hover:bg-white/[0.06]'
+                activeCategory === cat ? 'bg-black text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               }`}
             >
               <Icon className="w-4 h-4" />
               {cat === 'All' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
-              {count > 0 && <span className="ml-1 w-5 h-5 rounded-full bg-[#D4AF37] text-black text-[10px] font-bold flex items-center justify-center">{count}</span>}
+              {count > 0 && <span className="ml-1 w-5 h-5 rounded-full bg-[#D4AF37] text-white text-[10px] font-bold flex items-center justify-center">{count}</span>}
             </button>
           );
         })}
@@ -176,11 +176,11 @@ const Notifications = () => {
 
       {/* Notifications List */}
       {notifications === undefined ? (
-        <div className="text-center py-20 text-gray-500">Loading notifications...</div>
+        <div className="text-center py-20 text-gray-400">Loading notifications...</div>
       ) : filteredNotifications.length === 0 ? (
         <div className="text-center py-20">
-          <Bell className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">No notifications</h3>
+          <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-[#111111] mb-2">No notifications</h3>
           <p className="text-gray-500">You're all caught up!</p>
         </div>
       ) : (
@@ -191,16 +191,16 @@ const Notifications = () => {
               <motion.div key={n._id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
                 onClick={() => handleNotificationClick(n)}
                 className={`flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all ${
-                  n.isRead ? 'bg-white/[0.02] border border-white/5' : 'bg-[#D4AF37]/[0.03] border border-[#D4AF37]/10'
-                } hover:bg-white/[0.06]`}
+                  n.isRead ? 'bg-white border border-gray-100' : 'bg-[#D4AF37]/[0.03] border border-[#D4AF37]/20'
+                } hover:bg-gray-50`}
               >
-                <div className={`p-2 rounded-lg shrink-0 ${n.isRead ? 'bg-white/5 text-gray-500' : 'bg-[#D4AF37]/10 text-[#D4AF37]'}`}>
+                <div className={`p-2 rounded-lg shrink-0 ${n.isRead ? 'bg-gray-100 text-gray-500' : 'bg-[#D4AF37]/10 text-[#D4AF37]'}`}>
                   <Icon className="w-4 h-4" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm ${n.isRead ? 'text-gray-400' : 'text-white font-medium'}`}>{n.title}</p>
+                  <p className={`text-sm ${n.isRead ? 'text-gray-500' : 'text-[#111111] font-medium'}`}>{n.title}</p>
                   <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.message}</p>
-                  <p className="text-[10px] text-gray-600 mt-1">{new Date(n._creationTime).toLocaleDateString()}</p>
+                  <p className="text-[10px] text-gray-400 mt-1">{new Date(n._creationTime).toLocaleDateString()}</p>
                 </div>
                 {!n.isRead && <span className="w-2 h-2 rounded-full bg-[#D4AF37] shrink-0 mt-2" />}
               </motion.div>
@@ -212,32 +212,32 @@ const Notifications = () => {
       {/* Settings Modal */}
       <AnimatePresence>
         {showSettings && localPrefs && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowSettings(false)}>
-            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-full max-w-md bg-[#111] border border-white/10 rounded-2xl p-6" onClick={e => e.stopPropagation()}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setShowSettings(false)}>
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-full max-w-md bg-white border border-gray-100 rounded-2xl p-6 shadow-xl" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold text-white">Notification Settings</h2>
-                <button onClick={() => setShowSettings(false)} className="p-1 text-gray-500 hover:text-white"><X className="w-5 h-5" /></button>
+                <h2 className="text-lg font-bold text-[#111111]">Notification Settings</h2>
+                <button onClick={() => setShowSettings(false)} className="p-1 text-gray-400 hover:text-[#111111]"><X className="w-5 h-5" /></button>
               </div>
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Channels</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Channels</h3>
                   {(['inApp', 'push', 'email'] as const).map(key => (
                     <label key={key} className="flex items-center justify-between py-2">
-                      <span className="text-sm text-gray-300 capitalize">{key === 'inApp' ? 'In-App' : key}</span>
+                      <span className="text-sm text-gray-600 capitalize">{key === 'inApp' ? 'In-App' : key}</span>
                       <button onClick={() => setLocalPrefs({ ...localPrefs, [key]: !localPrefs[key] })}
-                        className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${localPrefs[key] ? 'bg-[#D4AF37]' : 'bg-white/10'}`}>
+                        className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${localPrefs[key] ? 'bg-[#D4AF37]' : 'bg-gray-200'}`}>
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${localPrefs[key] ? 'translate-x-5' : 'translate-x-1'}`} />
                       </button>
                     </label>
                   ))}
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Categories</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Categories</h3>
                   {(['newJobs', 'applications', 'invitations', 'payments', 'messages', 'system'] as const).map(key => (
                     <label key={key} className="flex items-center justify-between py-2">
-                      <span className="text-sm text-gray-300 capitalize">{key === 'newJobs' ? 'New Jobs' : key}</span>
+                      <span className="text-sm text-gray-600 capitalize">{key === 'newJobs' ? 'New Jobs' : key}</span>
                       <button onClick={() => setLocalPrefs({ ...localPrefs, [key]: !localPrefs[key] })}
-                        className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${localPrefs[key] ? 'bg-[#D4AF37]' : 'bg-white/10'}`}>
+                        className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${localPrefs[key] ? 'bg-[#D4AF37]' : 'bg-gray-200'}`}>
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${localPrefs[key] ? 'translate-x-5' : 'translate-x-1'}`} />
                       </button>
                     </label>
@@ -245,8 +245,8 @@ const Notifications = () => {
                 </div>
               </div>
               <div className="flex gap-3 mt-6">
-                <button onClick={() => setShowSettings(false)} className="flex-1 px-4 py-2.5 border border-white/10 text-gray-300 rounded-xl text-sm">Cancel</button>
-                <button onClick={handleSavePrefs} className="flex-1 px-4 py-2.5 bg-[#D4AF37] text-black rounded-xl text-sm font-bold">Save</button>
+                <button onClick={() => setShowSettings(false)} className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm">Cancel</button>
+                <button onClick={handleSavePrefs} className="flex-1 px-4 py-2.5 bg-[#D4AF37] text-white rounded-xl text-sm font-bold">Save</button>
               </div>
             </motion.div>
           </motion.div>
