@@ -10,12 +10,21 @@ import {
   ChevronRight, ChevronLeft, Upload, Check, Camera
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { categories } from '../data/mockData';
+import { useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import { cn } from '../lib/utils';
 
 export const CreateProfile = () => {
   const [step, setStep] = useState(1);
   const totalSteps = 5;
+  const categories = useQuery(api.categories.listActive);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  const toggleCategory = (slug: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
+    );
+  };
 
   const nextStep = () => setStep(s => Math.min(s + 1, totalSteps));
   const prevStep = () => setStep(s => Math.max(s - 1, 1));
@@ -149,9 +158,14 @@ export const CreateProfile = () => {
                   <h2 className="text-xl font-bold tracking-tight uppercase">Specialization</h2>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  {categories.map(cat => (
-                    <label key={cat.id} className="relative group cursor-pointer">
-                      <input type="checkbox" className="peer sr-only" />
+                  {(categories ?? []).map(cat => (
+                    <label key={cat._id} className="relative group cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="peer sr-only"
+                        checked={selectedCategories.includes(cat.slug)}
+                        onChange={() => toggleCategory(cat.slug)}
+                      />
                       <div className="p-5 bg-white rounded-xl border border-gray-100 peer-checked:border-[#D4AF37] peer-checked:bg-[#D4AF37]/5 transition-all flex items-center justify-between">
                         <span className="text-xs font-bold uppercase tracking-widest">{cat.name}</span>
                         <div className="w-4 h-4 rounded border border-gray-200 flex items-center justify-center peer-checked:bg-[#D4AF37] peer-checked:border-[#D4AF37] transition-all">

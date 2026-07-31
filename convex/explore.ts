@@ -26,7 +26,18 @@ export const listPublishedModels = query({
       .collect();
 
     if (category) {
-      profiles = profiles.filter((p) => p.categories?.includes(category));
+      const cat = await ctx.db
+        .query("categories")
+        .withIndex("by_slug", (q) => q.eq("slug", category))
+        .first();
+      const validKeys = new Set([category.toLowerCase()]);
+      if (cat) {
+        validKeys.add(cat.name.toLowerCase());
+        validKeys.add(cat.slug.toLowerCase());
+      }
+      profiles = profiles.filter((p) =>
+        (p.categories || []).some((c) => validKeys.has(c.toLowerCase()))
+      );
     }
     if (location) {
       const loc = location.toLowerCase();

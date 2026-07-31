@@ -13,6 +13,8 @@ import {
   CalendarCheck,
   UserPlus,
   Ban,
+  Tags,
+  Star,
 } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -120,6 +122,25 @@ export default function AdminDashboard() {
           color="bg-red-500/10 text-red-500"
           change="Action taken"
           changeType="negative"
+        />
+      </motion.div>
+
+      <motion.div variants={item} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <AdminStatsCard
+          title="Active Categories"
+          value={stats?.activeCategories ?? 0}
+          icon={Tags}
+          color="bg-teal-500/10 text-teal-600"
+          change="Live categories"
+          changeType="positive"
+        />
+        <AdminStatsCard
+          title="Featured Categories"
+          value={stats?.featuredCategories ?? 0}
+          icon={Star}
+          color="bg-amber-500/10 text-amber-600"
+          change="On landing page"
+          changeType="positive"
         />
       </motion.div>
 

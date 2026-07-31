@@ -16,13 +16,12 @@ import { useUser } from '../contexts/UserContext';
 import { useToast } from '../components/ui/Toast';
 import VideoPlayer from '../components/ui/VideoPlayer';
 
-const bookingTypes = ['Fashion', 'Commercial', 'Runway', 'Editorial', 'Beauty', 'Fitness', 'Lifestyle'];
-
 export const ModelProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, convexUser } = useUser();
   const { toast } = useToast();
+  const bookingCategories = useQuery(api.categories.listActive);
 
   const myProfile = useQuery(
     api.users.getModelProfile,
@@ -519,10 +518,10 @@ export const ModelProfile = () => {
                 <div>
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Booking Type *</label>
                   <div className="flex flex-wrap gap-2">
-                    {bookingTypes.map((type) => (
-                      <button key={type} onClick={() => setBookingForm({ ...bookingForm, type })}
-                        className={cn("px-4 py-2 rounded-xl text-xs font-bold transition-all", bookingForm.type === type ? "bg-[#D4AF37] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200")}>
-                        {type}
+                    {(bookingCategories ?? []).map((cat) => (
+                      <button key={cat._id} onClick={() => setBookingForm({ ...bookingForm, type: cat.slug })}
+                        className={cn("px-4 py-2 rounded-xl text-xs font-bold transition-all", bookingForm.type === cat.slug ? "bg-[#D4AF37] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200")}>
+                        {cat.name}
                       </button>
                     ))}
                   </div>

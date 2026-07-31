@@ -5,6 +5,7 @@
 
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { withCounts } from "./categories";
 
 const NGN = (n: number) => "₦" + n.toLocaleString("en-NG");
 
@@ -187,6 +188,8 @@ export const stats = query({
       recentActivity: sortedActivity,
       latestModels,
       totalCategories: categories.length,
+      activeCategories: categories.filter((c) => c.status === "active" || c.status === undefined).length,
+      featuredCategories: categories.filter((c) => c.isFeatured === true).length,
     };
   },
 });
@@ -462,12 +465,23 @@ export const listNotifications = query({
 export const listCategories = query({
   handler: async (ctx) => {
     const categories = await ctx.db.query("categories").order("asc").collect();
-    return categories.map((c) => ({
+    const enriched = await withCounts(ctx, categories);
+    return enriched.map((c) => ({
       id: c._id,
       name: c.name,
+      slug: c.slug,
       icon: categoryIcon(c.name),
       count: c.count,
+      modelCount: c.modelCount,
+      businessCount: c.businessCount,
+      jobCount: c.jobCount,
       order: c.order,
+      description: c.description,
+      image: c.image,
+      color: c.color,
+      status: c.status,
+      isFeatured: c.isFeatured,
+      createdAt: c.createdAt,
     }));
   },
 });

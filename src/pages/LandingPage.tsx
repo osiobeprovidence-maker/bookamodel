@@ -6,15 +6,21 @@
 import { motion } from 'framer-motion';
 import { Search, MapPin, Grid, ArrowRight, Star, CheckCircle, Zap } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { models, categories } from '../data/mockData';
+import { models } from '../data/mockData';
+import { useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import { ProfileCard } from '../components/ui/ProfileCard';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 
 export const LandingPage = () => {
   const navigate = useNavigate();
+  const categories = useQuery(api.categories.listFeatured);
+  const allCategories = useQuery(api.categories.listActive);
   const featuredModels = models.slice(0, 4);
   const availableToday = models.filter(m => m.isAvailableToday).slice(0, 4);
+  const popularCategories = (categories ?? []).slice(0, 8);
+  const heroChips = (allCategories ?? []).slice(0, 7);
 
   return (
     <div className="bg-[#F8F8F8] min-h-screen">
@@ -56,9 +62,13 @@ export const LandingPage = () => {
             </div>
 
             <div className="flex flex-wrap justify-center gap-2">
-              {['Fashion', 'Commercial', 'Beauty', 'Parts', 'Petite', 'Plus Size', 'Fitness'].map((cat) => (
-                <button key={cat} className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs font-semibold text-gray-700 transition-colors">
-                  {cat}
+              {heroChips.map((cat) => (
+                <button
+                  key={cat._id}
+                  onClick={() => navigate('/models')}
+                  className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs font-semibold text-gray-700 transition-colors"
+                >
+                  {cat.name}
                 </button>
               ))}
             </div>
@@ -82,20 +92,36 @@ export const LandingPage = () => {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-            {categories.map((cat) => (
+            {popularCategories.map((cat) => (
               <motion.div
-                key={cat.id}
+                key={cat._id}
                 whileHover={{ y: -5 }}
                 className="group cursor-pointer"
+                onClick={() => navigate('/models')}
               >
-                <div className="aspect-square rounded-2xl overflow-hidden mb-4 relative">
-                  <img
-                    src={cat.image}
-                    alt={cat.name}
-                    className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                    referrerPolicy="no-referrer"
-                  />
+                <div
+                  className="aspect-square rounded-2xl overflow-hidden mb-4 relative"
+                  style={cat.image ? undefined : { backgroundColor: cat.color || '#111111' }}
+                >
+                  {cat.image ? (
+                    <img
+                      src={cat.image}
+                      alt={cat.name}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : null}
+                  {!cat.image && (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span className="text-2xl font-black text-white/90 uppercase tracking-tight">{cat.name.slice(0, 2)}</span>
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors" />
+                  <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-black/60 text-[10px] font-bold text-white">
+                    {cat.modelCount ?? 0} models
+                  </div>
                 </div>
                 <h4 className="font-bold text-center group-hover:text-[#D4AF37] transition-colors">{cat.name}</h4>
               </motion.div>
@@ -118,7 +144,7 @@ export const LandingPage = () => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {availableToday.map(model => (
-              <ProfileCard key={model.id} model={model} onViewProfile={(id) => navigate(`/profile/${id}`)} onInvite={(id) => navigate(`/invite/${id}`)} />
+              <ProfileCard key={model.id} model={model as any} onViewProfile={(id) => navigate(`/profile/${id}`)} onInvite={(id) => navigate(`/invite/${id}`)} />
             ))}
           </div>
         </div>

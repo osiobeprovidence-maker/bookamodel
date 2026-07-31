@@ -410,11 +410,17 @@ export default defineSchema({
     slug: v.string(),
     description: v.optional(v.string()),
     imageUrl: v.optional(v.string()),
+    imageStorageId: v.optional(v.string()),
+    color: v.optional(v.string()),
+    status: v.optional(v.union(v.literal("active"), v.literal("hidden"), v.literal("archived"))),
+    isFeatured: v.optional(v.boolean()),
     count: v.number(),
     order: v.number(),
+    createdAt: v.optional(v.number()),
   })
     .index("by_slug", ["slug"])
-    .index("by_order", ["order"]),
+    .index("by_order", ["order"])
+    .index("by_status", ["status"]),
 
   verificationRequests: defineTable({
     modelUserId: v.id("users"),

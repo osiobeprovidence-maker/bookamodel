@@ -19,17 +19,9 @@ interface ModelDirectoryProps {
   mode: 'public' | 'business';
 }
 
-const CATEGORIES = [
-  'Fashion Model', 'Runway Model', 'Commercial Model', 'Editorial Model',
-  'Fitness Model', 'Beauty Model', 'Bridal Model', 'Product Model',
-  'Lash Model', 'Makeup Model', 'Hair Model', 'Native Wear Model',
-  'Jewellery Model', 'Skincare Model',
-];
-
 const PAGE_SIZE = 12;
 
 const searchTypes = ['Name', 'Location', 'Category'];
-const businessCategoryOptions = ['All', 'Fashion', 'Commercial', 'Runway', 'Editorial', 'Fitness', 'Lifestyle', 'Beauty'];
 const businessLocationOptions = ['All', 'Lagos', 'Abuja', 'Port Harcourt', 'Kano', 'Enugu', 'Ibadan'];
 const businessGenderOptions = ['All', 'Male', 'Female'];
 const businessAvailabilityOptions = ['All', 'Available Now', 'Not Available'];
@@ -40,6 +32,17 @@ export const ModelDirectory = ({ mode }: ModelDirectoryProps) => {
   const { convexUser } = useUser();
   const { toast } = useToast();
   const isPublic = mode === 'public';
+
+  const categories = useQuery(api.categories.listActive);
+  const categoryOptions = categories ?? [];
+  const categoryByName = new Map(categoryOptions.map((c) => [c.name.toLowerCase(), c.slug]));
+  const matchesCategory = (stored: string[] | undefined, selected: string) => {
+    if (!stored) return false;
+    return stored.some((s) => {
+      const key = s.toLowerCase();
+      return key === selected.toLowerCase() || categoryByName.get(key) === selected;
+    });
+  };
 
   // Shared state
   const [searchQuery, setSearchQuery] = useState('');
@@ -110,7 +113,7 @@ export const ModelDirectory = ({ mode }: ModelDirectoryProps) => {
     }
     if (bizFilters.category !== 'All') {
       result = result.filter((m) =>
-        m.categories?.some((cat) => cat.toLowerCase() === bizFilters.category.toLowerCase())
+        matchesCategory(m.categories, bizFilters.category)
       );
     }
     if (bizFilters.location !== 'All') {
@@ -284,13 +287,13 @@ export const ModelDirectory = ({ mode }: ModelDirectoryProps) => {
                   >
                     All Categories
                   </button>
-                  {CATEGORIES.map((cat) => (
+                  {categoryOptions.map((cat) => (
                     <button
-                      key={cat}
-                      onClick={() => { setSelectedCategory(cat === selectedCategory ? null : cat); resetPage(); }}
-                      className={`w-full text-left px-4 py-2.5 rounded-lg text-xs font-bold transition-all uppercase tracking-wider ${selectedCategory === cat ? 'bg-black text-white' : 'text-gray-400 hover:bg-gray-50 hover:text-black'}`}
+                      key={cat._id}
+                      onClick={() => { setSelectedCategory(selectedCategory === cat.slug ? null : cat.slug); resetPage(); }}
+                      className={`w-full text-left px-4 py-2.5 rounded-lg text-xs font-bold transition-all uppercase tracking-wider ${selectedCategory === cat.slug ? 'bg-black text-white' : 'text-gray-400 hover:bg-gray-50 hover:text-black'}`}
                     >
-                      {cat}
+                      {cat.name}
                     </button>
                   ))}
                 </div>
@@ -361,7 +364,7 @@ export const ModelDirectory = ({ mode }: ModelDirectoryProps) => {
               <div className="flex flex-wrap gap-2 mb-6">
                 {selectedCategory && (
                   <Badge variant="gold" className="pl-3 pr-2 py-1 flex items-center gap-1 cursor-pointer" onClick={() => { setSelectedCategory(null); resetPage(); }}>
-                    {selectedCategory} <span className="text-xs ml-1">×</span>
+                    {categoryOptions.find((c) => c.slug === selectedCategory)?.name || selectedCategory} <span className="text-xs ml-1">×</span>
                   </Badge>
                 )}
                 {selectedLocation && (
@@ -605,8 +608,9 @@ export const ModelDirectory = ({ mode }: ModelDirectoryProps) => {
                         onChange={(e) => updateBizFilter('category', e.target.value)}
                         className="appearance-none w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#D4AF37] cursor-pointer"
                       >
-                        {businessCategoryOptions.map((option) => (
-                          <option key={option} value={option}>{option}</option>
+                        <option value="All">All</option>
+                        {categoryOptions.map((option) => (
+                          <option key={option._id} value={option.slug}>{option.name}</option>
                         ))}
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />

@@ -104,6 +104,7 @@ export default function BusinessSettings() {
     api.users.getBusinessProfile,
     convexUser ? { userId: convexUser._id as any } : 'skip'
   );
+  const industryOptions = useQuery(api.categories.listActive);
   const saveBusinessProfile = useMutation(api.users.saveBusinessProfile);
   const [saving, setSaving] = useState(false);
 
@@ -117,7 +118,7 @@ export default function BusinessSettings() {
     phone: '',
     website: '',
     address: '',
-    industry: 'Fashion',
+    industry: '',
     description: '',
   });
 
@@ -138,7 +139,7 @@ export default function BusinessSettings() {
         phone: businessProfile.phone || businessProfile.contactPhone || '',
         website: businessProfile.website || '',
         address: businessProfile.address || '',
-        industry: businessProfile.industry || 'Fashion',
+        industry: businessProfile.businessCategory || '',
         description: businessProfile.description || '',
       }));
       setCompany(prev => ({
@@ -301,12 +302,10 @@ export default function BusinessSettings() {
                   onChange={(e) => setGeneralForm({ ...generalForm, industry: e.target.value })}
                   className={`${inputClass} appearance-none`}
                 >
-                  <option>Fashion</option>
-                  <option>Sportswear</option>
-                  <option>Beauty</option>
-                  <option>Tech</option>
-                  <option>Retail</option>
-                  <option>Other</option>
+                  <option value="">Select industry</option>
+                  {(industryOptions ?? []).map(cat => (
+                    <option key={cat._id} value={cat.slug}>{cat.name}</option>
+                  ))}
                 </select>
               </div>
               <div className="md:col-span-2">
@@ -332,6 +331,7 @@ export default function BusinessSettings() {
                       contactPerson: convexUser.name || '',
                       phone: generalForm.phone || undefined,
                       website: generalForm.website || undefined,
+                      businessCategory: generalForm.industry || undefined,
                       description: generalForm.description || undefined,
                     });
                     showToast('Changes saved successfully');
@@ -355,7 +355,7 @@ export default function BusinessSettings() {
                     phone: businessProfile?.phone || businessProfile?.contactPhone || '',
                     website: businessProfile?.website || '',
                     address: businessProfile?.address || '',
-                    industry: businessProfile?.industry || 'Fashion',
+                    industry: businessProfile?.businessCategory || '',
                     description: businessProfile?.description || '',
                   });
                 }}

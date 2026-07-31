@@ -6,22 +6,6 @@ import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
 import VideoPlayer from '../../components/ui/VideoPlayer';
 
-const filters = ['All', 'Photos', 'Videos', 'Portrait', 'Runway', 'Editorial', 'Commercial', 'Beauty', 'Lifestyle', 'Fitness', 'Swimwear', 'Fashion', 'Product'];
-
-const categories = [
-  { value: 'portrait', label: 'Portrait' },
-  { value: 'fashion', label: 'Fashion' },
-  { value: 'commercial', label: 'Commercial' },
-  { value: 'editorial', label: 'Editorial' },
-  { value: 'fitness', label: 'Fitness' },
-  { value: 'runway', label: 'Runway' },
-  { value: 'beauty', label: 'Beauty' },
-  { value: 'lifestyle', label: 'Lifestyle' },
-  { value: 'swimwear', label: 'Swimwear' },
-  { value: 'product', label: 'Product' },
-  { value: 'other', label: 'Other' },
-];
-
 const VIDEO_MAX_SIZE = 500 * 1024 * 1024;
 const SUPPORTED_VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska'];
 
@@ -39,6 +23,7 @@ export default function Portfolio() {
     api.albums.listByUser,
     convexUser ? { userId: convexUser._id as any } : 'skip'
   );
+  const categoryOptions = useQuery(api.categories.listActive);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const generateMuxUploadUrl = useAction(api.mux.generateMuxUploadUrl);
   const getMuxUploadStatus = useAction(api.mux.getUploadStatus);
@@ -113,7 +98,9 @@ export default function Portfolio() {
     activeFilter === 'All' ? portfolioItems
     : activeFilter === 'Photos' ? portfolioItems.filter((i) => i.type !== 'video')
     : activeFilter === 'Videos' ? portfolioItems.filter((i) => i.type === 'video')
-    : portfolioItems.filter((i) => i.category.toLowerCase() === activeFilter.toLowerCase());
+    : portfolioItems.filter((i) => (i.category || '').toLowerCase() === activeFilter.toLowerCase());
+
+  const filterChips = ['All', 'Photos', 'Videos', ...(categoryOptions ?? []).map((c) => c.name)];
 
   const photoCount = portfolioItems?.filter(i => i.type !== 'video').length ?? 0;
   const videoCount = portfolioItems?.filter(i => i.type === 'video').length ?? 0;
@@ -363,7 +350,7 @@ export default function Portfolio() {
           </div>
 
           <div className="mb-8 flex flex-wrap gap-2">
-            {filters.map((filter) => (
+            {filterChips.map((filter) => (
               <button key={filter} onClick={() => setActiveFilter(filter)}
                 className={`rounded-full px-4 py-2 text-xs font-medium transition-colors ${activeFilter === filter ? 'bg-black text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
                 {filter}
@@ -516,7 +503,7 @@ export default function Portfolio() {
             </FormField>
             <FormField label="Category">
               <select value={uploadCategory} onChange={(e) => setUploadCategory(e.target.value)} className="w-full px-4 py-3 bg-white rounded-xl border border-gray-100 outline-none text-sm font-medium appearance-none">
-                {categories.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                {(categoryOptions ?? []).map((cat) => <option key={cat._id} value={cat.name}>{cat.name}</option>)}
               </select>
             </FormField>
             <FormField label="Visibility">
@@ -571,7 +558,7 @@ export default function Portfolio() {
             </FormField>
             <FormField label="Category">
               <select value={uploadCategory} onChange={(e) => setUploadCategory(e.target.value)} className="w-full px-4 py-3 bg-white rounded-xl border border-gray-100 outline-none text-sm font-medium appearance-none">
-                {categories.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                {(categoryOptions ?? []).map((cat) => <option key={cat._id} value={cat.name}>{cat.name}</option>)}
               </select>
             </FormField>
             <FormField label="Visibility">
@@ -639,7 +626,7 @@ export default function Portfolio() {
             </FormField>
             <FormField label="Category">
               <select value={albumCategory} onChange={(e) => setAlbumCategory(e.target.value)} className="w-full px-4 py-3 bg-white rounded-xl border border-gray-100 outline-none text-sm font-medium appearance-none">
-                {categories.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                {(categoryOptions ?? []).map((cat) => <option key={cat._id} value={cat.name}>{cat.name}</option>)}
               </select>
             </FormField>
             <FormField label="Visibility">

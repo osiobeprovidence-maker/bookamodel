@@ -13,6 +13,7 @@ import {
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
+import { cn } from '../../lib/utils';
 
 const inputClass =
   'w-full px-6 py-4 bg-white rounded-xl border border-gray-100 focus:border-[#D4AF37] outline-none transition-all text-sm font-medium';
@@ -50,6 +51,7 @@ export default function MyProfile() {
     api.users.getModelProfile,
     convexUser ? { userId: convexUser._id as any } : 'skip'
   );
+  const categoryOptions = useQuery(api.categories.listActive);
   const saveProfile = useMutation(api.users.saveModelProfile);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -523,13 +525,36 @@ export default function MyProfile() {
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
                 Category
               </label>
-              <input
-                type="text"
-                value={form.categories}
-                onChange={(e) => update('categories', e.target.value)}
-                className={inputClass}
-                placeholder="Fashion Model, Runway..."
-              />
+              <div className="flex flex-wrap gap-2 p-3 bg-white rounded-xl border border-gray-100">
+                {(categoryOptions ?? []).map((cat) => {
+                  const selected = form.categories
+                    ? form.categories.split(',').map((c) => c.trim()).filter(Boolean).includes(cat.slug)
+                    : false;
+                  return (
+                    <button
+                      key={cat._id}
+                      type="button"
+                      onClick={() => {
+                        const current = form.categories
+                          ? form.categories.split(',').map((c) => c.trim()).filter(Boolean)
+                          : [];
+                        const next = selected
+                          ? current.filter((c) => c !== cat.slug)
+                          : [...current, cat.slug];
+                        update('categories', next.join(', '));
+                      }}
+                      className={cn(
+                        'px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border',
+                        selected
+                          ? 'bg-[#D4AF37]/10 border-[#D4AF37] text-[#B8960E]'
+                          : 'bg-gray-50 border-gray-100 text-gray-500 hover:border-[#D4AF37]/40'
+                      )}
+                    >
+                      {cat.name}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div>
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">

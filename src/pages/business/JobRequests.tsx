@@ -31,11 +31,10 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'cancelled', label: 'Cancelled' },
 ];
 
-const CATEGORIES = ['Fashion', 'Commercial', 'Runway', 'Beauty', 'Fitness', 'Lifestyle'];
-
 export default function JobRequests() {
   const { convexUser } = useUser();
   const { toast } = useToast();
+  const categories = useQuery(api.categories.listActive);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,7 +78,7 @@ export default function JobRequests() {
         businessUserId: convexUser._id as any,
         title: form.title || 'Untitled Campaign',
         description: form.description || '',
-        category: form.category || 'Fashion',
+        category: form.category || '',
         location: form.location || '',
         date: form.shootDate || '',
         time: undefined,
@@ -235,7 +234,7 @@ export default function JobRequests() {
                   <div className="relative">
                     <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="w-full px-4 py-3 bg-white rounded-xl border border-gray-100 focus:border-[#D4AF37] outline-none transition-all text-sm appearance-none">
                       <option value="">Select category</option>
-                      {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                      {(categories ?? []).map(cat => <option key={cat._id} value={cat.slug}>{cat.name}</option>)}
                     </select>
                     <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   </div>

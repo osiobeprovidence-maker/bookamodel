@@ -6,9 +6,12 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronRight } from 'lucide-react';
-import { categories } from '../data/mockData';
+import { useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
 export const CategoriesPage = () => {
+  const categories = useQuery(api.categories.listActive);
+  const list = categories ?? [];
   return (
     <div className="pt-32 pb-20 px-6 min-h-screen bg-white">
       <div className="max-w-7xl mx-auto">
@@ -21,26 +24,34 @@ export const CategoriesPage = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-          {categories.map((cat, idx) => (
+          {list.map((cat, idx) => (
             <motion.div
-              key={cat.id}
+              key={cat._id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.05, duration: 0.5 }}
               className="group"
             >
               <Link to="/models" className="block relative overflow-hidden rounded-3xl aspect-[4/5] bg-gray-100">
-                <img 
-                  src={cat.image} 
-                  alt={cat.name} 
-                  className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 group-hover:rotate-1"
-                  referrerPolicy="no-referrer"
-                />
+                {cat.image ? (
+                  <img
+                    src={cat.image}
+                    alt={cat.name}
+                    loading="lazy"
+                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 group-hover:rotate-1"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: cat.color || '#111111' }}>
+                    <span className="text-6xl font-black text-white/90 uppercase tracking-tight">{cat.name.slice(0, 2)}</span>
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent transition-opacity group-hover:opacity-80" />
                 <div className="absolute bottom-0 left-0 right-0 p-10">
                   <div className="flex items-end justify-between">
                     <div>
-                      <div className="text-[10px] uppercase font-bold text-[#D4AF37] tracking-[0.3em] mb-2">{cat.count} Profiles</div>
+                      <div className="text-[10px] uppercase font-bold text-[#D4AF37] tracking-[0.3em] mb-2">{cat.modelCount ?? 0} Profiles</div>
                       <h3 className="text-3xl font-extrabold text-white uppercase tracking-tighter">{cat.name}</h3>
                     </div>
                     <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20 group-hover:bg-[#D4AF37] group-hover:border-[#D4AF37] transition-all duration-500">
