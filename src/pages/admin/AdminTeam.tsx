@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { adminTeamMembers } from '../../data/adminData';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { AdminConfirmModal } from '../../components/admin/AdminConfirmModal';
 import { useToast } from '../../components/ui/Toast';
 
@@ -22,7 +23,13 @@ const allRoles = ['Super Admin', 'Admin', 'Moderator', 'Support Agent'];
 
 export default function AdminTeam() {
   const { showToast } = useToast();
-  const [localMembers, setLocalMembers] = useState<TeamMember[]>(adminTeamMembers);
+  const data = useQuery(api.admin.listAdmins);
+  const setUserRole = useMutation(api.users.setUserRole);
+  const [localMembers, setLocalMembers] = useState<TeamMember[] | null>(null);
+  useEffect(() => {
+    if (data && localMembers === null) setLocalMembers(data as unknown as TeamMember[]);
+  }, [data, localMembers]);
+  const members = localMembers ?? [];
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [editingMember, setEditingMember] = useState<string | null>(null);
@@ -37,19 +44,20 @@ export default function AdminTeam() {
       role: data.role,
       lastActive: 'Just now',
     };
-    setLocalMembers([...localMembers, newMember]);
+    setLocalMembers((prev) => (prev ? [...prev, newMember] : [newMember]));
     setShowInviteModal(false);
     showToast('Admin invited successfully', 'success');
   };
 
   const handleRoleChange = (memberId: string, newRole: TeamMember['role']) => {
-    setLocalMembers(localMembers.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)));
+    setLocalMembers((prev) => (prev ? prev.map((m) => (m.id === memberId ? { ...m, role: newRole } : m)) : prev));
+    setUserRole({ userId: memberId as any, role: 'admin' });
     showToast('Role updated', 'success');
   };
 
   const handleRemove = () => {
     if (editingMember) {
-      setLocalMembers(localMembers.filter((m) => m.id !== editingMember));
+      setLocalMembers((prev) => (prev ? prev.filter((m) => m.id !== editingMember) : prev));
       setShowConfirm(false);
       setEditingMember(null);
       showToast('Admin removed', 'success');
@@ -69,7 +77,7 @@ export default function AdminTeam() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {localMembers.map((member) => (
+        {members.map((member) => (
           <div key={member.id} className="bg-white rounded-lg border p-5">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-semibold text-sm">

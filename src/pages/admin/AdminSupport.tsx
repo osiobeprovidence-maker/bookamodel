@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { adminSupportTickets } from '../../data/adminData';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { useToast } from '../../components/ui/Toast';
 
 type Ticket = {
@@ -28,13 +29,19 @@ const filters = ['All', 'Open', 'In Progress', 'Resolved'];
 
 export default function AdminSupport() {
   const { showToast } = useToast();
-  const [localTickets, setLocalTickets] = useState<Ticket[]>(adminSupportTickets);
+  const data = useQuery(api.admin.listSupportTickets);
+  const setTicketStatus = useMutation(api.admin.setTicketStatus);
+  const [localTickets, setLocalTickets] = useState<Ticket[] | null>(null);
+  useEffect(() => {
+    if (data && localTickets === null) setLocalTickets(data as unknown as Ticket[]);
+  }, [data, localTickets]);
+  const tickets = localTickets ?? [];
   const [activeFilter, setActiveFilter] = useState('All');
   const [selectedTicket, setSelectedTicket] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [search, setSearch] = useState('');
 
-  const filtered = localTickets.filter((t) => {
+  const filtered = tickets.filter((t) => {
     const matchFilter = activeFilter === 'All' || t.status === activeFilter;
     const matchSearch =
       search === '' ||
@@ -44,9 +51,9 @@ export default function AdminSupport() {
   });
 
   const stats = {
-    open: localTickets.filter((t) => t.status === 'Open').length,
-    inProgress: localTickets.filter((t) => t.status === 'In Progress').length,
-    resolved: localTickets.filter((t) => t.status === 'Resolved').length,
+    open: tickets.filter((t) => t.status === 'Open').length,
+    inProgress: tickets.filter((t) => t.status === 'In Progress').length,
+    resolved: tickets.filter((t) => t.status === 'Resolved').length,
     avgResponse: '2.4 hrs',
   };
 
@@ -65,7 +72,13 @@ export default function AdminSupport() {
   };
 
   const changeStatus = (ticketId: string, newStatus: Ticket['status']) => {
-    setLocalTickets(localTickets.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)));
+    setLocalTickets((prev) =>
+      prev ? prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t)) : prev
+    );
+    setTicketStatus({
+      ticketId,
+      status: newStatus === 'In Progress' ? 'in_progress' : newStatus === 'Resolved' ? 'resolved' : 'open',
+    });
     showToast(`Ticket marked as ${newStatus}`, 'success');
   };
 

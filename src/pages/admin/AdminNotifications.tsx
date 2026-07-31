@@ -3,14 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, Plus, X, Send, Mail, Users } from 'lucide-react';
-import { adminNotifications } from '../../data/adminData';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { useToast } from '../../components/ui/Toast';
 import { AdminEmptyState } from '../../components/admin/AdminEmptyState';
 import { cn } from '../../lib/utils';
-
-type Notification = (typeof adminNotifications)[number];
 
 type RecipientOption = 'All' | 'Models' | 'Businesses' | 'Admin' | 'Super Admin' | 'Moderator' | 'Support';
 
@@ -26,7 +25,13 @@ const recipientBadges: Record<string, string> = {
 
 export default function AdminNotifications() {
   const { toast } = useToast();
-  const [localNotifications, setLocalNotifications] = useState<Notification[]>(adminNotifications);
+  const data = useQuery(api.admin.listNotifications);
+  const broadcastNotification = useMutation(api.admin.broadcastNotification);
+  const [localNotifications, setLocalNotifications] = useState<any[] | null>(null);
+  useEffect(() => {
+    if (data && localNotifications === null) setLocalNotifications(data);
+  }, [data, localNotifications]);
+  const notifications = localNotifications ?? [];
   const [showModal, setShowModal] = useState(false);
   const [formTitle, setFormTitle] = useState('');
   const [formMessage, setFormMessage] = useState('');
@@ -48,16 +53,24 @@ export default function AdminNotifications() {
       return;
     }
 
-    const newNotification: Notification = {
-      id: String(localNotifications.length + 1),
+    const recipient = formRecipients === 'Models' ? 'models' : formRecipients === 'Businesses' ? 'businesses' : 'all';
+
+    broadcastNotification({
       title: formTitle.trim(),
       message: formMessage.trim(),
-      recipients: formRecipients === 'All' ? 'All' : formRecipients === 'Models' ? 'All' : formRecipients === 'Businesses' ? 'Businesses' : 'Admin',
+      recipients: recipient as 'all',
+    });
+
+    const newNotification = {
+      id: String(Date.now()),
+      title: formTitle.trim(),
+      message: formMessage.trim(),
+      recipients: recipient === 'models' ? 'Models' : recipient === 'businesses' ? 'Businesses' : 'All',
       date: new Date().toISOString().split('T')[0],
       sent: true,
     };
 
-    setLocalNotifications([newNotification, ...localNotifications]);
+    setLocalNotifications((prev) => (prev ? [newNotification, ...prev] : [newNotification]));
     toast('Announcement sent successfully', 'success');
     resetForm();
     setShowModal(false);
@@ -81,11 +94,11 @@ export default function AdminNotifications() {
         </button>
       </div>
 
-      {localNotifications.length === 0 ? (
+      {notifications.length === 0 ? (
         <AdminEmptyState icon={Bell} title="No notifications yet" description="Create your first announcement to notify users about important updates." action={{ label: 'Create Announcement', onClick: () => setShowModal(true) }} />
       ) : (
         <div className="space-y-4">
-          {localNotifications.map((n) => (
+          {notifications.map((n) => (
             <div
               key={n.id}
               className={cn(

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -26,17 +26,42 @@ import {
   Ban,
   CalendarCheck,
 } from 'lucide-react';
-import { adminModels } from '../../data/adminData';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { AdminDataTable } from '../../components/admin/AdminDataTable';
 import { AdminConfirmModal } from '../../components/admin/AdminConfirmModal';
 import { useToast } from '../../components/ui/Toast';
 import { cn } from '../../lib/utils';
 
-type Model = (typeof adminModels)[number];
+type Model = {
+  id: string;
+  name: string;
+  username: string;
+  city: string;
+  categories: string[];
+  isVerified: boolean;
+  isAvailable: boolean;
+  isSuspended: boolean;
+  rating: number;
+  totalBookings: number;
+  image: string;
+  profileImage: string;
+  joinedDate: string;
+  isFeatured?: boolean;
+};
 
 export default function AdminModels() {
   const { toast } = useToast();
-  const [localModels, setLocalModels] = useState<Model[]>([...adminModels]);
+  const data = useQuery(api.admin.listModels);
+  const setModelVerified = useMutation(api.admin.setModelVerified);
+  const setAccountStatus = useMutation(api.admin.setAccountStatus);
+  const setFeatured = useMutation(api.admin.setFeatured);
+  const deleteModel = useMutation(api.admin.deleteModel);
+  const [localModels, setLocalModels] = useState<Model[] | null>(null);
+  useEffect(() => {
+    if (data && localModels === null) setLocalModels(data as unknown as Model[]);
+  }, [data, localModels]);
+  const models = localModels ?? [];
   const [selectedModel, setSelectedModel] = useState<Model | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{
@@ -46,13 +71,13 @@ export default function AdminModels() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   const stats = useMemo(() => {
-    const total = localModels.length;
-    const verified = localModels.filter((m) => m.isVerified).length;
-    const pending = localModels.filter((m) => !m.isVerified && !m.isSuspended).length;
-    const suspended = localModels.filter((m) => m.isSuspended).length;
-    const available = localModels.filter((m) => m.isAvailable && !m.isSuspended).length;
+    const total = models.length;
+    const verified = models.filter((m) => m.isVerified).length;
+    const pending = models.filter((m) => !m.isVerified && !m.isSuspended).length;
+    const suspended = models.filter((m) => m.isSuspended).length;
+    const available = models.filter((m) => m.isAvailable && !m.isSuspended).length;
     return { total, verified, pending, suspended, available };
-  }, [localModels]);
+  }, [models]);
 
   const handleAction = (
     type: 'suspend' | 'delete' | 'reactivate' | 'verify' | 'feature',
@@ -70,37 +95,54 @@ export default function AdminModels() {
       setShowConfirm(true);
     } else if (type === 'verify') {
       setLocalModels((prev) =>
-        prev.map((m) => (m.id === modelId ? { ...m, isVerified: true } : m))
+        prev ? prev.map((m) => (m.id === modelId ? { ...m, isVerified: true } : m)) : prev
       );
+      setModelVerified({ userId: modelId as any, verified: true });
       toast('Model verified successfully');
     } else if (type === 'feature') {
+      setLocalModels((prev) =>
+        prev ? prev.map((m) => (m.id === modelId ? { ...m, isFeatured: !m.isFeatured } : m)) : prev
+      );
+      setFeatured({ userId: modelId as any, isFeatured: true });
       toast('Model featured on homepage');
     }
   };
 
   const confirmHandler = () => {
     if (!confirmAction) return;
-    const model = localModels.find((m) => m.id === confirmAction.modelId);
+    const model = models.find((m) => m.id === confirmAction.modelId);
     if (confirmAction.type === 'delete') {
-      setLocalModels((prev) => prev.filter((m) => m.id !== confirmAction.modelId));
-      toast(`${model?.name} has been deleted`, 'error');
+      deleteModel({ userId: confirmAction.modelId as any }).then((res) => {
+        if (res && !res.ok) {
+          toast(res.message, 'error');
+          return;
+        }
+        setLocalModels((prev) => prev ? prev.filter((m) => m.id !== confirmAction.modelId) : prev);
+        toast(`${model?.name} has been deleted`, 'error');
+      });
     } else if (confirmAction.type === 'suspend') {
       setLocalModels((prev) =>
-        prev.map((m) =>
-          m.id === confirmAction.modelId
-            ? { ...m, isSuspended: true, isAvailable: false }
-            : m
-        )
+        prev
+          ? prev.map((m) =>
+              m.id === confirmAction.modelId
+                ? { ...m, isSuspended: true, isAvailable: false }
+                : m
+            )
+          : prev
       );
+      setAccountStatus({ userId: confirmAction.modelId as any, status: 'suspended' });
       toast(`${model?.name} has been suspended`, 'warning');
     } else if (confirmAction.type === 'reactivate') {
       setLocalModels((prev) =>
-        prev.map((m) =>
-          m.id === confirmAction.modelId
-            ? { ...m, isSuspended: false, isAvailable: true }
-            : m
-        )
+        prev
+          ? prev.map((m) =>
+              m.id === confirmAction.modelId
+                ? { ...m, isSuspended: false, isAvailable: true }
+                : m
+            )
+          : prev
       );
+      setAccountStatus({ userId: confirmAction.modelId as any, status: 'active' });
       toast(`${model?.name} has been reactivated`);
     }
   };
@@ -342,7 +384,7 @@ export default function AdminModels() {
       >
         <AdminDataTable
           columns={columns}
-          data={localModels}
+          data={models}
           searchPlaceholder="Search models by name or city..."
           searchKey="name"
         />

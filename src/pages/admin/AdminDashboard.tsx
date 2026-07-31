@@ -14,15 +14,8 @@ import {
   UserPlus,
   Ban,
 } from 'lucide-react';
-import {
-  adminStats,
-  adminModels,
-  adminBookings,
-  categoryStats,
-  topCities,
-  recentActivity,
-  monthlyBookingData,
-} from '../../data/adminData';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { AdminStatsCard } from '../../components/admin/AdminStatsCard';
 
 const container = {
@@ -38,12 +31,20 @@ const item = {
   show: { opacity: 1, y: 0 },
 };
 
+const emptyMonthly = Array.from({ length: 12 }, (_, i) => ({
+  month: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i],
+  bookings: 0,
+  revenue: 0,
+}));
+
 export default function AdminDashboard() {
-  const maxBookings = Math.max(...monthlyBookingData.map((m) => m.bookings));
-  const maxCityCount = Math.max(...topCities.map((c) => c.count));
-  const latestModels = [...adminModels]
-    .sort((a, b) => new Date(b.joinedDate).getTime() - new Date(a.joinedDate).getTime())
-    .slice(0, 5);
+  const stats = useQuery(api.admin.stats);
+  const monthlyBookingData = stats?.monthlyBookingData ?? emptyMonthly;
+  const topCities = stats?.topCities ?? [];
+  const recentActivity = stats?.recentActivity ?? [];
+  const latestModels = stats?.latestModels ?? [];
+  const maxBookings = Math.max(...monthlyBookingData.map((m) => m.bookings), 1);
+  const maxCityCount = Math.max(...topCities.map((c) => c.count), 1);
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-8">
@@ -57,31 +58,31 @@ export default function AdminDashboard() {
       <motion.div variants={item} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <AdminStatsCard
           title="Total Models"
-          value={adminStats.totalModels}
+          value={stats?.totalModels ?? 0}
           icon={Users}
-          change="+12% this month"
+          change="Live data"
           changeType="positive"
         />
         <AdminStatsCard
           title="Total Businesses"
-          value={adminStats.totalBusinesses}
+          value={stats?.totalBusinesses ?? 0}
           icon={Briefcase}
-          change="+8% this month"
+          change="Live data"
           changeType="positive"
         />
         <AdminStatsCard
           title="Total Bookings"
-          value={adminStats.totalBookings.toLocaleString()}
+          value={(stats?.totalBookings ?? 0).toLocaleString()}
           icon={Calendar}
-          change="+15% this month"
+          change="Live data"
           changeType="positive"
         />
         <AdminStatsCard
           title="Total Revenue"
-          value={adminStats.totalRevenue}
+          value={stats?.totalRevenue ?? '₦0'}
           icon={DollarSign}
           color="bg-green-500/10 text-green-600"
-          change="+13% this month"
+          change="Live data"
           changeType="positive"
         />
       </motion.div>
@@ -89,7 +90,7 @@ export default function AdminDashboard() {
       <motion.div variants={item} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <AdminStatsCard
           title="Pending Verification"
-          value={adminStats.pendingVerification}
+          value={stats?.pendingVerification ?? 0}
           icon={ShieldCheck}
           color="bg-orange-500/10 text-orange-500"
           change="Needs review"
@@ -97,7 +98,7 @@ export default function AdminDashboard() {
         />
         <AdminStatsCard
           title="Available Today"
-          value={adminStats.availableToday}
+          value={stats?.availableToday ?? 0}
           icon={CalendarCheck}
           color="bg-blue-500/10 text-blue-500"
           change="Active today"
@@ -105,7 +106,7 @@ export default function AdminDashboard() {
         />
         <AdminStatsCard
           title="Today's Signups"
-          value={adminStats.todaySignups}
+          value={stats?.todaySignups ?? 0}
           icon={UserPlus}
           color="bg-purple-500/10 text-purple-500"
           change="New users"
@@ -113,7 +114,7 @@ export default function AdminDashboard() {
         />
         <AdminStatsCard
           title="Suspended Models"
-          value={adminStats.suspendedModels}
+          value={stats?.suspendedModels ?? 0}
           icon={Ban}
           color="bg-red-500/10 text-red-500"
           change="Action taken"

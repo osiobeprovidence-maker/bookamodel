@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Building2, Search, X, MoreHorizontal, Eye, Ban, Trash2, CreditCard, CalendarCheck, UserCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { cn } from '../../lib/utils';
-import { adminBusinesses } from '../../data/adminData';
 import { AdminDataTable } from '../../components/admin/AdminDataTable';
 import { AdminStatsCard } from '../../components/admin/AdminStatsCard';
 import { AdminConfirmModal } from '../../components/admin/AdminConfirmModal';
@@ -15,40 +16,56 @@ import { useToast } from '../../components/ui/Toast';
 
 const AdminBusinesses = () => {
   const { toast } = useToast();
-  const [localBusinesses, setLocalBusinesses] = useState(adminBusinesses);
+  const data = useQuery(api.admin.listBusinesses);
+  const setAccountStatus = useMutation(api.admin.setAccountStatus);
+  const deleteBusiness = useMutation(api.admin.deleteBusiness);
+  const [localBusinesses, setLocalBusinesses] = useState<any[] | null>(null);
+  useEffect(() => {
+    if (data && localBusinesses === null) setLocalBusinesses(data);
+  }, [data, localBusinesses]);
+  const businesses = localBusinesses ?? [];
   const [selectedBusiness, setSelectedBusiness] = useState<any>(null);
   const [showConfirm, setShowConfirm] = useState<{ type: string; business: any } | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const stats = useMemo(() => ({
-    total: localBusinesses.length,
-    active: localBusinesses.filter((b) => b.isActive && !b.isSuspended).length,
-    suspended: localBusinesses.filter((b) => b.isSuspended).length,
-    totalSpend: localBusinesses.reduce((sum, b) => {
-      const num = parseInt(b.totalSpend.replace(/[₦,]/g, ''), 10);
-      return sum + num;
+    total: businesses.length,
+    active: businesses.filter((b) => b.isActive && !b.isSuspended).length,
+    suspended: businesses.filter((b) => b.isSuspended).length,
+    totalSpend: businesses.reduce((sum, b) => {
+      const num = parseInt(String(b.totalSpend).replace(/[₦,]/g, ''), 10);
+      return sum + (isNaN(num) ? 0 : num);
     }, 0),
-  }), [localBusinesses]);
+  }), [businesses]);
 
   const filteredData = useMemo(() => {
-    if (statusFilter === 'all') return localBusinesses;
-    if (statusFilter === 'active') return localBusinesses.filter((b) => b.isActive && !b.isSuspended);
-    return localBusinesses.filter((b) => b.isSuspended);
-  }, [localBusinesses, statusFilter]);
+    if (statusFilter === 'all') return businesses;
+    if (statusFilter === 'active') return businesses.filter((b) => b.isActive && !b.isSuspended);
+    return businesses.filter((b) => b.isSuspended);
+  }, [businesses, statusFilter]);
 
   const handleSuspend = (business: any) => {
     setLocalBusinesses((prev) =>
-      prev.map((b) =>
-        b.id === business.id ? { ...b, isSuspended: !b.isSuspended } : b
-      )
+      prev
+        ? prev.map((b) =>
+            b.id === business.id ? { ...b, isSuspended: !b.isSuspended } : b
+          )
+        : prev
     );
+    setAccountStatus({ userId: business.id, status: business.isSuspended ? 'active' : 'suspended' });
     toast(`Business ${business.isSuspended ? 'reactivated' : 'suspended'} successfully`);
   };
 
   const handleDelete = (business: any) => {
-    setLocalBusinesses((prev) => prev.filter((b) => b.id !== business.id));
-    toast('Business deleted successfully');
+    deleteBusiness({ userId: business.id }).then((res) => {
+      if (res && !res.ok) {
+        toast(res.message, 'error');
+        return;
+      }
+      setLocalBusinesses((prev) => (prev ? prev.filter((b) => b.id !== business.id) : prev));
+      toast('Business deleted successfully');
+    });
   };
 
   const columns = [

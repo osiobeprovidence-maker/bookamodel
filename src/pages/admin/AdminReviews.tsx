@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Star, Eye, EyeOff, Trash2, MessageSquare, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { cn } from '../../lib/utils';
-import { adminReviews } from '../../data/adminData';
 import { AdminDataTable } from '../../components/admin/AdminDataTable';
 import { AdminConfirmModal } from '../../components/admin/AdminConfirmModal';
 import { AdminStatsCard } from '../../components/admin/AdminStatsCard';
@@ -17,35 +18,42 @@ const filters = ['All', 'Visible', 'Hidden'] as const;
 
 const AdminReviews = () => {
   const { toast } = useToast();
-  const [localReviews, setLocalReviews] = useState(adminReviews);
+  const data = useQuery(api.admin.listReviews);
+  const setReviewVisibility = useMutation(api.admin.setReviewVisibility);
+  const [localReviews, setLocalReviews] = useState<any[] | null>(null);
+  useEffect(() => {
+    if (data && localReviews === null) setLocalReviews(data);
+  }, [data, localReviews]);
+  const reviews = localReviews ?? [];
   const [selectedReview, setSelectedReview] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>('All');
 
   const filteredReviews = useMemo(() => {
-    if (activeFilter === 'Visible') return localReviews.filter((r) => r.isVisible);
-    if (activeFilter === 'Hidden') return localReviews.filter((r) => !r.isVisible);
-    return localReviews;
-  }, [localReviews, activeFilter]);
+    if (activeFilter === 'Visible') return reviews.filter((r) => r.isVisible);
+    if (activeFilter === 'Hidden') return reviews.filter((r) => !r.isVisible);
+    return reviews;
+  }, [reviews, activeFilter]);
 
-  const visibleCount = localReviews.filter((r) => r.isVisible).length;
-  const hiddenCount = localReviews.filter((r) => !r.isVisible).length;
-  const avgRating = localReviews.length
-    ? (localReviews.reduce((sum, r) => sum + r.rating, 0) / localReviews.length).toFixed(1)
+  const visibleCount = reviews.filter((r) => r.isVisible).length;
+  const hiddenCount = reviews.filter((r) => !r.isVisible).length;
+  const avgRating = reviews.length
+    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
     : '0';
 
-  const selectedReviewData = localReviews.find((r) => r.id === selectedReview);
+  const selectedReviewData = reviews.find((r) => r.id === selectedReview);
 
   const handleToggleVisibility = (id: string) => {
+    const review = reviews.find((r) => r.id === id);
     setLocalReviews((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, isVisible: !r.isVisible } : r))
+      prev ? prev.map((r) => (r.id === id ? { ...r, isVisible: !r.isVisible } : r)) : prev
     );
-    const review = localReviews.find((r) => r.id === id);
+    setReviewVisibility({ reviewId: id, isApproved: !review?.isVisible });
     toast(review?.isVisible ? 'Review hidden' : 'Review is now visible');
   };
 
   const handleDelete = (id: string) => {
-    setLocalReviews((prev) => prev.filter((r) => r.id !== id));
+    setLocalReviews((prev) => (prev ? prev.filter((r) => r.id !== id) : prev));
     setSelectedReview(null);
     toast('Review deleted successfully');
   };
@@ -166,7 +174,7 @@ const AdminReviews = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <AdminStatsCard
           title="Total Reviews"
-          value={localReviews.length}
+          value={reviews.length}
           icon={MessageSquare}
           color="bg-[#D4AF37]/10 text-[#D4AF37]"
         />
@@ -175,7 +183,7 @@ const AdminReviews = () => {
           value={visibleCount}
           icon={Eye}
           color="bg-green-50 text-green-500"
-          change={`${Math.round((visibleCount / localReviews.length) * 100)}%`}
+          change={`${Math.round((visibleCount / reviews.length) * 100)}%`}
           changeType="positive"
         />
         <AdminStatsCard
@@ -183,7 +191,7 @@ const AdminReviews = () => {
           value={hiddenCount}
           icon={EyeOff}
           color="bg-gray-100 text-gray-500"
-          change={`${Math.round((hiddenCount / localReviews.length) * 100)}%`}
+          change={`${Math.round((hiddenCount / reviews.length) * 100)}%`}
           changeType="negative"
         />
         <AdminStatsCard
@@ -191,7 +199,7 @@ const AdminReviews = () => {
           value={avgRating}
           icon={Star}
           color="bg-yellow-50 text-yellow-500"
-          change={`${localReviews.length} reviews`}
+          change={`${reviews.length} reviews`}
           changeType="neutral"
         />
       </div>

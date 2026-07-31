@@ -1,14 +1,33 @@
-import React, { useState } from 'react';
-import { adminCMS, homepageTestimonials, homepageFAQ } from '../../data/adminData';
+import React, { useState, useEffect } from 'react';
+import { adminCMS, homepageFAQ } from '../../data/adminData';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { useToast } from '../../components/ui/Toast';
 
 const tabs = ['Homepage Hero', 'Testimonials', 'Popular Categories', 'FAQ', 'About Page', 'Footer'];
 
 export default function AdminCMS() {
   const { showToast } = useToast();
+  const reviewsData = useQuery(api.admin.listReviews);
+  const categoriesData = useQuery(api.categories.list);
   const [activeTab, setActiveTab] = useState('Homepage Hero');
   const [localCMS, setLocalCMS] = useState(adminCMS);
-  const [localTestimonials, setLocalTestimonials] = useState(homepageTestimonials);
+  const [localTestimonials, setLocalTestimonials] = useState<any[]>([]);
+  const [testimonialsSeeded, setTestimonialsSeeded] = useState(false);
+  useEffect(() => {
+    if (reviewsData && !testimonialsSeeded) {
+      setTestimonialsSeeded(true);
+      setLocalTestimonials(
+        reviewsData
+          .filter((r: any) => r.comment && r.comment !== '—')
+          .map((r: any) => ({
+            name: r.reviewerName || 'Client',
+            role: 'Client',
+            quote: r.comment,
+          }))
+      );
+    }
+  }, [reviewsData, testimonialsSeeded]);
   const [localFAQ, setLocalFAQ] = useState(homepageFAQ);
   const [showFormModal, setShowFormModal] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -132,9 +151,9 @@ export default function AdminCMS() {
           <h2 className="text-lg font-semibold">Popular Categories</h2>
           <p className="text-sm text-gray-500">Toggle which categories appear on the homepage.</p>
           <div className="bg-white rounded-lg p-6 border space-y-3">
-            {['Photography', 'Videography', 'DJ', 'Catering', 'Florist', 'Event Planning'].map((cat) => (
-              <div key={cat} className="flex items-center justify-between py-2 border-b last:border-0">
-                <span className="text-sm font-medium">{cat}</span>
+            {(categoriesData ?? []).map((cat: any) => (
+              <div key={cat._id} className="flex items-center justify-between py-2 border-b last:border-0">
+                <span className="text-sm font-medium">{cat.name}</span>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"

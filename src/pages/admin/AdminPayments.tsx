@@ -5,13 +5,12 @@
 
 import { useState, useMemo } from 'react';
 import { DollarSign, TrendingUp, ArrowDownCircle, ArrowUpCircle, Download } from 'lucide-react';
-import { adminTransactions, adminStats } from '../../data/adminData';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { AdminStatsCard } from '../../components/admin/AdminStatsCard';
 import { AdminDataTable } from '../../components/admin/AdminDataTable';
 import { useToast } from '../../components/ui/Toast';
 import { cn } from '../../lib/utils';
-
-type Transaction = (typeof adminTransactions)[number];
 
 const typeColors: Record<string, string> = {
   booking_fee: 'bg-green-100 text-green-700',
@@ -36,27 +35,28 @@ const filters = ['All', 'booking_fee', 'withdrawal', 'refund'];
 export default function AdminPayments() {
   const { toast } = useToast();
   const [activeFilter, setActiveFilter] = useState('All');
-  const [localTransactions] = useState<Transaction[]>(adminTransactions);
+  const transactions = useQuery(api.admin.listTransactions) ?? [];
+  const stats = useQuery(api.admin.stats);
 
   const filtered = useMemo(() => {
-    if (activeFilter === 'All') return localTransactions;
-    return localTransactions.filter((t) => t.type === activeFilter);
-  }, [localTransactions, activeFilter]);
+    if (activeFilter === 'All') return transactions;
+    return transactions.filter((t) => t.type === activeFilter);
+  }, [transactions, activeFilter]);
 
-  const totalBookingFees = localTransactions
+  const totalBookingFees = transactions
     .filter((t) => t.type === 'booking_fee' && t.status === 'Completed')
-    .reduce((sum, t) => sum + parseInt(t.amount.replace(/[₦,]/g, '')), 0);
+    .reduce((sum, t) => sum + parseInt(String(t.amount).replace(/[₦,]/g, '')), 0);
 
-  const totalWithdrawals = localTransactions
+  const totalWithdrawals = transactions
     .filter((t) => t.type === 'withdrawal' && t.status === 'Completed')
-    .reduce((sum, t) => sum + parseInt(t.amount.replace(/[₦,]/g, '')), 0);
+    .reduce((sum, t) => sum + parseInt(String(t.amount).replace(/[₦,]/g, '')), 0);
 
-  const pendingPayouts = localTransactions
+  const pendingPayouts = transactions
     .filter((t) => t.type === 'withdrawal' && t.status === 'Pending')
-    .reduce((sum, t) => sum + parseInt(t.amount.replace(/[₦,]/g, '')), 0);
+    .reduce((sum, t) => sum + parseInt(String(t.amount).replace(/[₦,]/g, '')), 0);
 
-  const monthlyData = adminStats.monthlyRevenue;
-  const maxRevenue = Math.max(...monthlyData.map((m) => m.revenue));
+  const monthlyData = (stats?.monthlyBookingData ?? []).map((m) => ({ month: m.month, revenue: m.revenue }));
+  const maxRevenue = Math.max(...monthlyData.map((m) => m.revenue), 1);
 
   const columns = [
     { key: 'id', label: 'ID', sortable: true },
@@ -103,10 +103,10 @@ export default function AdminPayments() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <AdminStatsCard title="Total Revenue" value={adminStats.totalRevenue} icon={DollarSign} color="bg-green-500/10 text-green-500" change="+12% this month" changeType="positive" />
-        <AdminStatsCard title="Booking Fees" value={`₦${totalBookingFees.toLocaleString()}`} icon={TrendingUp} color="bg-[#D4AF37]/10 text-[#D4AF37]" change={`${localTransactions.filter((t) => t.type === 'booking_fee').length} transactions`} changeType="neutral" />
-        <AdminStatsCard title="Withdrawals" value={`₦${totalWithdrawals.toLocaleString()}`} icon={ArrowDownCircle} color="bg-blue-500/10 text-blue-500" change={`${localTransactions.filter((t) => t.type === 'withdrawal').length} withdrawals`} changeType="neutral" />
-        <AdminStatsCard title="Pending Payouts" value={`₦${pendingPayouts.toLocaleString()}`} icon={ArrowUpCircle} color="bg-yellow-500/10 text-yellow-500" change={`${localTransactions.filter((t) => t.type === 'withdrawal' && t.status === 'Pending').length} pending`} changeType="negative" />
+        <AdminStatsCard title="Total Revenue" value={`₦${(stats?.totalRevenue ?? 0).toLocaleString()}`} icon={DollarSign} color="bg-green-500/10 text-green-500" change="+12% this month" changeType="positive" />
+        <AdminStatsCard title="Booking Fees" value={`₦${totalBookingFees.toLocaleString()}`} icon={TrendingUp} color="bg-[#D4AF37]/10 text-[#D4AF37]" change={`${transactions.filter((t) => t.type === 'booking_fee').length} transactions`} changeType="neutral" />
+        <AdminStatsCard title="Withdrawals" value={`₦${totalWithdrawals.toLocaleString()}`} icon={ArrowDownCircle} color="bg-blue-500/10 text-blue-500" change={`${transactions.filter((t) => t.type === 'withdrawal').length} withdrawals`} changeType="neutral" />
+        <AdminStatsCard title="Pending Payouts" value={`₦${pendingPayouts.toLocaleString()}`} icon={ArrowUpCircle} color="bg-yellow-500/10 text-yellow-500" change={`${transactions.filter((t) => t.type === 'withdrawal' && t.status === 'Pending').length} pending`} changeType="negative" />
       </div>
 
       <div className={cn('bg-white dark:bg-gray-900 backdrop-blur-sm border border-gray-100 dark:border-gray-800 rounded-2xl p-6')}>

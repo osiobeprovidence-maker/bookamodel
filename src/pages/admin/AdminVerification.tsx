@@ -3,40 +3,52 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Clock, CheckCircle, XCircle, ChevronDown, ChevronUp, FileText, Camera, Link2, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { cn } from '../../lib/utils';
-import { adminVerificationQueue } from '../../data/adminData';
 import { useToast } from '../../components/ui/Toast';
 import { AdminConfirmModal } from '../../components/admin/AdminConfirmModal';
 import { AdminStatsCard } from '../../components/admin/AdminStatsCard';
 
 const AdminVerification = () => {
   const { toast } = useToast();
-  const [localQueue, setLocalQueue] = useState(adminVerificationQueue);
+  const data = useQuery(api.admin.listVerificationRequests);
+  const setVerificationStatus = useMutation(api.admin.setVerificationStatus);
+  const [localQueue, setLocalQueue] = useState<any[] | null>(null);
+  useEffect(() => {
+    if (data && localQueue === null) setLocalQueue(data);
+  }, [data, localQueue]);
+  const queue = localQueue ?? [];
+  const pendingQueue = queue.filter((item: any) => item.status === 'pending');
   const [selectedVerification, setSelectedVerification] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState<{ action: 'approve' | 'reject'; id: string } | null>(null);
 
-  const pendingCount = localQueue.length;
-  const approvedToday = 3;
-  const rejectedToday = 1;
+  const pendingCount = pendingQueue.length;
+  const approvedToday = queue.filter((item: any) => item.status === 'approved').length;
+  const rejectedToday = queue.filter((item: any) => item.status === 'rejected').length;
 
-  const expandedItem = localQueue.find((item) => item.id === selectedVerification);
+  const expandedItem = pendingQueue.find((item: any) => item.id === selectedVerification);
 
   const handleApprove = (id: string) => {
-    setLocalQueue((prev) => prev.filter((item) => item.id !== id));
+    setVerificationStatus({ requestId: id, status: 'approved' });
+    setLocalQueue((prev) => (prev ? prev.map((i) => (i.id === id ? { ...i, status: 'approved' } : i)) : prev));
     setSelectedVerification(null);
     toast('Verification approved successfully');
   };
 
   const handleReject = (id: string) => {
-    setLocalQueue((prev) => prev.filter((item) => item.id !== id));
+    setVerificationStatus({ requestId: id, status: 'rejected' });
+    setLocalQueue((prev) => (prev ? prev.map((i) => (i.id === id ? { ...i, status: 'rejected' } : i)) : prev));
     setSelectedVerification(null);
     toast('Verification rejected', 'error');
   };
 
   const handleRequestInfo = (id: string) => {
+    setVerificationStatus({ requestId: id, status: 'info_requested' });
+    setLocalQueue((prev) => (prev ? prev.map((i) => (i.id === id ? { ...i, status: 'info_requested' } : i)) : prev));
     toast('Additional info request sent', 'info');
   };
 
@@ -74,7 +86,7 @@ const AdminVerification = () => {
         />
       </div>
 
-      {localQueue.length === 0 ? (
+      {pendingQueue.length === 0 ? (
         <div className={cn(
           'bg-white dark:bg-gray-900 rounded-2xl',
           'border border-gray-100 dark:border-gray-800',
@@ -90,7 +102,7 @@ const AdminVerification = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {localQueue.map((item) => (
+          {pendingQueue.map((item) => (
             <div key={item.id}>
               <motion.div
                 layout

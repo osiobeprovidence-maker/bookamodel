@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GripVertical, Plus, Trash2, ArrowUp, ArrowDown, Star, Home, Clock, TrendingUp, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { cn } from '../../lib/utils';
-import { adminModels } from '../../data/adminData';
 import { useToast } from '../../components/ui/Toast';
 
 const sections = [
@@ -21,21 +22,33 @@ type SectionKey = (typeof sections)[number]['key'];
 
 const AdminFeatured = () => {
   const { toast } = useToast();
+  const data = useQuery(api.admin.listModels);
+  const setFeaturedMutation = useMutation(api.admin.setFeatured);
   const [activeTab, setActiveTab] = useState<SectionKey>('homepage');
   const [featuredSections, setFeaturedSections] = useState<Record<SectionKey, string[]>>({
-    homepage: ['1', '3', '6'],
-    availableToday: ['2', '5', '11'],
-    trending: ['1', '8', '15', '20'],
-    recommended: ['4', '7'],
+    homepage: [],
+    availableToday: [],
+    trending: [],
+    recommended: [],
   });
+  const [seeded, setSeeded] = useState(false);
+  useEffect(() => {
+    if (data && !seeded) {
+      setSeeded(true);
+      setFeaturedSections((prev) => ({
+        ...prev,
+        homepage: data.filter((m) => m.isFeatured).map((m) => m.id),
+      }));
+    }
+  }, [data, seeded]);
   const [showAddDropdown, setShowAddDropdown] = useState<SectionKey | null>(null);
-  const [localModels] = useState(adminModels);
+  const models = (data ?? []).map((m) => ({ ...m, profileImage: m.image }));
 
   const currentIds = featuredSections[activeTab];
   const assignedModels = currentIds
-    .map((id) => localModels.find((m) => m.id === id))
+    .map((id) => models.find((m) => m.id === id))
     .filter(Boolean);
-  const availableToAdd = localModels.filter(
+  const availableToAdd = models.filter(
     (m) => !currentIds.includes(m.id)
   );
 
@@ -44,6 +57,9 @@ const AdminFeatured = () => {
       ...prev,
       [activeTab]: [...prev[activeTab], modelId],
     }));
+    if (activeTab === 'homepage') {
+      setFeaturedMutation({ modelId, featured: true });
+    }
     setShowAddDropdown(null);
     toast('Model added to section');
   };
@@ -53,6 +69,9 @@ const AdminFeatured = () => {
       ...prev,
       [activeTab]: prev[activeTab].filter((id) => id !== modelId),
     }));
+    if (activeTab === 'homepage') {
+      setFeaturedMutation({ modelId, featured: false });
+    }
     toast('Model removed from section');
   };
 

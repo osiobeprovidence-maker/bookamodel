@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Download, Filter } from 'lucide-react';
-import { adminAuditLogs } from '../../data/adminData';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { AdminDataTable } from '../../components/admin/AdminDataTable';
 import { useToast } from '../../components/ui/Toast';
 import { cn } from '../../lib/utils';
@@ -44,18 +45,19 @@ function getActionColor(action: string) {
 
 export default function AdminAudit() {
   const { toast } = useToast();
+  const logs = useQuery(api.admin.listAuditLogs) ?? [];
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [adminFilter, setAdminFilter] = useState('');
 
   const adminNames = useMemo(
-    () => [...new Set(adminAuditLogs.map((log) => log.adminName))],
-    []
+    () => [...new Set(logs.map((log) => log.adminName))],
+    [logs]
   );
 
   const filteredData = useMemo(() => {
-    return adminAuditLogs.filter((log) => {
+    return logs.filter((log) => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const matchesName = log.adminName.toLowerCase().includes(q);
@@ -67,7 +69,7 @@ export default function AdminAudit() {
       if (dateTo && log.date > dateTo) return false;
       return true;
     });
-  }, [searchQuery, adminFilter, dateFrom, dateTo]);
+  }, [searchQuery, adminFilter, dateFrom, dateTo, logs]);
 
   const columns = [
     {

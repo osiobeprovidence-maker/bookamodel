@@ -3,15 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertTriangle, Eye, X, ShieldAlert, Ban, AlertCircle } from 'lucide-react';
-import { adminReports } from '../../data/adminData';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { AdminConfirmModal } from '../../components/admin/AdminConfirmModal';
 import { AdminEmptyState } from '../../components/admin/AdminEmptyState';
 import { useToast } from '../../components/ui/Toast';
 import { cn } from '../../lib/utils';
-
-type Report = (typeof adminReports)[number];
 
 type ConfirmAction = {
   type: 'warn' | 'suspend' | 'ban';
@@ -29,18 +28,25 @@ const filters = ['All', 'Open', 'Investigating', 'Closed'];
 
 export default function AdminReports() {
   const { toast } = useToast();
-  const [localReports, setLocalReports] = useState<Report[]>(adminReports);
+  const data = useQuery(api.admin.listReports);
+  const setReportStatus = useMutation(api.admin.setReportStatus);
+  const setAccountStatus = useMutation(api.admin.setAccountStatus);
+  const [localReports, setLocalReports] = useState<any[] | null>(null);
+  useEffect(() => {
+    if (data && localReports === null) setLocalReports(data);
+  }, [data, localReports]);
+  const reports = localReports ?? [];
   const [activeFilter, setActiveFilter] = useState('All');
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
-  const filtered = localReports.filter((r) => activeFilter === 'All' || r.status === activeFilter);
+  const filtered = reports.filter((r) => activeFilter === 'All' || r.status === activeFilter);
 
   const stats = {
-    open: localReports.filter((r) => r.status === 'Open').length,
-    investigating: localReports.filter((r) => r.status === 'Investigating').length,
-    closed: localReports.filter((r) => r.status === 'Closed').length,
+    open: reports.filter((r) => r.status === 'Open').length,
+    investigating: reports.filter((r) => r.status === 'Investigating').length,
+    closed: reports.filter((r) => r.status === 'Closed').length,
   };
 
   const openConfirm = (type: ConfirmAction['type'], reportId: string, targetUser: string) => {
@@ -53,19 +59,24 @@ export default function AdminReports() {
     const { type, reportId, targetUser } = confirmAction;
 
     if (type === 'warn') {
+      setReportStatus({ reportId, status: 'warned' });
       toast(`Warning sent to ${targetUser}`, 'success');
     } else if (type === 'suspend') {
+      setReportStatus({ reportId, status: 'suspended' });
+      setLocalReports((prev) => (prev ? prev.map((r) => (r.id === reportId ? { ...r, status: 'Closed' as const } : r)) : prev));
       toast(`${targetUser} has been suspended`, 'success');
     } else if (type === 'ban') {
+      setReportStatus({ reportId, status: 'banned' });
+      setLocalReports((prev) => (prev ? prev.map((r) => (r.id === reportId ? { ...r, status: 'Closed' as const } : r)) : prev));
       toast(`${targetUser} has been banned`, 'success');
-      setLocalReports(localReports.map((r) => r.id === reportId ? { ...r, status: 'Closed' as const } : r));
     }
 
     setConfirmAction(null);
   };
 
   const closeReport = (reportId: string) => {
-    setLocalReports(localReports.map((r) => r.id === reportId ? { ...r, status: 'Closed' as const } : r));
+    setReportStatus({ reportId, status: 'dismissed' });
+    setLocalReports((prev) => (prev ? prev.map((r) => (r.id === reportId ? { ...r, status: 'Closed' as const } : r)) : prev));
     toast('Report closed', 'success');
     setSelectedReport(null);
   };

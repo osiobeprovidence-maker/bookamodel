@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { CalendarCheck, X, MoreHorizontal, Eye, Ban, RotateCcw, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { cn } from '../../lib/utils';
-import { adminBookings } from '../../data/adminData';
 import { AdminDataTable } from '../../components/admin/AdminDataTable';
 import { AdminStatsCard } from '../../components/admin/AdminStatsCard';
 import { AdminConfirmModal } from '../../components/admin/AdminConfirmModal';
@@ -25,37 +26,44 @@ const statusBadgeColor: Record<string, string> = {
 
 const AdminBookings = () => {
   const { toast } = useToast();
-  const [localBookings, setLocalBookings] = useState(adminBookings);
+  const data = useQuery(api.admin.listBookings);
+  const updateStatus = useMutation(api.bookings.updateStatus);
+  const [localBookings, setLocalBookings] = useState<any[] | null>(null);
+  useEffect(() => {
+    if (data && localBookings === null) setLocalBookings(data);
+  }, [data, localBookings]);
+  const bookings = localBookings ?? [];
   const [activeFilter, setActiveFilter] = useState<BookingStatus>('All');
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [showConfirm, setShowConfirm] = useState<{ type: string; booking: any } | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const stats = useMemo(() => ({
-    total: localBookings.length,
-    pending: localBookings.filter((b) => b.status === 'Pending').length,
-    completed: localBookings.filter((b) => b.status === 'Completed').length,
-    cancelled: localBookings.filter((b) => b.status === 'Cancelled').length,
-    refunded: localBookings.filter((b) => b.status === 'Refunded').length,
-  }), [localBookings]);
+    total: bookings.length,
+    pending: bookings.filter((b) => b.status === 'Pending').length,
+    completed: bookings.filter((b) => b.status === 'Completed').length,
+    cancelled: bookings.filter((b) => b.status === 'Cancelled').length,
+    refunded: bookings.filter((b) => b.status === 'Refunded').length,
+  }), [bookings]);
 
   const filteredData = useMemo(() => {
-    if (activeFilter === 'All') return localBookings;
-    return localBookings.filter((b) => b.status === activeFilter);
-  }, [localBookings, activeFilter]);
+    if (activeFilter === 'All') return bookings;
+    return bookings.filter((b) => b.status === activeFilter);
+  }, [bookings, activeFilter]);
 
   const handleForceCancel = (booking: any) => {
     setLocalBookings((prev) =>
-      prev.map((b) => (b.id === booking.id ? { ...b, status: 'Cancelled' as const } : b))
+      prev ? prev.map((b) => (b.id === booking.id ? { ...b, status: 'Cancelled' as const } : b)) : prev
     );
-    toast(`Booking #${booking.id} has been cancelled`);
+    updateStatus({ bookingId: booking.id, status: 'cancelled' });
+    toast(`Booking #${String(booking.id).slice(-6)} has been cancelled`);
   };
 
   const handleRefund = (booking: any) => {
     setLocalBookings((prev) =>
-      prev.map((b) => (b.id === booking.id ? { ...b, status: 'Refunded' as const } : b))
+      prev ? prev.map((b) => (b.id === booking.id ? { ...b, status: 'Refunded' as const } : b)) : prev
     );
-    toast(`Booking #${booking.id} has been refunded`);
+    toast(`Booking #${String(booking.id).slice(-6)} has been refunded`);
   };
 
   const columns = [

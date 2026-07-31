@@ -3,17 +3,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tag, Plus, GripVertical, Pencil, Trash2, ArrowUp, ArrowDown, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { cn } from '../../lib/utils';
-import { adminCategories } from '../../data/adminData';
 import { AdminConfirmModal } from '../../components/admin/AdminConfirmModal';
 import { useToast } from '../../components/ui/Toast';
 
 const AdminCategories = () => {
   const { toast } = useToast();
-  const [localCategories, setLocalCategories] = useState(adminCategories);
+  const data = useQuery(api.admin.listCategories);
+  const createCategory = useMutation(api.categories.create);
+  const updateCategory = useMutation(api.categories.update);
+  const removeCategory = useMutation(api.categories.remove);
+  const [localCategories, setLocalCategories] = useState<any[] | null>(null);
+  useEffect(() => {
+    if (data && localCategories === null) setLocalCategories(data);
+  }, [data, localCategories]);
+  const categories = localCategories ?? [];
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showConfirm, setShowConfirm] = useState<{ type: string; category: any } | null>(null);
   const [editingCategory, setEditingCategory] = useState<any>(null);
@@ -22,18 +31,24 @@ const AdminCategories = () => {
   const handleMoveUp = (index: number) => {
     if (index === 0) return;
     setLocalCategories((prev) => {
+      if (!prev) return prev;
       const updated = [...prev];
       [updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
+      updateCategory({ categoryId: updated[index - 1].id, order: updated[index - 1].order });
+      updateCategory({ categoryId: updated[index].id, order: updated[index].order });
       return updated.map((c, i) => ({ ...c, order: i + 1 }));
     });
     toast('Category moved up');
   };
 
   const handleMoveDown = (index: number) => {
-    if (index === localCategories.length - 1) return;
+    if (index === categories.length - 1) return;
     setLocalCategories((prev) => {
+      if (!prev) return prev;
       const updated = [...prev];
       [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
+      updateCategory({ categoryId: updated[index].id, order: updated[index].order });
+      updateCategory({ categoryId: updated[index + 1].id, order: updated[index + 1].order });
       return updated.map((c, i) => ({ ...c, order: i + 1 }));
     });
     toast('Category moved down');
@@ -41,14 +56,16 @@ const AdminCategories = () => {
 
   const handleCreate = () => {
     if (!newName.trim()) return toast('Please enter a category name', 'warning');
+    const slug = newName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    createCategory({ name: newName.trim(), slug });
     const newCategory = {
-      id: String(Date.now()),
+      id: `cat-${Date.now()}`,
       name: newName.trim(),
       icon: 'Tag',
       count: 0,
-      order: localCategories.length + 1,
+      order: categories.length + 1,
     };
-    setLocalCategories((prev) => [...prev, newCategory]);
+    setLocalCategories((prev) => (prev ? [...prev, newCategory] : [newCategory]));
     setNewName('');
     setShowCreateModal(false);
     toast('Category created successfully');
@@ -57,15 +74,17 @@ const AdminCategories = () => {
   const handleEdit = () => {
     if (!editingCategory || !newName.trim()) return toast('Please enter a category name', 'warning');
     setLocalCategories((prev) =>
-      prev.map((c) => (c.id === editingCategory.id ? { ...c, name: newName.trim() } : c))
+      prev ? prev.map((c) => (c.id === editingCategory.id ? { ...c, name: newName.trim() } : c)) : prev
     );
+    updateCategory({ categoryId: editingCategory.id, name: newName.trim() });
     setEditingCategory(null);
     setNewName('');
     toast('Category updated successfully');
   };
 
   const handleDelete = (category: any) => {
-    setLocalCategories((prev) => prev.filter((c) => c.id !== category.id));
+    setLocalCategories((prev) => (prev ? prev.filter((c) => c.id !== category.id) : prev));
+    removeCategory({ categoryId: category.id });
     toast('Category deleted successfully');
   };
 
@@ -96,7 +115,7 @@ const AdminCategories = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {localCategories.map((category, index) => (
+        {categories.map((category, index) => (
           <div
             key={category.id}
             className={cn(
@@ -134,7 +153,7 @@ const AdminCategories = () => {
                 </button>
                 <button
                   onClick={() => handleMoveDown(index)}
-                  disabled={index === localCategories.length - 1}
+                  disabled={index === categories.length - 1}
                   className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-30 disabled:pointer-events-none"
                 >
                   <ArrowDown className="h-3.5 w-3.5 text-gray-400" />
