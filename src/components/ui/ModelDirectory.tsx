@@ -10,6 +10,7 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../components/ui/Toast';
+import Avatar from '../../components/ui/Avatar';
 import { ProfileCard, type ExploreModel } from '../../components/ui/ProfileCard';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -885,10 +886,11 @@ export const ModelDirectory = ({ mode }: ModelDirectoryProps) => {
               </div>
 
               <div className="flex items-center gap-3 mb-6 p-3 bg-gray-50 rounded-xl">
-                <img
-                  src={inviteModal.imageUrl || ''}
-                  alt={inviteModal.displayName || 'Model'}
-                  className="w-12 h-12 rounded-lg object-cover bg-gray-100"
+                <Avatar
+                  src={inviteModal.imageUrl}
+                  name={inviteModal.displayName || inviteModal.user?.name}
+                  size={48}
+                  icon={User}
                 />
                 <div>
                   <p className="font-bold text-sm">{inviteModal.displayName || inviteModal.user?.name || 'Model'}</p>

@@ -13,6 +13,7 @@ import { AdminDataTable } from '../../components/admin/AdminDataTable';
 import { AdminStatsCard } from '../../components/admin/AdminStatsCard';
 import { AdminConfirmModal } from '../../components/admin/AdminConfirmModal';
 import { useToast } from '../../components/ui/Toast';
+import Avatar from '../../components/ui/Avatar';
 
 const AdminBusinesses = () => {
   const { toast } = useToast();
@@ -75,12 +76,11 @@ const AdminBusinesses = () => {
       sortable: true,
       render: (_: any, row: any) => (
         <div className="flex items-center gap-3">
-          <img
-            src={row.avatar}
-            alt={row.name}
-            className="h-9 w-9 rounded-full object-cover"
-          />
-          <span className="font-bold text-sm">{row.name}</span>
+          <Avatar src={row.avatar} name={row.name} />
+          <div className="min-w-0">
+            <p className="font-bold text-sm truncate">{row.name}</p>
+            <p className="text-xs text-gray-400 truncate">{row.industry}</p>
+          </div>
         </div>
       ),
     },
@@ -231,7 +231,7 @@ const AdminBusinesses = () => {
                 <X className="h-4 w-4 text-gray-400" />
               </button>
               <div className="flex items-center gap-4 mb-6">
-                <img src={selectedBusiness.avatar} alt={selectedBusiness.name} className="h-16 w-16 rounded-full object-cover" />
+                <Avatar src={selectedBusiness.avatar} name={selectedBusiness.name} size={64} />
                 <div>
                   <h3 className="text-lg font-bold text-[#111111] dark:text-white">{selectedBusiness.name}</h3>
                   <p className="text-sm text-gray-500">{selectedBusiness.email}</p>

@@ -4,10 +4,11 @@
  */
 
 import { useState, useEffect } from 'react';
-import { GripVertical, Plus, Trash2, ArrowUp, ArrowDown, Star, Home, Clock, TrendingUp, Sparkles } from 'lucide-react';
+import { GripVertical, Plus, Trash2, ArrowUp, ArrowDown, Star, Home, Clock, TrendingUp, Sparkles, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
+import Avatar from '../../components/ui/Avatar';
 import { cn } from '../../lib/utils';
 import { useToast } from '../../components/ui/Toast';
 
@@ -173,10 +174,11 @@ const AdminFeatured = () => {
                             'transition-colors text-left'
                           )}
                         >
-                          <img
+                          <Avatar
                             src={model.profileImage}
-                            alt={model.name}
-                            className="h-9 w-9 rounded-full object-cover"
+                            name={model.name}
+                            size={36}
+                            icon={Users}
                           />
                           <div className="min-w-0">
                             <p className="text-sm font-bold text-[#111111] dark:text-white truncate">{model.name}</p>
@@ -233,10 +235,11 @@ const AdminFeatured = () => {
                     </span>
                   </div>
 
-                  <img
+                  <Avatar
                     src={model!.image}
-                    alt={model!.name}
-                    className="h-14 w-14 rounded-xl object-cover"
+                    name={model!.name}
+                    size={56}
+                    icon={Users}
                   />
 
                   <div className="flex-1 min-w-0">

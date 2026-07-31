@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
+import Avatar from '../../components/ui/Avatar';
 import { AdminStatsCard } from '../../components/admin/AdminStatsCard';
 
 const container = {
@@ -214,11 +215,7 @@ export default function AdminDashboard() {
           <div className="space-y-4">
             {latestModels.map((m) => (
               <div key={m.id} className="flex items-center gap-3">
-                <img
-                  src={m.image}
-                  alt={m.name}
-                  className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-800"
-                />
+                <Avatar src={m.image} name={m.name} icon={Users} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-[#111111] dark:text-white truncate">
                     {m.name}

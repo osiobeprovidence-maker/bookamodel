@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
-  MapPin, Star, MessageSquare, CheckCircle2, Heart, Award,
+  MapPin, Star, MessageSquare, CheckCircle2, Heart, Award, User,
   Check, Mail, Calendar, Phone, Globe, X, ChevronLeft, ChevronRight,
   ZoomIn, ZoomOut, Share2, ShieldCheck, Clock, Wallet, Send, Loader2, Play, Film, Folder, Image as ImageIcon, Eye, Edit3,
 } from 'lucide-react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import Avatar from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -505,7 +506,7 @@ export const ModelProfile = () => {
               <div className="sticky top-0 bg-white z-10 flex items-center justify-between px-6 py-5 border-b border-gray-100 rounded-t-2xl">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl overflow-hidden bg-gray-50 flex items-center justify-center">
-                    {profile.imageUrl ? <img src={profile.imageUrl} alt={modelName} className="w-full h-full object-cover" referrerPolicy="no-referrer" /> : <ImageIcon size={20} className="text-gray-300" />}
+                    <Avatar src={profile.imageUrl} name={modelName} size={48} icon={User} />
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-[#111111]">Book {modelName}</h2>

@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Send, Phone, Video, MoreVertical, Check, CheckCheck, ArrowLeft } from 'lucide-react';
+import { Search, Send, Phone, Video, MoreVertical, Check, CheckCheck, ArrowLeft, User } from 'lucide-react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
 import { cn } from '../../lib/utils';
 import { useToast } from '../../components/ui/Toast';
+import Avatar from '../../components/ui/Avatar';
 
 export default function Messages() {
   const { convexUser } = useUser();
@@ -88,9 +89,12 @@ export default function Messages() {
                   selectedContactId === (conv.contact as any)?._id ? 'bg-gray-50 border-[#D4AF37]' : 'border-transparent'
                 )}>
                 <div className="relative shrink-0">
-                  <div className="w-11 h-11 rounded-full bg-gray-200 overflow-hidden">
-                    {(conv.contact as any)?.imageUrl && <img src={(conv.contact as any).imageUrl} alt={(conv.contact as any).name} className="w-full h-full object-cover" />}
-                  </div>
+                  <Avatar
+                    src={(conv.contact as any)?.imageUrl}
+                    name={(conv.contact as any)?.name}
+                    size={44}
+                    icon={User}
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
@@ -119,9 +123,7 @@ export default function Messages() {
               <div className="flex items-center gap-3">
                 <button onClick={() => { setIsMobileChat(false); setSelectedContactId(null); }} className="md:hidden p-1.5 hover:bg-gray-100 rounded-lg transition-colors"><ArrowLeft className="w-5 h-5 text-[#111111]" /></button>
                 <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
-                    {activeImage && <img src={activeImage} alt={activeName} className="w-full h-full object-cover" />}
-                  </div>
+                  <Avatar src={activeImage} name={activeName} size={40} icon={User} />
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm text-[#111111]">{activeName}</h3>
@@ -186,8 +188,8 @@ export default function Messages() {
       <div className={cn('w-72 border-l border-gray-100 bg-white flex-col shrink-0 overflow-y-auto', selectedContactId ? 'hidden lg:flex' : 'hidden')}>
         {activeContact && (
           <div className="p-5 text-center border-b border-gray-100">
-            <div className="w-20 h-20 rounded-full bg-gray-200 mx-auto mb-3 overflow-hidden">
-              {activeImage && <img src={activeImage} alt={activeName} className="w-full h-full object-cover" />}
+            <div className="w-20 h-20 mx-auto mb-3">
+              <Avatar src={activeImage} name={activeName} size={80} icon={User} />
             </div>
             <h3 className="font-bold text-[#111111] mb-0.5">{activeName}</h3>
             <p className="text-xs text-gray-400">Contact</p>

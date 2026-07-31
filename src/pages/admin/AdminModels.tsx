@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
+import Avatar from '../../components/ui/Avatar';
 import { AdminDataTable } from '../../components/admin/AdminDataTable';
 import { AdminConfirmModal } from '../../components/admin/AdminConfirmModal';
 import { useToast } from '../../components/ui/Toast';
@@ -154,11 +155,7 @@ export default function AdminModels() {
       sortable: true,
       render: (_: any, row: Model) => (
         <div className="flex items-center gap-3">
-          <img
-            src={row.image}
-            alt={row.name}
-            className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-100 dark:ring-gray-800"
-          />
+          <Avatar src={row.image} name={row.name} icon={Users} />
           <div>
             <p className="font-medium text-[#111111] dark:text-white">{row.name}</p>
           </div>
@@ -426,10 +423,11 @@ export default function AdminModels() {
 
               <div className="p-6 space-y-6">
                 <div className="flex flex-col items-center text-center">
-                  <img
+                  <Avatar
                     src={selectedModel.profileImage}
-                    alt={selectedModel.name}
-                    className="w-24 h-24 rounded-full object-cover ring-4 ring-gray-100 dark:ring-gray-800"
+                    name={selectedModel.name}
+                    size={96}
+                    icon={Users}
                   />
                   <h2 className="text-xl font-bold text-[#111111] dark:text-white mt-3">
                     {selectedModel.name}

@@ -6,6 +6,7 @@ import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
 import { useToast } from '../../components/ui/Toast';
+import Avatar from '../../components/ui/Avatar';
 import { EmptyState, ListSkeleton } from '../../components/ui/EmptyState';
 
 const statusTabs = ['All', 'pending', 'accepted', 'declined', 'expired', 'cancelled'] as const;
@@ -180,13 +181,11 @@ const Invitations = () => {
                       className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          {inv.businessProfile?.logoUrl ? (
-                            <img src={inv.businessProfile.logoUrl} alt="" className="w-8 h-8 rounded-lg object-cover bg-gray-100" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                              <span className="text-xs font-bold text-[#D4AF37]">{companyName(inv)[0]}</span>
-                            </div>
-                          )}
+                          <Avatar
+                            src={inv.businessProfile?.logoUrl}
+                            name={companyName(inv)}
+                            size={32}
+                          />
                           <span className="text-sm font-medium text-[#111111]">{companyName(inv)}</span>
                         </div>
                       </td>
@@ -222,13 +221,11 @@ const Invitations = () => {
               ) : filteredInvitations.map((inv: any, i: number) => (
                 <motion.div key={inv._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="p-5">
                   <div className="flex items-start gap-3 mb-3">
-                    {inv.businessProfile?.logoUrl ? (
-                      <img src={inv.businessProfile.logoUrl} alt="" className="w-10 h-10 rounded-xl object-cover bg-gray-100" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-                        <span className="text-lg font-bold text-[#D4AF37]">{companyName(inv)[0]}</span>
-                      </div>
-                    )}
+                    <Avatar
+                      src={inv.businessProfile?.logoUrl}
+                      name={companyName(inv)}
+                      size={40}
+                    />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-[#111111] text-sm">{inv.title}</h3>
                       <p className="text-xs text-gray-500">{companyName(inv)}</p>

@@ -7,10 +7,11 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Calendar, Clock, Wallet, MapPin, FileText, 
-  ChevronRight, ArrowLeft, Send, CheckCircle
+  ChevronRight, ArrowLeft, Send, CheckCircle, User
 } from 'lucide-react';
 import { models } from '../data/mockData';
 import { Button } from '../components/ui/Button';
+import Avatar from '../components/ui/Avatar';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const CreateInvitation = () => {
@@ -96,7 +97,7 @@ export const CreateInvitation = () => {
                 <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
                   <div className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-6 border-b border-gray-50 pb-2">Talent Profile</div>
                   <div className="flex items-center gap-4 mb-8">
-                    <img src={model.profileImage} className="w-16 h-16 rounded-xl object-cover shadow-sm" alt={model.name} referrerPolicy="no-referrer" />
+                    <Avatar src={model.profileImage} name={model.name} size={64} icon={User} />
                     <div>
                       <h4 className="text-sm font-bold uppercase tracking-tight">{model.name}</h4>
                       <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">{model.location}</p>
