@@ -7,7 +7,7 @@ import { useState, type ReactNode } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Search, Send, Heart, Briefcase,
-  MessageSquare, FileText, Settings, LogOut, Menu, X
+  MessageSquare, FileText, Settings, LogOut, Menu, X, Wallet
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useUser } from '../../contexts/UserContext';
