@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Star, MapPin, CheckCircle2, User } from 'lucide-react';
+import { CheckCircle2, User } from 'lucide-react';
 import { Badge } from './Badge';
 import { Button } from './Button';
 import { cn } from '../../lib/utils';
@@ -76,14 +76,8 @@ export const ProfileCard = ({ model, className, onInvite, onViewProfile }: Profi
           )}
         </div>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-          <div className="flex items-center justify-between text-white">
-            <div className="flex items-center gap-1">
-              <Star className="w-3 h-3 fill-[#D4AF37] text-[#D4AF37]" />
-              <span className="text-xs font-bold">{model.rating?.toFixed(1) || '—'}</span>
-            </div>
-            <span className="text-[10px] font-medium opacity-90">{location}</span>
-          </div>
+        <div className="absolute bottom-0 left-0 right-0 flex justify-end p-4 bg-gradient-to-t from-black/60 to-transparent">
+          <span className="text-[10px] font-medium text-white opacity-90">{location}</span>
         </div>
       </div>
 
