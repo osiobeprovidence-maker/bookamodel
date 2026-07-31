@@ -10,10 +10,12 @@ export default defineSchema({
     imageUrl: v.optional(v.string()),
     phone: v.optional(v.string()),
     profileCompleted: v.boolean(),
+    accountStatus: v.optional(v.union(v.literal("active"), v.literal("suspended"), v.literal("deactivated"))),
     onboardingStep: v.optional(v.number()),
     createdAt: v.number(),
     lastActive: v.optional(v.number()),
     isOnline: v.optional(v.boolean()),
+    notificationPreferencesId: v.optional(v.id("notificationPreferences")),
   })
     .index("by_firebaseUid", ["firebaseUid"])
     .index("by_email", ["email"])
@@ -67,6 +69,7 @@ export default defineSchema({
     isPro: v.optional(v.boolean()),
     isAvailable: v.boolean(),
     profileCompleted: v.boolean(),
+    profileVisibility: v.optional(v.union(v.literal("public"), v.literal("hidden"), v.literal("private"))),
     rating: v.optional(v.number()),
     reviewCount: v.optional(v.number()),
     profileViews: v.optional(v.number()),
@@ -206,12 +209,18 @@ export default defineSchema({
     budget: v.optional(v.string()),
     modelsNeeded: v.optional(v.number()),
     genderRequirement: v.optional(v.string()),
+    minAge: v.optional(v.number()),
+    maxAge: v.optional(v.number()),
+    experienceLevel: v.optional(v.union(v.literal("beginner"), v.literal("intermediate"), v.literal("advanced"), v.literal("any"))),
+    visibility: v.optional(v.union(v.literal("public"), v.literal("open_to_all"), v.literal("invitation_only"))),
+    applicationDeadline: v.optional(v.string()),
     status: v.union(
       v.literal("draft"),
       v.literal("open"),
-      v.literal("in_progress"),
+      v.literal("active"),
       v.literal("completed"),
-      v.literal("cancelled")
+      v.literal("cancelled"),
+      v.literal("expired")
     ),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -323,16 +332,47 @@ export default defineSchema({
     .index("by_modelUserId", ["modelUserId"]),
 
   notifications: defineTable({
-    userId: v.id("users"),
+    recipientUserId: v.id("users"),
+    actorUserId: v.optional(v.id("users")),
+    type: v.union(
+      v.literal("new_job"),
+      v.literal("job_invitation"),
+      v.literal("new_application"),
+      v.literal("application_status_changed"),
+      v.literal("invitation_accepted"),
+      v.literal("invitation_declined"),
+      v.literal("new_message"),
+      v.literal("payment_received"),
+      v.literal("payment_status_changed"),
+      v.literal("system")
+    ),
     title: v.string(),
     message: v.string(),
-    type: v.string(),
+    entityType: v.optional(v.union(v.literal("job"), v.literal("invitation"), v.literal("application"), v.literal("message"), v.literal("payment"), v.literal("system"))),
+    entityId: v.optional(v.string()),
+    metadata: v.optional(v.string()),
     isRead: v.boolean(),
-    link: v.optional(v.string()),
     createdAt: v.number(),
   })
-    .index("by_userId", ["userId"])
+    .index("by_recipientUserId", ["recipientUserId"])
     .index("by_isRead", ["isRead"]),
+
+  notificationPreferences: defineTable({
+    userId: v.id("users"),
+    inApp: v.boolean(),
+    push: v.boolean(),
+    email: v.boolean(),
+    sms: v.boolean(),
+    whatsapp: v.boolean(),
+    newJobs: v.boolean(),
+    applications: v.boolean(),
+    invitations: v.boolean(),
+    payments: v.boolean(),
+    messages: v.boolean(),
+    system: v.boolean(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"]),
 
   wallets: defineTable({
     userId: v.id("users"),

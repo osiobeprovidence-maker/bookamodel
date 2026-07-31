@@ -58,6 +58,7 @@ export const createUser = mutation({
       imageUrl: args.imageUrl,
       role,
       profileCompleted: false,
+      accountStatus: "active",
       onboardingStep: 0,
       createdAt: Date.now(),
       lastActive: Date.now(),
@@ -124,25 +125,29 @@ export const listDiscoverableModels = query({
   args: {},
   handler: async (ctx) => {
     const profiles = await ctx.db.query("modelProfiles").order("desc").collect();
-    const completedProfiles = profiles.filter((profile) => profile.profileCompleted);
+    const visibleProfiles = profiles.filter(
+      (profile) =>
+        profile.profileCompleted &&
+        (profile.profileVisibility === undefined || profile.profileVisibility === "public")
+    );
 
     return await Promise.all(
-      completedProfiles.map(async (profile) => {
+      visibleProfiles.map(async (profile) => {
         const user = await ctx.db.get(profile.userId);
+        if (!user || user.accountStatus === "suspended" || user.accountStatus === "deactivated") return null;
         return {
           ...profile,
-          user: user
-            ? {
-                name: user.name,
-                email: user.email,
-                imageUrl: user.imageUrl,
-                lastActive: user.lastActive,
-                isOnline: user.isOnline,
-              }
-            : null,
+          user: {
+            name: user.name,
+            email: user.email,
+            imageUrl: user.imageUrl,
+            lastActive: user.lastActive,
+            isOnline: user.isOnline,
+            accountStatus: user.accountStatus,
+          },
         };
       })
-    );
+    ).then((results) => results.filter(Boolean));
   },
 });
 

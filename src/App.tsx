@@ -27,10 +27,12 @@ import Portfolio from './pages/dashboard/Portfolio';
 import Applications from './pages/dashboard/Applications';
 import Invitations from './pages/dashboard/Invitations';
 import Notifications from './pages/dashboard/Notifications';
+import Jobs from './pages/dashboard/Jobs';
 import GoPro from './pages/dashboard/GoPro';
 import Settings from './pages/dashboard/Settings';
 import Wallet from './pages/dashboard/Wallet';
 import { BusinessLayout } from './pages/business/BusinessLayout';
+import BusinessApplications from './pages/business/Applications';
 import { BusinessDashboardHome } from './pages/business/BusinessDashboardHome';
 import SearchModels from './pages/business/SearchModels';
 import BusinessInvitations from './pages/business/BusinessInvitations';
@@ -102,6 +104,12 @@ const ModelInvitationsDashboard = () => (
   </DashboardLayout>
 );
 
+const ModelJobsDashboard = () => (
+  <DashboardLayout>
+    <Jobs />
+  </DashboardLayout>
+);
+
 const ModelNotificationsDashboard = () => (
   <DashboardLayout>
     <Notifications />
@@ -153,6 +161,12 @@ const BizSaved = () => (
 const BizJobs = () => (
   <BusinessLayout>
     <JobRequests />
+  </BusinessLayout>
+);
+
+const BizApplications = () => (
+  <BusinessLayout>
+    <BusinessApplications />
   </BusinessLayout>
 );
 
@@ -230,6 +244,7 @@ export default function App() {
           <Route path="/business-dashboard/invitations" element={<ProtectedRoute><BizInvitations /></ProtectedRoute>} />
           <Route path="/business-dashboard/saved" element={<ProtectedRoute><BizSaved /></ProtectedRoute>} />
           <Route path="/business-dashboard/jobs" element={<ProtectedRoute><BizJobs /></ProtectedRoute>} />
+          <Route path="/business-dashboard/applications" element={<ProtectedRoute><BizApplications /></ProtectedRoute>} />
           <Route path="/business-dashboard/messages" element={<ProtectedRoute><BizMessages /></ProtectedRoute>} />
           <Route path="/business-dashboard/wallet" element={<ProtectedRoute><BizWallet /></ProtectedRoute>} />
           <Route path="/business-dashboard/settings" element={<ProtectedRoute><BizSettings /></ProtectedRoute>} />
@@ -238,6 +253,7 @@ export default function App() {
           <Route path="/model-dashboard/portfolio" element={<ProtectedRoute><ModelPortfolioDashboard /></ProtectedRoute>} />
           <Route path="/model-dashboard/applications" element={<ProtectedRoute><ModelApplicationsDashboard /></ProtectedRoute>} />
           <Route path="/model-dashboard/invitations" element={<ProtectedRoute><ModelInvitationsDashboard /></ProtectedRoute>} />
+          <Route path="/model-dashboard/jobs" element={<ProtectedRoute><ModelJobsDashboard /></ProtectedRoute>} />
           <Route path="/model-dashboard/notifications" element={<ProtectedRoute><ModelNotificationsDashboard /></ProtectedRoute>} />
           <Route path="/model-dashboard/go-pro" element={<ProtectedRoute><ModelGoProDashboard /></ProtectedRoute>} />
           <Route path="/model-dashboard/wallet" element={<ProtectedRoute><ModelWalletDashboard /></ProtectedRoute>} />

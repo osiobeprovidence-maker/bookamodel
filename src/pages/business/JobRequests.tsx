@@ -11,14 +11,14 @@ import { useUser } from '../../contexts/UserContext';
 import { cn } from '../../lib/utils';
 import { useToast } from '../../components/ui/Toast';
 
-type FilterTab = 'all' | 'draft' | 'open' | 'closed' | 'completed' | 'cancelled';
+type FilterTab = 'all' | 'draft' | 'active' | 'closed' | 'completed' | 'cancelled';
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  open: { bg: 'bg-emerald-100', text: 'text-emerald-700' },
+  active: { bg: 'bg-emerald-100', text: 'text-emerald-700' },
   draft: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
   completed: { bg: 'bg-blue-100', text: 'text-blue-700' },
-  in_progress: { bg: 'bg-blue-100', text: 'text-blue-700' },
   cancelled: { bg: 'bg-red-100', text: 'text-red-700' },
+  expired: { bg: 'bg-gray-100', text: 'text-gray-500' },
 };
 
 const STAT_LABELS = ['Active', 'Draft', 'Completed', 'Cancelled', 'Expired'];
@@ -26,7 +26,7 @@ const STAT_LABELS = ['Active', 'Draft', 'Completed', 'Cancelled', 'Expired'];
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'draft', label: 'Draft' },
-  { key: 'open', label: 'Open' },
+  { key: 'active', label: 'Active' },
   { key: 'completed', label: 'Completed' },
   { key: 'cancelled', label: 'Cancelled' },
 ];
@@ -67,12 +67,12 @@ export default function JobRequests() {
 
   const getStatusCount = (status: string) => {
     const s = status.toLowerCase();
-    if (s === 'active') return jobRequests.filter(j => j.status === 'open').length;
+    if (s === 'active') return jobRequests.filter(j => j.status === 'active' || j.status === 'open').length;
     if (s === 'expired') return 0;
     return jobRequests.filter(j => j.status === s).length;
   };
 
-  const handleCreate = async (status: 'draft' | 'open') => {
+  const handleCreate = async (status: 'draft' | 'active') => {
     if (!convexUser) return;
     try {
       await createJob({
@@ -87,6 +87,8 @@ export default function JobRequests() {
         budget: form.budget || undefined,
         modelsNeeded: undefined,
         genderRequirement: form.gender || undefined,
+        visibility: 'public',
+        status,
       });
       setShowCreateModal(false);
       setForm({ title: '', brand: '', category: '', description: '', gender: '', minAge: '', maxAge: '', height: '', experience: '', location: '', budget: '', paymentType: 'Fixed', shootDate: '', deadline: '' });
@@ -276,7 +278,7 @@ export default function JobRequests() {
               <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex items-center justify-end gap-3 rounded-b-2xl">
                 <button onClick={() => { setShowCreateModal(false); toast('Preview coming soon', 'info'); }} className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-all">Preview</button>
                 <button onClick={() => handleCreate('draft')} className="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-200 transition-all">Save Draft</button>
-                <button onClick={() => handleCreate('open')} className="px-5 py-2.5 bg-[#D4AF37] text-white rounded-xl text-sm font-semibold hover:bg-[#C5A028] transition-all">Publish</button>
+                <button onClick={() => handleCreate('active')} className="px-5 py-2.5 bg-[#D4AF37] text-white rounded-xl text-sm font-semibold hover:bg-[#C5A028] transition-all">Publish</button>
               </div>
             </motion.div>
           </motion.div>

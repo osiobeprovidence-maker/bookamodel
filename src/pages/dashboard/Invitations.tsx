@@ -1,160 +1,187 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, CheckCircle, XCircle, Clock, Calendar, MapPin, Wallet, X } from 'lucide-react';
-import { useQuery } from 'convex/react';
+import { Mail, Check, X, Clock, Eye, Search, ArrowRight, Calendar, MapPin, Wallet } from 'lucide-react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
+import { useToast } from '../../components/ui/Toast';
 
-const filters = ['All', 'pending', 'accepted', 'declined', 'expired', 'cancelled'] as const;
+const statusTabs = ['All', 'pending', 'accepted', 'declined', 'expired', 'cancelled'] as const;
 
-const statusColors: Record<string, { bg: string; text: string }> = {
-  pending: { bg: 'bg-blue-50', text: 'text-blue-700' },
-  accepted: { bg: 'bg-green-50', text: 'text-green-700' },
-  declined: { bg: 'bg-red-50', text: 'text-red-700' },
-  expired: { bg: 'bg-gray-100', text: 'text-gray-500' },
-  cancelled: { bg: 'bg-gray-100', text: 'text-gray-500' },
+const statusColors: Record<string, string> = {
+  pending: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+  accepted: 'bg-green-500/10 text-green-400 border-green-500/20',
+  declined: 'bg-red-500/10 text-red-400 border-red-500/20',
+  expired: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
+  cancelled: 'bg-gray-500/10 text-gray-400 border-gray-500/20',
 };
 
-export default function Invitations() {
+const Invitations = () => {
   const { convexUser } = useUser();
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedInvite, setSelectedInvite] = useState<any>(null);
+
   const invitations = useQuery(
     api.invitations.listByModel,
     convexUser ? { modelUserId: convexUser._id as any } : 'skip'
   );
-  const [activeFilter, setActiveFilter] = useState<string>('All');
-  const [selectedInvitation, setSelectedInvitation] = useState<any | null>(null);
+  const updateStatus = useMutation(api.invitations.updateStatus);
 
-  const invitationList = invitations ?? [];
+  const filteredInvitations = useMemo(() => {
+    let result = invitations ?? [];
+    if (activeTab !== 'All') result = result.filter((i: any) => i.status === activeTab);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((i: any) => i.title?.toLowerCase().includes(q) || i.businessProfile?.companyName?.toLowerCase().includes(q));
+    }
+    return result;
+  }, [invitations, activeTab, searchQuery]);
 
-  const filtered = activeFilter === 'All'
-    ? invitationList
-    : invitationList.filter((inv) => inv.status === activeFilter);
+  const stats = useMemo(() => {
+    const list = invitations ?? [];
+    return {
+      total: list.length,
+      pending: list.filter((i: any) => i.status === 'pending').length,
+      accepted: list.filter((i: any) => i.status === 'accepted').length,
+      declined: list.filter((i: any) => i.status === 'declined').length,
+      expired: list.filter((i: any) => i.status === 'expired').length,
+    };
+  }, [invitations]);
 
-  const stats = [
-    { label: 'NEW INVITATIONS', value: invitationList.filter(i => i.status === 'pending').length, icon: Mail, bg: 'bg-blue-50', color: 'text-blue-500' },
-    { label: 'ACCEPTED', value: invitationList.filter(i => i.status === 'accepted').length, icon: CheckCircle, bg: 'bg-green-50', color: 'text-green-500' },
-    { label: 'DECLINED', value: invitationList.filter(i => i.status === 'declined').length, icon: XCircle, bg: 'bg-red-50', color: 'text-red-500' },
-    { label: 'EXPIRED', value: invitationList.filter(i => i.status === 'expired' || i.status === 'cancelled').length, icon: Clock, bg: 'bg-gray-100', color: 'text-gray-400' },
-  ];
+  const handleAccept = async (invitationId: any) => {
+    try {
+      await updateStatus({ invitationId, status: 'accepted' });
+      toast('Invitation accepted!', 'success');
+    } catch { toast('Failed to accept invitation', 'error'); }
+  };
 
-  if (!convexUser) return <SkeletonLoading />;
+  const handleDecline = async (invitationId: any) => {
+    try {
+      await updateStatus({ invitationId, status: 'declined' });
+      toast('Invitation declined', 'info');
+    } catch { toast('Failed to decline invitation', 'error'); }
+  };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold" style={{ color: '#111111' }}>Invitations</h1>
-        <p className="mt-1 text-gray-400">Manage your casting invitations.</p>
+    <div className="max-w-5xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-white">Invitations</h1>
+        <p className="text-gray-400 mt-1">Manage job invitations from businesses.</p>
       </div>
 
-      <div className="mb-8 grid grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
-          <div key={stat.label} className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-medium uppercase tracking-widest text-gray-400">{stat.label}</p>
-                <p className="mt-2 text-3xl font-bold" style={{ color: '#111111' }}>{stat.value}</p>
-              </div>
-              <div className={`rounded-xl p-3 ${stat.bg}`}><stat.icon size={22} className={stat.color} /></div>
-            </div>
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { label: 'New Invitations', value: stats.pending, color: 'text-yellow-400' },
+          { label: 'Accepted', value: stats.accepted, color: 'text-green-400' },
+          { label: 'Declined', value: stats.declined, color: 'text-red-400' },
+          { label: 'Expired', value: stats.expired, color: 'text-gray-400' },
+        ].map((stat) => (
+          <div key={stat.label} className="bg-white/[0.03] border border-white/5 rounded-xl p-4">
+            <p className="text-xs text-gray-500 mb-1">{stat.label}</p>
+            <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="mb-8 flex flex-wrap gap-2">
-        {filters.map((filter) => (
-          <button key={filter} onClick={() => setActiveFilter(filter)}
-            className={`rounded-full px-4 py-2 text-xs font-medium capitalize transition-colors ${activeFilter === filter ? 'bg-black text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
-            {filter}
-          </button>
-        ))}
+      {/* Search & Tabs */}
+      <div className="space-y-4">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search invitations..." className="w-full pl-10 pr-4 py-2.5 bg-white/[0.05] border border-white/10 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] transition-all" />
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {statusTabs.map((tab) => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                activeTab === tab ? 'bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/20' : 'bg-white/[0.03] text-gray-400 border border-white/5 hover:bg-white/[0.06]'
+              }`}
+            >
+              {tab === 'All' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {invitationList.length > 0 ? (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {filtered.map((inv, index) => (
-            <motion.div key={inv._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: index * 0.06 }}
-              className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#D4AF37] text-sm font-bold text-white">
-                  {inv.title?.charAt(0) || '?'}
+      {/* Invitations List */}
+      {invitations === undefined ? (
+        <div className="text-center py-20 text-gray-500">Loading invitations...</div>
+      ) : filteredInvitations.length === 0 ? (
+        <div className="text-center py-20">
+          <Mail className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-white mb-2">No invitations yet</h3>
+          <p className="text-gray-500">When businesses invite you, they'll appear here.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredInvitations.map((inv: any, i: number) => (
+            <motion.div key={inv._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
+              className="bg-white/[0.03] border border-white/5 rounded-2xl p-5 hover:bg-white/[0.06] transition-colors"
+            >
+              <div className="flex items-start gap-3 mb-3">
+                {inv.businessProfile?.logoUrl ? (
+                  <img src={inv.businessProfile.logoUrl} alt="" className="w-10 h-10 rounded-xl object-cover bg-white/5" />
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
+                    <span className="text-lg font-bold text-[#D4AF37]">{(inv.businessProfile?.companyName || inv.business?.name || 'B')[0]}</span>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-white text-sm">{inv.title}</h3>
+                  <p className="text-xs text-gray-500">{inv.businessProfile?.companyName || inv.business?.name || 'Business'}</p>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold" style={{ color: '#111111' }}>{inv.title}</p>
-                  <p className="text-xs text-gray-400">{inv.proposedDate ? new Date(inv.proposedDate).toLocaleDateString() : 'Date TBD'}</p>
-                </div>
-              </div>
-              {inv.message && <p className="mb-4 text-sm text-gray-500">{inv.message}</p>}
-              <div className="flex items-center justify-between border-t border-gray-100 pt-4">
-                <span className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-widest ${statusColors[inv.status]?.bg || 'bg-gray-100'} ${statusColors[inv.status]?.text || 'text-gray-500'}`}>
+                <span className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border ${statusColors[inv.status] || ''}`}>
                   {inv.status}
                 </span>
-                <div className="flex gap-2">
-                  {inv.status === 'pending' ? (
-                    <>
-                      <button className="rounded-full bg-[#D4AF37] px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-[#c9a430]">Accept</button>
-                      <button className="rounded-full bg-gray-100 px-4 py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-200">Decline</button>
-                    </>
-                  ) : (
-                    <button onClick={() => setSelectedInvitation(inv)} className="rounded-full border border-gray-200 px-4 py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50">View Details</button>
-                  )}
-                </div>
+              </div>
+              {inv.message && <p className="text-sm text-gray-400 mb-3 line-clamp-2">{inv.message}</p>}
+              <div className="flex flex-wrap gap-3 text-xs text-gray-500 mb-4">
+                {inv.proposedDate && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{inv.proposedDate}</span>}
+                {inv.proposedRate && <span className="flex items-center gap-1"><Wallet className="w-3 h-3" />{inv.proposedRate}</span>}
+              </div>
+              <div className="flex gap-2">
+                {inv.status === 'pending' ? (
+                  <>
+                    <button onClick={() => handleAccept(inv._id)} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-green-500/10 text-green-400 border border-green-500/20 rounded-xl text-xs font-semibold hover:bg-green-500/20 transition-colors">
+                      <Check className="w-3.5 h-3.5" /> Accept
+                    </button>
+                    <button onClick={() => handleDecline(inv._id)} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-xs font-semibold hover:bg-red-500/20 transition-colors">
+                      <X className="w-3.5 h-3.5" /> Decline
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => setSelectedInvite(inv)} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white/5 text-gray-300 rounded-xl text-xs font-semibold hover:bg-white/10 transition-colors">
+                    <Eye className="w-3.5 h-3.5" /> View Details
+                  </button>
+                )}
               </div>
             </motion.div>
           ))}
         </div>
-      ) : (
-        <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
-          <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Mail className="w-8 h-8 text-gray-300" />
-          </div>
-          <h3 className="text-lg font-bold text-[#111111] mb-2">No invitations yet</h3>
-          <p className="text-sm text-gray-400">Complete your profile to start receiving casting invitations.</p>
-        </div>
       )}
 
+      {/* Detail Modal */}
       <AnimatePresence>
-        {selectedInvitation && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setSelectedInvitation(null)}>
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.25 }}
-              className="mx-4 w-full max-w-lg rounded-2xl bg-white p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-              <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-xl font-bold" style={{ color: '#111111' }}>Invitation Details</h2>
-                <button onClick={() => setSelectedInvitation(null)} className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"><X size={20} /></button>
+        {selectedInvite && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setSelectedInvite(null)}>
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-full max-w-md bg-[#111] border border-white/10 rounded-2xl p-6" onClick={e => e.stopPropagation()}>
+              <h2 className="text-lg font-bold text-white mb-4">{selectedInvite.title}</h2>
+              <div className="space-y-3 text-sm">
+                <p><span className="text-gray-500">From:</span> <span className="text-white">{selectedInvite.businessProfile?.companyName || selectedInvite.business?.name}</span></p>
+                {selectedInvite.message && <p><span className="text-gray-500">Message:</span> <span className="text-gray-300">{selectedInvite.message}</span></p>}
+                {selectedInvite.proposedDate && <p><span className="text-gray-500">Date:</span> <span className="text-gray-300">{selectedInvite.proposedDate}</span></p>}
+                {selectedInvite.proposedRate && <p><span className="text-gray-500">Rate:</span> <span className="text-gray-300">{selectedInvite.proposedRate}</span></p>}
+                <p><span className="text-gray-500">Status:</span> <span className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold border ${statusColors[selectedInvite.status] || ''}`}>{selectedInvite.status}</span></p>
               </div>
-              <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#D4AF37] text-lg font-bold text-white">
-                  {selectedInvitation.title?.charAt(0) || '?'}
-                </div>
-                <div>
-                  <p className="font-semibold" style={{ color: '#111111' }}>{selectedInvitation.title}</p>
-                  <p className="text-sm text-gray-400">{selectedInvitation.proposedDate ? new Date(selectedInvitation.proposedDate).toLocaleDateString() : 'Date TBD'}</p>
-                </div>
-              </div>
-              {selectedInvitation.message && <p className="mb-4 text-sm text-gray-500">{selectedInvitation.message}</p>}
-              {selectedInvitation.proposedRate && (
-                <div className="flex items-center gap-2 text-sm text-gray-500 mb-4"><Wallet size={15} className="text-gray-400" /> {selectedInvitation.proposedRate}</div>
-              )}
-              <div className="flex justify-end border-t border-gray-100 pt-4">
-                <span className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-widest ${statusColors[selectedInvitation.status]?.bg || 'bg-gray-100'} ${statusColors[selectedInvitation.status]?.text || 'text-gray-500'}`}>
-                  {selectedInvitation.status}
-                </span>
-              </div>
+              <button onClick={() => setSelectedInvite(null)} className="mt-6 w-full px-4 py-2.5 bg-white/5 text-gray-300 rounded-xl text-sm hover:bg-white/10">Close</button>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
-}
+};
 
-function SkeletonLoading() {
-  return (
-    <div className="p-4 sm:p-6 lg:p-10 animate-pulse">
-      <div className="h-8 w-36 bg-gray-200 rounded-lg mb-8" />
-      <div className="grid grid-cols-4 gap-6 mb-8">
-        {[1, 2, 3, 4].map((i) => (<div key={i} className="bg-white p-6 rounded-2xl border border-gray-100"><div className="h-10 w-10 bg-gray-200 rounded-xl mb-4" /><div className="h-3 w-20 bg-gray-200 rounded mb-2" /><div className="h-8 w-8 bg-gray-200 rounded" /></div>))}
-      </div>
-    </div>
-  );
-}
+export default Invitations;

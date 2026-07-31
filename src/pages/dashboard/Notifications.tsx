@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCheck, Settings, Send, Mail, Wallet, MessageSquare, Bell, X } from 'lucide-react';
-import { useQuery } from 'convex/react';
+import { CheckCheck, Settings, Send, Mail, Wallet, MessageSquare, Bell, X, Briefcase, UserCheck, UserX, CreditCard, Info } from 'lucide-react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useUser } from '../../contexts/UserContext';
+import { useToast } from '../../components/ui/Toast';
 
-type Category = 'All' | 'applications' | 'invitations' | 'payments' | 'messages' | 'system';
+type Category = 'All' | 'jobs' | 'applications' | 'invitations' | 'payments' | 'messages' | 'system';
 
-const categories: Category[] = ['All', 'applications', 'invitations', 'payments', 'messages', 'system'];
+const categories: Category[] = ['All', 'jobs', 'applications', 'invitations', 'payments', 'messages', 'system'];
 
 const categoryIconMap: Record<string, typeof Bell> = {
   All: Bell,
+  jobs: Briefcase,
   applications: Send,
   invitations: Mail,
   payments: Wallet,
@@ -18,162 +21,239 @@ const categoryIconMap: Record<string, typeof Bell> = {
   system: Bell,
 };
 
-const categoryColorMap: Record<string, string> = {
-  applications: 'bg-blue-50 text-blue-600',
-  invitations: 'bg-green-50 text-green-600',
-  payments: 'bg-purple-50 text-purple-600',
-  messages: 'bg-amber-50 text-amber-600',
-  system: 'bg-gray-100 text-gray-600',
+const typeIconMap: Record<string, typeof Bell> = {
+  new_job: Briefcase,
+  job_invitation: Mail,
+  new_application: Send,
+  application_status_changed: UserCheck,
+  invitation_accepted: UserCheck,
+  invitation_declined: UserX,
+  new_message: MessageSquare,
+  payment_received: CreditCard,
+  payment_status_changed: CreditCard,
+  system: Info,
 };
 
-export default function Notifications() {
+const Notifications = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const { convexUser } = useUser();
+  const [activeCategory, setActiveCategory] = useState<Category>('All');
+  const [showSettings, setShowSettings] = useState(false);
+
   const notifications = useQuery(
     api.notifications.listByUser,
     convexUser ? { userId: convexUser._id as any } : 'skip'
   );
-  const [activeCategory, setActiveCategory] = useState<Category>('All');
-  const [readIds, setReadIds] = useState<Set<string>>(new Set());
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settings, setSettings] = useState<Record<string, boolean>>({
-    emailNotifications: true, smsNotifications: false, pushNotifications: true,
-    applicationUpdates: true, invitationUpdates: true, paymentAlerts: false, marketingEmails: false,
-  });
+  const markAsRead = useMutation(api.notifications.markAsRead);
+  const markAllAsRead = useMutation(api.notifications.markAllAsRead);
+  const prefs = useQuery(
+    api.notifications.getPreferences,
+    convexUser ? { userId: convexUser._id as any } : 'skip'
+  );
+  const upsertPrefs = useMutation(api.notifications.upsertPreferences);
 
-  const notificationList = notifications ?? [];
+  const [localPrefs, setLocalPrefs] = useState<any>(null);
 
-  const isRead = (id: string) => readIds.has(id);
-  const markAsRead = (id: string) => setReadIds((prev) => new Set(prev).add(id));
-  const markAllAsRead = () => setReadIds(new Set(notificationList.map((n) => n._id)));
+  const filteredNotifications = useMemo(() => {
+    const list = notifications ?? [];
+    if (activeCategory === 'All') return list;
+    const typeMap: Record<string, string[]> = {
+      jobs: ['new_job'],
+      applications: ['new_application', 'application_status_changed'],
+      invitations: ['job_invitation', 'invitation_accepted', 'invitation_declined'],
+      payments: ['payment_received', 'payment_status_changed'],
+      messages: ['new_message'],
+      system: ['system'],
+    };
+    const types = typeMap[activeCategory] || [];
+    return list.filter((n: any) => types.includes(n.type));
+  }, [notifications, activeCategory]);
 
-  const filteredNotifications = activeCategory === 'All'
-    ? notificationList
-    : notificationList.filter((n) => n.type === activeCategory);
+  const unreadCount = useMemo(() => (notifications ?? []).filter((n: any) => !n.isRead).length, [notifications]);
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const n of notifications ?? []) {
+      if (!n.isRead) {
+        counts[n.type] = (counts[n.type] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [notifications]);
 
-  const toggleSetting = (key: string) => setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
+  const handleMarkAllRead = async () => {
+    if (!convexUser) return;
+    try {
+      await markAllAsRead({ userId: convexUser._id as any });
+      toast('All notifications marked as read', 'success');
+    } catch {
+      toast('Failed to mark all as read', 'error');
+    }
+  };
 
-  if (!convexUser) return <SkeletonLoading />;
+  const handleMarkRead = async (notificationId: any) => {
+    try {
+      await markAsRead({ notificationId });
+    } catch { /* ignore */ }
+  };
+
+  const handleNotificationClick = async (n: any) => {
+    if (!n.isRead) await handleMarkRead(n._id);
+    if (n.entityType === 'job' && n.entityId) {
+      navigate(`/model-dashboard/jobs`);
+    } else if (n.entityType === 'invitation') {
+      navigate(`/model-dashboard/invitations`);
+    } else if (n.entityType === 'application') {
+      navigate(`/model-dashboard/applications`);
+    } else if (n.type === 'new_message') {
+      navigate(`/model-dashboard/messages`);
+    }
+  };
+
+  const handleSavePrefs = async () => {
+    if (!convexUser || !localPrefs) return;
+    try {
+      await upsertPrefs({ userId: convexUser._id as any, ...localPrefs });
+      toast('Notification preferences saved', 'success');
+      setShowSettings(false);
+    } catch {
+      toast('Failed to save preferences', 'error');
+    }
+  };
+
+  const openSettings = () => {
+    setLocalPrefs({
+      inApp: prefs?.inApp ?? true,
+      push: prefs?.push ?? false,
+      email: prefs?.email ?? false,
+      newJobs: prefs?.newJobs ?? true,
+      applications: prefs?.applications ?? true,
+      invitations: prefs?.invitations ?? true,
+      payments: prefs?.payments ?? true,
+      messages: prefs?.messages ?? true,
+      system: prefs?.system ?? true,
+    });
+    setShowSettings(true);
+  };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-[#111111]">Notifications</h1>
-        <p className="text-sm text-gray-400 mt-1">Stay updated with your account activity.</p>
-      </div>
-
-      <div className="flex items-center gap-3 mb-6 flex-wrap">
-        {notificationList.length > 0 && (
-          <button onClick={markAllAsRead} className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
-            <CheckCheck size={14} /> Mark all as Read
+    <div className="max-w-4xl mx-auto space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Notifications</h1>
+          <p className="text-gray-400 mt-1">Stay updated on your platform activity.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {unreadCount > 0 && (
+            <button onClick={handleMarkAllRead} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 text-gray-300 text-xs font-medium hover:bg-white/10 transition-colors">
+              <CheckCheck className="w-3.5 h-3.5" /> Mark All Read
+            </button>
+          )}
+          <button onClick={openSettings} className="p-2 rounded-xl bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-colors">
+            <Settings className="w-4 h-4" />
           </button>
-        )}
-        <button onClick={() => setSettingsOpen(true)} className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl text-gray-500 hover:bg-gray-100 transition-colors">
-          <Settings size={14} /> Notification Settings
-        </button>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-6">
-        {categories.map((cat) => (
-          <button key={cat} onClick={() => setActiveCategory(cat)}
-            className={`px-4 py-2 rounded-full text-[10px] font-semibold uppercase tracking-widest capitalize transition-colors ${activeCategory === cat ? 'bg-black text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
-            {cat}
-          </button>
-        ))}
+      {/* Category Tabs */}
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+        {categories.map((cat) => {
+          const Icon = categoryIconMap[cat];
+          const count = cat === 'All' ? unreadCount : categoryCounts[cat] || 0;
+          return (
+            <button key={cat} onClick={() => setActiveCategory(cat)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                activeCategory === cat ? 'bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/20' : 'bg-white/[0.03] text-gray-400 border border-white/5 hover:bg-white/[0.06]'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {cat === 'All' ? 'All' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+              {count > 0 && <span className="ml-1 w-5 h-5 rounded-full bg-[#D4AF37] text-black text-[10px] font-bold flex items-center justify-center">{count}</span>}
+            </button>
+          );
+        })}
       </div>
 
-      {notificationList.length > 0 ? (
-        <div className="flex flex-col gap-3">
-          <AnimatePresence mode="popLayout">
-            {filteredNotifications.map((notification, index) => {
-              const read = isRead(notification._id);
-              const IconComponent = categoryIconMap[notification.type] || Bell;
-              const colorClass = categoryColorMap[notification.type] || 'bg-gray-100 text-gray-600';
-              return (
-                <motion.div key={notification._id} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.25, delay: index * 0.04 }} onClick={() => markAsRead(notification._id)}
-                  className={`flex items-start gap-4 p-4 rounded-xl border border-gray-100 cursor-pointer transition-colors hover:shadow-sm ${read ? 'border-l-4 border-l-transparent bg-white' : 'border-l-4 border-l-[#D4AF37] bg-[#FBFBFB]'}`}>
-                  <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${colorClass}`}><IconComponent size={18} /></div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-bold text-sm text-[#111111]">{notification.title}</p>
-                      {!read && <span className="w-2 h-2 rounded-full bg-[#D4AF37] flex-shrink-0" />}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-0.5">{notification.message}</p>
-                  </div>
-                  <span className="text-[10px] text-gray-300 uppercase tracking-widest whitespace-nowrap flex-shrink-0 pt-0.5">
-                    {new Date(notification._creationTime).toLocaleDateString()}
-                  </span>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+      {/* Notifications List */}
+      {notifications === undefined ? (
+        <div className="text-center py-20 text-gray-500">Loading notifications...</div>
+      ) : filteredNotifications.length === 0 ? (
+        <div className="text-center py-20">
+          <Bell className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-white mb-2">No notifications</h3>
+          <p className="text-gray-500">You're all caught up!</p>
         </div>
       ) : (
-        <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
-          <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Bell className="w-8 h-8 text-gray-300" />
-          </div>
-          <h3 className="text-lg font-bold text-[#111111] mb-2">No notifications yet</h3>
-          <p className="text-sm text-gray-400">You'll see updates here when brands interact with your profile.</p>
+        <div className="space-y-2">
+          {filteredNotifications.map((n: any) => {
+            const Icon = typeIconMap[n.type] || Bell;
+            return (
+              <motion.div key={n._id} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
+                onClick={() => handleNotificationClick(n)}
+                className={`flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all ${
+                  n.isRead ? 'bg-white/[0.02] border border-white/5' : 'bg-[#D4AF37]/[0.03] border border-[#D4AF37]/10'
+                } hover:bg-white/[0.06]`}
+              >
+                <div className={`p-2 rounded-lg shrink-0 ${n.isRead ? 'bg-white/5 text-gray-500' : 'bg-[#D4AF37]/10 text-[#D4AF37]'}`}>
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm ${n.isRead ? 'text-gray-400' : 'text-white font-medium'}`}>{n.title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.message}</p>
+                  <p className="text-[10px] text-gray-600 mt-1">{new Date(n._creationTime).toLocaleDateString()}</p>
+                </div>
+                {!n.isRead && <span className="w-2 h-2 rounded-full bg-[#D4AF37] shrink-0 mt-2" />}
+              </motion.div>
+            );
+          })}
         </div>
       )}
 
+      {/* Settings Modal */}
       <AnimatePresence>
-        {settingsOpen && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/30 z-50" onClick={() => setSettingsOpen(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-xl" onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-bold text-[#111111]">Notification Settings</h2>
-                  <button onClick={() => setSettingsOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors"><X size={20} /></button>
-                </div>
-                <div className="flex flex-col gap-4 mb-8">
-                  {[
-                    { key: 'emailNotifications', label: 'Email Notifications' },
-                    { key: 'smsNotifications', label: 'SMS Notifications' },
-                    { key: 'pushNotifications', label: 'Push Notifications' },
-                    { key: 'applicationUpdates', label: 'Application Updates' },
-                    { key: 'invitationUpdates', label: 'Invitation Updates' },
-                    { key: 'paymentAlerts', label: 'Payment Alerts' },
-                    { key: 'marketingEmails', label: 'Marketing Emails' },
-                  ].map(({ key, label }) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <span className="text-sm text-[#111111]">{label}</span>
-                      <button onClick={() => toggleSetting(key)} className={`relative w-11 h-6 rounded-full transition-colors ${settings[key] ? 'bg-[#D4AF37]' : 'bg-gray-200'}`}>
-                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${settings[key] ? 'translate-x-5' : 'translate-x-0'}`} />
+        {showSettings && localPrefs && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setShowSettings(false)}>
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-full max-w-md bg-[#111] border border-white/10 rounded-2xl p-6" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-white">Notification Settings</h2>
+                <button onClick={() => setShowSettings(false)} className="p-1 text-gray-500 hover:text-white"><X className="w-5 h-5" /></button>
+              </div>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Channels</h3>
+                  {(['inApp', 'push', 'email'] as const).map(key => (
+                    <label key={key} className="flex items-center justify-between py-2">
+                      <span className="text-sm text-gray-300 capitalize">{key === 'inApp' ? 'In-App' : key}</span>
+                      <button onClick={() => setLocalPrefs({ ...localPrefs, [key]: !localPrefs[key] })}
+                        className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${localPrefs[key] ? 'bg-[#D4AF37]' : 'bg-white/10'}`}>
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${localPrefs[key] ? 'translate-x-5' : 'translate-x-1'}`} />
                       </button>
-                    </div>
+                    </label>
                   ))}
                 </div>
-                <div className="flex items-center justify-end gap-3">
-                  <button onClick={() => setSettingsOpen(false)} className="px-5 py-2 text-xs font-semibold rounded-xl text-gray-500 hover:bg-gray-100 transition-colors">Cancel</button>
-                  <button onClick={() => setSettingsOpen(false)} className="px-5 py-2 text-xs font-semibold rounded-xl bg-black text-white hover:bg-gray-800 transition-colors">Save</button>
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">Categories</h3>
+                  {(['newJobs', 'applications', 'invitations', 'payments', 'messages', 'system'] as const).map(key => (
+                    <label key={key} className="flex items-center justify-between py-2">
+                      <span className="text-sm text-gray-300 capitalize">{key === 'newJobs' ? 'New Jobs' : key}</span>
+                      <button onClick={() => setLocalPrefs({ ...localPrefs, [key]: !localPrefs[key] })}
+                        className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${localPrefs[key] ? 'bg-[#D4AF37]' : 'bg-white/10'}`}>
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${localPrefs[key] ? 'translate-x-5' : 'translate-x-1'}`} />
+                      </button>
+                    </label>
+                  ))}
                 </div>
               </div>
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => setShowSettings(false)} className="flex-1 px-4 py-2.5 border border-white/10 text-gray-300 rounded-xl text-sm">Cancel</button>
+                <button onClick={handleSavePrefs} className="flex-1 px-4 py-2.5 bg-[#D4AF37] text-black rounded-xl text-sm font-bold">Save</button>
+              </div>
             </motion.div>
-          </>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
-}
+};
 
-function SkeletonLoading() {
-  return (
-    <div className="p-4 sm:p-6 lg:p-10 animate-pulse">
-      <div className="h-8 w-44 bg-gray-200 rounded-lg mb-6" />
-      <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white p-4 rounded-xl border border-gray-100">
-            <div className="flex gap-4">
-              <div className="w-10 h-10 bg-gray-200 rounded-full shrink-0" />
-              <div className="flex-1"><div className="h-4 w-48 bg-gray-200 rounded mb-2" /><div className="h-3 w-64 bg-gray-200 rounded" /></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+export default Notifications;

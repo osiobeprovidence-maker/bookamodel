@@ -7,7 +7,7 @@ import { useState, type ReactNode } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Search, Send, Heart, Briefcase,
-  MessageSquare, Settings, LogOut, Menu, X, Wallet
+  MessageSquare, FileText, Settings, LogOut, Menu, X
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useUser } from '../../contexts/UserContext';
@@ -19,6 +19,7 @@ const navLinks = [
   { label: 'Invitations', icon: Send, path: '/business-dashboard/invitations' },
   { label: 'Saved Models', icon: Heart, path: '/business-dashboard/saved' },
   { label: 'Job Requests', icon: Briefcase, path: '/business-dashboard/jobs' },
+  { label: 'Applications', icon: FileText, path: '/business-dashboard/applications' },
   { label: 'Messages', icon: MessageSquare, path: '/business-dashboard/messages' },
   { label: 'Wallet', icon: Wallet, path: '/business-dashboard/wallet' },
 ];

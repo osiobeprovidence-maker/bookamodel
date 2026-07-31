@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, User, Image, FileText, Send,
-  Bell, Settings, Trophy, Menu, X, Crown, Shield, Wallet
+  Bell, Settings, Trophy, Menu, X, Crown, Shield, Wallet, Briefcase
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useUser } from '../../contexts/UserContext';
@@ -11,6 +11,7 @@ const navLinks = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/model-dashboard' },
   { label: 'My Profile', icon: User, path: '/model-dashboard/profile' },
   { label: 'Portfolio', icon: Image, path: '/model-dashboard/portfolio' },
+  { label: 'Jobs', icon: Briefcase, path: '/model-dashboard/jobs' },
   { label: 'Applications', icon: FileText, path: '/model-dashboard/applications' },
   { label: 'Invitations', icon: Send, path: '/model-dashboard/invitations' },
   { label: 'Notifications', icon: Bell, path: '/model-dashboard/notifications' },
