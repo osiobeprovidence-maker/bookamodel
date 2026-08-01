@@ -228,8 +228,8 @@ export default function App() {
   const isAdmin = location.pathname.startsWith('/admin');
 
   return (
-    <UserProvider>
-      <ToastProvider>
+    <ToastProvider>
+      <UserProvider>
         <div className="font-sans antialiased text-[#111111] overflow-x-hidden">
         <ScrollToTop />
         {!isDashboard && !isAdmin && <Navbar />}
@@ -288,7 +288,7 @@ export default function App() {
         </Routes>
         {!isDashboard && !isAdmin && <Footer />}
         </div>
-      </ToastProvider>
-    </UserProvider>
+      </UserProvider>
+    </ToastProvider>
   );
 }

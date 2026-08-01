@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from 'react';
-import { NavLink, Link, useLocation } from 'react-router-dom';
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, User, Image, FileText,
-  Bell, Settings, Trophy, Menu, X, Crown, Shield, Wallet, Briefcase
+  Bell, Settings, Trophy, Menu, X, Crown, Shield, Wallet, Briefcase, LogOut, Loader2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useUser } from '../../contexts/UserContext';
+import { useToast } from '../../components/ui/Toast';
 
 const navLinks = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/model-dashboard' },
@@ -21,8 +22,12 @@ const navLinks = [
 
 export const DashboardLayout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const location = useLocation();
-  const { convexUser } = useUser();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const { convexUser, logout } = useUser();
   const isAdmin = convexUser?.role === 'admin';
 
   const isActive = (path: string) => {
@@ -30,6 +35,21 @@ export const DashboardLayout = ({ children }: { children: ReactNode }) => {
       return location.pathname === '/model-dashboard';
     }
     return location.pathname.startsWith(path);
+  };
+
+  const handleConfirmLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logout();
+      toast("You've been signed out successfully.");
+      navigate('/');
+    } catch {
+      toast('Failed to sign out. Please try again.', 'error');
+    } finally {
+      setLoggingOut(false);
+      setShowLogoutModal(false);
+      setSidebarOpen(false);
+    }
   };
 
   return (
@@ -120,6 +140,16 @@ export const DashboardLayout = ({ children }: { children: ReactNode }) => {
             </NavLink>
           ))}
         </nav>
+
+        <div className="mt-auto pt-6 border-t border-gray-100">
+          <button
+            onClick={() => setShowLogoutModal(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-red-500 hover:bg-red-50 transition-all"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </button>
+        </div>
       </aside>
 
       <main className="flex-1 min-w-0 lg:ml-64">
@@ -139,6 +169,47 @@ export const DashboardLayout = ({ children }: { children: ReactNode }) => {
           {children}
         </div>
       </main>
+
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => { if (!loggingOut) setShowLogoutModal(false); }}
+          />
+          <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl p-8 text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-red-50 flex items-center justify-center mb-5">
+              <LogOut className="w-6 h-6 text-red-500" />
+            </div>
+            <h2 className="text-xl font-extrabold text-[#111111]">Sign out?</h2>
+            <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+              Are you sure you want to sign out of your BookAModel account?
+            </p>
+            <div className="flex gap-3 mt-7">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                disabled={loggingOut}
+                className="flex-1 px-4 py-3 rounded-2xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmLogout}
+                disabled={loggingOut}
+                className="flex-1 px-4 py-3 rounded-2xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-all"
+              >
+                {loggingOut ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Signing out...
+                  </>
+                ) : (
+                  'Logout'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
