@@ -159,6 +159,50 @@ export const getPrivacyForUser = query({
   },
 });
 
+export const isUsernameTaken = query({
+  args: { userId: v.id("users"), username: v.string() },
+  handler: async (ctx, args) => {
+    const username = args.username.trim().toLowerCase();
+    if (!username) return false;
+    const profiles = await ctx.db.query("modelProfiles").collect();
+    return profiles.some(
+      (p) => p.userId !== args.userId && (p.username || "").trim().toLowerCase() === username
+    );
+  },
+});
+
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+export const generateRecoveryCodes = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const settings = await getOrCreateSettings(ctx, args.userId);
+    const codes: string[] = [];
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    for (let i = 0; i < 8; i++) {
+      let raw = "";
+      for (let j = 0; j < 8; j++) {
+        raw += alphabet[Math.floor(Math.random() * alphabet.length)];
+      }
+      codes.push(`${raw.slice(0, 4)}-${raw.slice(4)}`);
+    }
+    const hashed = await Promise.all(codes.map((c) => sha256Hex(c.replace("-", ""))));
+    await ctx.db.patch(settings._id, {
+      twoFactorEnabled: true,
+      twoFactorMethod: settings.twoFactorMethod ?? "email",
+      recoveryCodes: hashed,
+      updatedAt: Date.now(),
+    });
+    return { codes };
+  },
+});
+
 export const updateSettings = mutation({
   args: {
     userId: v.id("users"),

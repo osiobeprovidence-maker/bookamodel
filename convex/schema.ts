@@ -55,6 +55,7 @@ export default defineSchema({
     }),
     twoFactorEnabled: v.optional(v.boolean()),
     twoFactorMethod: v.optional(v.string()),
+    recoveryCodes: v.optional(v.array(v.string())),
     updatedAt: v.number(),
   })
     .index("by_userId", ["userId"]),
