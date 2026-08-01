@@ -32,7 +32,7 @@ const TermsPage = lazyNamed('TermsPage')(() => import('./pages/Terms'));
 const PrivacyPage = lazyNamed('PrivacyPage')(() => import('./pages/Privacy'));
 const HelpPage = lazyNamed('HelpPage')(() => import('./pages/Help'));
 
-const DashboardLayout = lazy(() => import('./pages/dashboard/DashboardLayout'));
+const DashboardLayout = lazyNamed('DashboardLayout')(() => import('./pages/dashboard/DashboardLayout'));
 const ModelDashboardHome = lazyNamed('ModelDashboardHome')(() => import('./pages/dashboard/ModelDashboardHome'));
 const MyProfile = lazy(() => import('./pages/dashboard/MyProfile'));
 const Portfolio = lazy(() => import('./pages/dashboard/Portfolio'));
@@ -44,7 +44,7 @@ const GoPro = lazy(() => import('./pages/dashboard/GoPro'));
 const Settings = lazy(() => import('./pages/dashboard/Settings'));
 const Wallet = lazy(() => import('./pages/dashboard/Wallet'));
 
-const BusinessLayout = lazy(() => import('./pages/business/BusinessLayout'));
+const BusinessLayout = lazyNamed('BusinessLayout')(() => import('./pages/business/BusinessLayout'));
 const BusinessApplications = lazy(() => import('./pages/business/Applications'));
 const BusinessDashboardHome = lazyNamed('BusinessDashboardHome')(() => import('./pages/business/BusinessDashboardHome'));
 const SearchModels = lazy(() => import('./pages/business/SearchModels'));
@@ -54,7 +54,7 @@ const JobRequests = lazy(() => import('./pages/business/JobRequests'));
 const Messages = lazy(() => import('./pages/business/Messages'));
 const BusinessSettings = lazy(() => import('./pages/business/BusinessSettings'));
 
-const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
+const AdminLayout = lazyNamed('AdminLayout')(() => import('./components/admin/AdminLayout'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const AdminModels = lazy(() => import('./pages/admin/AdminModels'));
 const AdminBusinesses = lazy(() => import('./pages/admin/AdminBusinesses'));
