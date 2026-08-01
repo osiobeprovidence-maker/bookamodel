@@ -433,6 +433,18 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"]),
 
+  pushSubscriptions: defineTable({
+    userId: v.id("users"),
+    endpoint: v.string(),
+    keys: v.object({ p256dh: v.string(), auth: v.string() }),
+    device: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_endpoint", ["endpoint"]),
+
   wallets: defineTable({
     userId: v.id("users"),
     role: v.union(v.literal("model"), v.literal("business")),

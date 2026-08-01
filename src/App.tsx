@@ -3,68 +3,75 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { Component, lazy, Suspense, useEffect, type ReactNode } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { LandingPage } from './pages/LandingPage';
-import { ModelWall } from './pages/ModelWall';
-import { ModelProfile } from './pages/ModelProfile';
-import { CreateProfile } from './pages/CreateProfile';
-import { CreateInvitation } from './pages/CreateInvitation';
-import { Pricing } from './pages/Pricing';
-import { LoginPage } from './pages/LoginPage';
-import OnboardingPage from './pages/OnboardingPage';
-import { CategoriesPage } from './pages/CategoriesPage';
-import { AboutPage } from './pages/About';
-import { ContactPage } from './pages/Contact';
-import { TermsPage } from './pages/Terms';
-import { PrivacyPage } from './pages/Privacy';
-import { HelpPage } from './pages/Help';
-import { DashboardLayout } from './pages/dashboard/DashboardLayout';
-import { ModelDashboardHome } from './pages/dashboard/ModelDashboardHome';
-import MyProfile from './pages/dashboard/MyProfile';
-import Portfolio from './pages/dashboard/Portfolio';
-import Applications from './pages/dashboard/Applications';
-import Invitations from './pages/dashboard/Invitations';
-import Notifications from './pages/dashboard/Notifications';
-import Jobs from './pages/dashboard/Jobs';
-import GoPro from './pages/dashboard/GoPro';
-import Settings from './pages/dashboard/Settings';
-import Wallet from './pages/dashboard/Wallet';
-import { BusinessLayout } from './pages/business/BusinessLayout';
-import BusinessApplications from './pages/business/Applications';
-import { BusinessDashboardHome } from './pages/business/BusinessDashboardHome';
-import SearchModels from './pages/business/SearchModels';
-import BusinessInvitations from './pages/business/BusinessInvitations';
-import SavedModels from './pages/business/SavedModels';
-import JobRequests from './pages/business/JobRequests';
-import Messages from './pages/business/Messages';
-import BusinessSettings from './pages/business/BusinessSettings';
-import { useEffect, type ReactNode } from 'react';
-
 import { UserProvider, useUser } from './contexts/UserContext';
 import { ToastProvider } from './components/ui/Toast';
+import { InstallPrompt } from './components/InstallPrompt';
+import { OfflineBanner } from './components/OfflineBanner';
+import { UpdateBanner } from './components/UpdateBanner';
 
-import { AdminLayout } from './components/admin/AdminLayout';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminModels from './pages/admin/AdminModels';
-import AdminBusinesses from './pages/admin/AdminBusinesses';
-import AdminBookings from './pages/admin/AdminBookings';
-import AdminCategories from './pages/admin/AdminCategories';
-import AdminFeatured from './pages/admin/AdminFeatured';
-import AdminVerification from './pages/admin/AdminVerification';
-import AdminReviews from './pages/admin/AdminReviews';
-import AdminPayments from './pages/admin/AdminPayments';
-import AdminNotifications from './pages/admin/AdminNotifications';
-import AdminReports from './pages/admin/AdminReports';
-import AdminCMS from './pages/admin/AdminCMS';
-import AdminSupport from './pages/admin/AdminSupport';
-import AdminTeam from './pages/admin/AdminTeam';
-import AdminAudit from './pages/admin/AdminAudit';
-import AdminSettings from './pages/admin/AdminSettings';
-import { AdminAccessDenied } from './pages/AdminAccessDenied';
+const lazyNamed =
+  (name: string) => (loader: () => Promise<Record<string, any>>) =>
+    lazy(() => loader().then((m) => ({ default: m[name] })));
 
+const ModelWall = lazyNamed('ModelWall')(() => import('./pages/ModelWall'));
+const ModelProfile = lazyNamed('ModelProfile')(() => import('./pages/ModelProfile'));
+const CreateProfile = lazyNamed('CreateProfile')(() => import('./pages/CreateProfile'));
+const CreateInvitation = lazyNamed('CreateInvitation')(() => import('./pages/CreateInvitation'));
+const Pricing = lazyNamed('Pricing')(() => import('./pages/Pricing'));
+const LoginPage = lazyNamed('LoginPage')(() => import('./pages/LoginPage'));
+const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
+const CategoriesPage = lazyNamed('CategoriesPage')(() => import('./pages/CategoriesPage'));
+const AboutPage = lazyNamed('AboutPage')(() => import('./pages/About'));
+const ContactPage = lazyNamed('ContactPage')(() => import('./pages/Contact'));
+const TermsPage = lazyNamed('TermsPage')(() => import('./pages/Terms'));
+const PrivacyPage = lazyNamed('PrivacyPage')(() => import('./pages/Privacy'));
+const HelpPage = lazyNamed('HelpPage')(() => import('./pages/Help'));
 
+const DashboardLayout = lazy(() => import('./pages/dashboard/DashboardLayout'));
+const ModelDashboardHome = lazyNamed('ModelDashboardHome')(() => import('./pages/dashboard/ModelDashboardHome'));
+const MyProfile = lazy(() => import('./pages/dashboard/MyProfile'));
+const Portfolio = lazy(() => import('./pages/dashboard/Portfolio'));
+const Applications = lazy(() => import('./pages/dashboard/Applications'));
+const Invitations = lazy(() => import('./pages/dashboard/Invitations'));
+const Notifications = lazy(() => import('./pages/dashboard/Notifications'));
+const Jobs = lazy(() => import('./pages/dashboard/Jobs'));
+const GoPro = lazy(() => import('./pages/dashboard/GoPro'));
+const Settings = lazy(() => import('./pages/dashboard/Settings'));
+const Wallet = lazy(() => import('./pages/dashboard/Wallet'));
+
+const BusinessLayout = lazy(() => import('./pages/business/BusinessLayout'));
+const BusinessApplications = lazy(() => import('./pages/business/Applications'));
+const BusinessDashboardHome = lazyNamed('BusinessDashboardHome')(() => import('./pages/business/BusinessDashboardHome'));
+const SearchModels = lazy(() => import('./pages/business/SearchModels'));
+const BusinessInvitations = lazy(() => import('./pages/business/BusinessInvitations'));
+const SavedModels = lazy(() => import('./pages/business/SavedModels'));
+const JobRequests = lazy(() => import('./pages/business/JobRequests'));
+const Messages = lazy(() => import('./pages/business/Messages'));
+const BusinessSettings = lazy(() => import('./pages/business/BusinessSettings'));
+
+const AdminLayout = lazy(() => import('./components/admin/AdminLayout'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminModels = lazy(() => import('./pages/admin/AdminModels'));
+const AdminBusinesses = lazy(() => import('./pages/admin/AdminBusinesses'));
+const AdminBookings = lazy(() => import('./pages/admin/AdminBookings'));
+const AdminCategories = lazy(() => import('./pages/admin/AdminCategories'));
+const AdminFeatured = lazy(() => import('./pages/admin/AdminFeatured'));
+const AdminVerification = lazy(() => import('./pages/admin/AdminVerification'));
+const AdminReviews = lazy(() => import('./pages/admin/AdminReviews'));
+const AdminPayments = lazy(() => import('./pages/admin/AdminPayments'));
+const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications'));
+const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
+const AdminCMS = lazy(() => import('./pages/admin/AdminCMS'));
+const AdminSupport = lazy(() => import('./pages/admin/AdminSupport'));
+const AdminTeam = lazy(() => import('./pages/admin/AdminTeam'));
+const AdminAudit = lazy(() => import('./pages/admin/AdminAudit'));
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
+const AdminAccessDenied = lazyNamed('AdminAccessDenied')(() => import('./pages/AdminAccessDenied'));
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -73,6 +80,37 @@ const ScrollToTop = () => {
   }, [pathname]);
   return null;
 };
+
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
+  </div>
+);
+
+class ChunkErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    if (this.state.failed) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-[#F8F8F8] px-6">
+          <p className="text-sm font-bold text-gray-500">Something went wrong loading this page.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-5 py-2.5 rounded-xl bg-[#D4AF37] text-[#111111] text-sm font-bold"
+          >
+            Reload
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const ModelDashboard = () => (
   <DashboardLayout>
@@ -192,11 +230,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { firebaseUser, convexUser, isLoading } = useUser();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!firebaseUser) {
@@ -230,9 +264,14 @@ export default function App() {
   return (
     <ToastProvider>
       <UserProvider>
+        <ChunkErrorBoundary>
         <div className="font-sans antialiased text-[#111111] overflow-x-hidden">
         <ScrollToTop />
+        <OfflineBanner />
+        <UpdateBanner />
+        <InstallPrompt />
         {!isDashboard && !isAdmin && <Navbar />}
+        <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/explore" element={<ModelWall />} />
@@ -286,8 +325,10 @@ export default function App() {
           <Route path="/admin/audit" element={<AdminPage><AdminAudit /></AdminPage>} />
           <Route path="/admin/settings" element={<AdminPage><AdminSettings /></AdminPage>} />
         </Routes>
+        </Suspense>
         {!isDashboard && !isAdmin && <Footer />}
         </div>
+        </ChunkErrorBoundary>
       </UserProvider>
     </ToastProvider>
   );

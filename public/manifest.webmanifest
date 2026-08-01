@@ -1,0 +1,78 @@
+{
+  "name": "BookAModel - Book Top Nigerian Models",
+  "short_name": "BookAModel",
+  "description": "Find and book top Nigerian models. Browse verified portfolios, receive casting invitations, manage bookings and earnings — right from your phone.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "social"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Open your dashboard",
+      "url": "/model-dashboard",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Jobs",
+      "short_name": "Jobs",
+      "description": "Browse jobs",
+      "url": "/model-dashboard/jobs",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Portfolio",
+      "short_name": "Portfolio",
+      "description": "Manage your portfolio",
+      "url": "/model-dashboard/portfolio",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Notifications",
+      "short_name": "Alerts",
+      "description": "View your notifications",
+      "url": "/model-dashboard/notifications",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Wallet",
+      "short_name": "Wallet",
+      "description": "Check your earnings",
+      "url": "/model-dashboard/wallet",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ]
+}

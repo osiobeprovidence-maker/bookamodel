@@ -19,6 +19,13 @@ import { updatePassword, reauthenticateWithCredential, linkWithCredential, Email
 import { api } from '../../../convex/_generated/api';
 import { auth } from '../../lib/firebase';
 import { useUser } from '../../contexts/UserContext';
+import {
+  isPushSupported,
+  requestPushPermission,
+  subscribeToPush,
+  unsubscribeFromPush,
+  subscriptionToArgs,
+} from '../../lib/push';
 
 type Tab = 'General' | 'Account' | 'Security' | 'Privacy' | 'Notifications' | 'Wallet & Payments' | 'Connected Accounts' | 'Appearance' | 'Support' | 'Danger Zone';
 
@@ -144,6 +151,8 @@ export default function Settings() {
 
   const updateSettings = useMutation(api.settings.updateSettings);
   const upsertPrefs = useMutation(api.notifications.upsertPreferences);
+  const savePushSub = useMutation(api.push.saveSubscription);
+  const removePushSub = useMutation(api.push.removeSubscription);
   const saveProfile = useMutation(api.users.saveModelProfile);
   const signOutAllSessions = useMutation(api.settings.signOutAllSessions);
   const deactivateAccount = useMutation(api.settings.deactivateAccount);
@@ -387,17 +396,48 @@ export default function Settings() {
   const toggleNotification = async (key: string) => {
     if (!userId) return;
     let enabled = !notifications[key];
-    if (key === 'push' && enabled) {
-      const perm = await Notification.requestPermission();
-      if (perm !== 'granted') {
-        showToast('Push permission was not granted by the browser');
-        enabled = false;
+    if (key === 'push') {
+      if (!isPushSupported()) {
+        showToast('Push notifications are not supported by this browser', 'error');
+        return;
+      }
+      if (enabled) {
+        const perm = await requestPushPermission();
+        if (perm !== 'granted') {
+          showToast('Push permission was not granted by the browser', 'error');
+          return;
+        }
+        try {
+          const subscription = await subscribeToPush();
+          if (!subscription) {
+            showToast('Could not create a push subscription', 'error');
+            return;
+          }
+          await savePushSub({
+            userId,
+            ...subscriptionToArgs(subscription, 'browser'),
+            userAgent: navigator.userAgent.slice(0, 300),
+          });
+        } catch {
+          showToast('Could not register this device for push notifications', 'error');
+          return;
+        }
+      } else {
+        try {
+          const subscription = await unsubscribeFromPush();
+          if (subscription) {
+            await removePushSub({ endpoint: subscription.endpoint });
+          }
+        } catch {
+          showToast('Could not remove the push subscription', 'error');
+          return;
+        }
       }
     }
     setNotifications((n) => ({ ...n, [key]: enabled }));
     try {
       await upsertPrefs({ userId, [key]: enabled });
-      showToast('Notification preference saved');
+      showToast(enabled ? 'Push notifications enabled' : 'Push notifications disabled');
     } catch {
       showToast('Failed to save preference');
     }

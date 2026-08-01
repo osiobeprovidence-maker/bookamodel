@@ -25,6 +25,8 @@ import type * as notifications from "../notifications.js";
 import type * as payments from "../payments.js";
 import type * as paystack from "../paystack.js";
 import type * as portfolio from "../portfolio.js";
+import type * as push from "../push.js";
+import type * as pushSender from "../pushSender.js";
 import type * as reviews from "../reviews.js";
 import type * as savedModels from "../savedModels.js";
 import type * as settings from "../settings.js";
@@ -59,6 +61,8 @@ declare const fullApi: ApiFromModules<{
   payments: typeof payments;
   paystack: typeof paystack;
   portfolio: typeof portfolio;
+  push: typeof push;
+  pushSender: typeof pushSender;
   reviews: typeof reviews;
   savedModels: typeof savedModels;
   settings: typeof settings;

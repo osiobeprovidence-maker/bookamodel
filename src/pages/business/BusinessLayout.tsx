@@ -24,6 +24,14 @@ const navLinks = [
   { label: 'Wallet', icon: Wallet, path: '/business-dashboard/wallet' },
 ];
 
+const bottomNav = [
+  { label: 'Home', icon: LayoutDashboard, path: '/business-dashboard' },
+  { label: 'Search', icon: Search, path: '/business-dashboard/search' },
+  { label: 'Messages', icon: MessageSquare, path: '/business-dashboard/messages' },
+  { label: 'Wallet', icon: Wallet, path: '/business-dashboard/wallet' },
+  { label: 'Settings', icon: Settings, path: '/business-dashboard/settings' },
+];
+
 export const BusinessLayout = ({ children }: { children: ReactNode }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -136,10 +144,29 @@ export const BusinessLayout = ({ children }: { children: ReactNode }) => {
           </Link>
         </div>
 
-        <div className="p-4 sm:p-6 lg:p-10">
+        <div className="p-4 sm:p-6 lg:p-10 pb-24 lg:pb-10">
           {children}
         </div>
       </main>
+
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-black/5 pb-[env(safe-area-inset-bottom)]">
+        <div className="grid grid-cols-5">
+          {bottomNav.map((item) => (
+            <NavLink
+              key={item.label}
+              to={item.path}
+              onClick={() => setSidebarOpen(false)}
+              className={cn(
+                "flex flex-col items-center gap-1 py-2.5 text-[10px] font-bold transition-colors",
+                isActive(item.path) ? "text-[#111111]" : "text-gray-400"
+              )}
+            >
+              <item.icon className="w-5 h-5" />
+              {item.label}
+            </NavLink>
+          ))}
+        </div>
+      </nav>
 
       {showLogoutModal && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
