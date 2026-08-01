@@ -11,6 +11,23 @@ export const getByFirebaseUid = query({
   },
 });
 
+export const getAdminProfile = query({
+  args: { firebaseUid: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_firebaseUid", (q) => q.eq("firebaseUid", args.firebaseUid))
+      .unique();
+    if (!user || user.role !== "admin") return null;
+    return {
+      name: user.name,
+      email: user.email,
+      imageUrl: user.imageUrl,
+      role: ADMIN_EMAILS.includes(user.email) ? "Super Admin" : "Admin",
+    };
+  },
+});
+
 export const getByEmail = query({
   args: { email: v.string() },
   handler: async (ctx, args) => {

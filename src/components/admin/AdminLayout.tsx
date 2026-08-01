@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, type ReactNode, type ComponentType } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState, type ReactNode, type ComponentType } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -28,8 +28,13 @@ import {
   Moon,
   LogOut,
   ChevronRight,
+  ArrowLeftRight,
+  User,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useUser } from '../../contexts/UserContext';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 
 interface NavItem {
   label: string;
@@ -98,8 +103,54 @@ interface AdminLayoutProps {
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const location = useLocation();
+  const navigate = useNavigate();
+  const profileRef = useRef<HTMLDivElement>(null);
+  const { convexUser, firebaseUser, logout } = useUser();
+  const adminProfile = useQuery(
+    api.users.getAdminProfile,
+    firebaseUser?.uid ? { firebaseUid: firebaseUser.uid } : 'skip',
+  );
+
+  useEffect(() => {
+    setProfileOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
+  const displayName = convexUser?.name || 'Admin';
+  const displayEmail = convexUser?.email || '';
+  const avatarUrl = convexUser?.imageUrl || '';
+  const roleLabel = adminProfile?.role || 'Admin';
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  const handleLogout = async () => {
+    setProfileOpen(false);
+    await logout();
+    navigate('/login');
+  };
+
+  const profileDropdownItems = [
+    { label: 'My Profile', path: '/model-dashboard/profile', icon: User },
+    { label: 'User Dashboard', path: '/model-dashboard', icon: LayoutDashboard },
+    { label: 'Settings', path: '/model-dashboard/settings', icon: Settings },
+  ];
 
   const toggleSection = (title: string) => {
     setCollapsedSections((prev) => ({
@@ -182,17 +233,23 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       {/* Bottom Section - Admin Profile */}
       <div className="border-t border-white/5 p-4">
         <div className="flex items-center gap-3 px-2">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#B8962E] flex items-center justify-center flex-shrink-0">
-            <span className="text-black text-xs font-bold">JD</span>
-          </div>
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={displayName} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#B8962E] flex items-center justify-center flex-shrink-0">
+              <span className="text-black text-xs font-bold">{initials || 'A'}</span>
+            </div>
+          )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-white truncate">John Doe</p>
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#D4AF37]/20 text-[#D4AF37]">
-              Super Admin
+            <p className="text-sm font-semibold text-white truncate">{displayName}</p>
+            <p className="text-[10px] text-white/40 truncate">{displayEmail}</p>
+            <span className="mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#D4AF37]/20 text-[#D4AF37]">
+              {roleLabel}
             </span>
           </div>
         </div>
         <button
+          onClick={handleLogout}
           className="mt-3 w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
         >
           <LogOut className="w-4 h-4" />
@@ -277,6 +334,68 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
                 <Bell className="w-4.5 h-4.5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#D4AF37] rounded-full ring-2 ring-white" />
               </button>
+
+              {/* Switch to User Dashboard */}
+              <button
+                onClick={() => navigate('/model-dashboard')}
+                className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider text-[#111111] bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 text-[#B8962E] transition-colors"
+              >
+                <ArrowLeftRight className="w-4 h-4" />
+                <span className="hidden lg:inline">Switch to User Dashboard</span>
+                <span className="lg:hidden">User</span>
+              </button>
+
+              {/* Profile Dropdown */}
+              <div ref={profileRef} className="relative">
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt={displayName} className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#B8962E] flex items-center justify-center flex-shrink-0">
+                      <span className="text-black text-[11px] font-bold">{initials || 'A'}</span>
+                    </div>
+                  )}
+                  <div className="hidden md:block text-left">
+                    <p className="text-sm font-semibold text-[#111111] leading-tight truncate max-w-[120px]">{displayName}</p>
+                    <p className="text-[10px] text-gray-400 leading-tight truncate max-w-[120px]">{roleLabel}</p>
+                  </div>
+                  <ChevronDown className={cn('w-4 h-4 text-gray-400 transition-transform duration-200', profileOpen && 'rotate-180')} />
+                </button>
+
+                {profileOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-50">
+                    <div className="px-4 py-2.5 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-[#111111] truncate">{displayName}</p>
+                      <p className="text-xs text-gray-400 truncate">{displayEmail}</p>
+                      <span className="mt-1 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#D4AF37]/10 text-[#B8962E]">
+                        {roleLabel}
+                      </span>
+                    </div>
+                    {profileDropdownItems.map((item) => (
+                      <Link
+                        key={item.label}
+                        to={item.path}
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:text-[#111111] hover:bg-gray-50 transition-colors"
+                      >
+                        <item.icon className="w-4 h-4" />
+                        {item.label}
+                      </Link>
+                    ))}
+                    <div className="border-t border-gray-100 my-1" />
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </header>
