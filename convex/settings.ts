@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { api } from "./_generated/api";
 
 export const DEFAULT_SETTINGS = {
   general: {
@@ -110,10 +111,15 @@ export const getSettings = query({
     const now = Date.now();
     if (subscription && subscription.status === "active") {
       if (subscription.expiresAt && now > subscription.expiresAt) {
-        await ctx.db.patch(subscription._id, { status: "expired", updatedAt: now });
-        if (modelProfile) {
-          await ctx.db.patch(modelProfile._id, { isPro: false, updatedAt: now });
-        }
+        plan = {
+          isPro: false,
+          planName: subscription.planName,
+          status: "expired",
+          expiresAt: subscription.expiresAt,
+          startedAt: subscription.startedAt,
+          amount: subscription.amount,
+          currency: subscription.currency,
+        };
       } else {
         plan = {
           isPro: true,
@@ -328,6 +334,7 @@ export const recordLogin = mutation({
   handler: async (ctx, args) => {
     const { userId, ...rest } = args;
     await ctx.db.patch(userId, { lastActive: Date.now(), isOnline: true });
+    await ctx.runMutation(api.subscriptions.expireStaleSubscriptions, {});
     return await ctx.db.insert("loginHistory", {
       userId,
       browser: rest.browser ?? "Unknown",

@@ -39,9 +39,7 @@ export const getUserPlan = query({
 
     const now = Date.now();
     if (sub.expiresAt && now > sub.expiresAt) {
-      await ctx.db.patch(sub._id, { status: "expired", updatedAt: now });
-      await ctx.db.patch(args.modelProfileId, { isPro: false, updatedAt: now });
-      return { isPro: false };
+      return { isPro: false, expired: true };
     }
 
     return {
@@ -259,5 +257,22 @@ export const handlePaystackWebhook = mutation({
       isPro: true,
       updatedAt: now,
     });
+  },
+});
+
+export const expireStaleSubscriptions = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const subs = await ctx.db.query("subscriptions").collect();
+    let expired = 0;
+    for (const sub of subs) {
+      if (sub.status === "active" && sub.expiresAt && now > sub.expiresAt) {
+        await ctx.db.patch(sub._id, { status: "expired", updatedAt: now });
+        await ctx.db.patch(sub.modelProfileId, { isPro: false, updatedAt: now });
+        expired++;
+      }
+    }
+    return expired;
   },
 });
