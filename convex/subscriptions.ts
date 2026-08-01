@@ -195,6 +195,39 @@ export const verifyAndActivate = action({
   },
 });
 
+export const cancelSubscription = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const sub = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .order("desc")
+      .first();
+    if (!sub || sub.status !== "active") {
+      throw new Error("No active subscription to cancel");
+    }
+    await ctx.db.patch(sub._id, {
+      status: "cancelled",
+      updatedAt: Date.now(),
+    });
+    await ctx.db.patch(sub.modelProfileId, {
+      isPro: false,
+      updatedAt: Date.now(),
+    });
+    await ctx.db.insert("notifications", {
+      recipientUserId: args.userId,
+      type: "system",
+      title: "Subscription cancelled",
+      message: `Your ${sub.planName} subscription has been cancelled. Pro benefits remain active until ${new Date(sub.expiresAt ?? Date.now()).toLocaleDateString("en-GB")}.`,
+      entityType: "payment",
+      entityId: sub._id,
+      isRead: false,
+      createdAt: Date.now(),
+    });
+    return true;
+  },
+});
+
 export const handlePaystackWebhook = mutation({
   args: {
     event: v.string(),

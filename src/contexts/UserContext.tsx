@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { onAuthStateChanged, signOut, type User as FirebaseUser } from 'firebase/auth';
 import { auth } from '../lib/firebase';
-import { useQuery, useConvex } from 'convex/react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 
 export interface ConvexUser {
@@ -14,6 +14,7 @@ export interface ConvexUser {
   phone?: string;
   profileCompleted: boolean;
   onboardingStep: number;
+  sessionEpoch?: number;
   createdAt: number;
   lastActive?: number;
   isOnline?: boolean;
@@ -30,9 +31,32 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+function parseUserAgent(ua: string) {
+  let browser = 'Unknown';
+  if (/edg/i.test(ua)) browser = 'Edge';
+  else if (/chrome|crios/i.test(ua)) browser = 'Chrome';
+  else if (/firefox|fxios/i.test(ua)) browser = 'Firefox';
+  else if (/safari/i.test(ua)) browser = 'Safari';
+  else if (/opera|opr/i.test(ua)) browser = 'Opera';
+
+  let os = 'Unknown';
+  if (/windows/i.test(ua)) os = 'Windows';
+  else if (/android/i.test(ua)) os = 'Android';
+  else if (/iphone|ipad|ipod/i.test(ua)) os = 'iOS';
+  else if (/mac os x|macintosh/i.test(ua)) os = 'macOS';
+  else if (/linux/i.test(ua)) os = 'Linux';
+
+  let device = 'Desktop';
+  if (/android|iphone|ipod/i.test(ua)) device = 'Mobile';
+  else if (/ipad|tablet/i.test(ua)) device = 'Tablet';
+
+  return { browser, os, device };
+}
+
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const recordLogin = useMutation(api.settings.recordLogin);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -46,6 +70,31 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     api.users.getByFirebaseUid,
     firebaseUser?.uid ? { firebaseUid: firebaseUser.uid } : 'skip',
   ) as ConvexUser | null | undefined;
+
+  useEffect(() => {
+    if (!convexUser || !firebaseUser) return;
+
+    const sessionKey = `bm_session_${convexUser._id}`;
+    const stored = parseInt(localStorage.getItem(sessionKey) || '0', 10);
+    if (convexUser.sessionEpoch && stored < convexUser.sessionEpoch) {
+      signOut(auth);
+      return;
+    }
+
+    const loginKey = `bm_login_${convexUser._id}_${new Date().toDateString()}`;
+    if (localStorage.getItem(loginKey)) return;
+
+    const { browser, os, device } = parseUserAgent(navigator.userAgent);
+    recordLogin({
+      userId: convexUser._id as any,
+      browser,
+      os,
+      device,
+      platform: device,
+      location: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+    }).catch(() => {});
+    localStorage.setItem(loginKey, '1');
+  }, [convexUser, firebaseUser, recordLogin]);
 
   const logout = useCallback(async () => {
     await signOut(auth);

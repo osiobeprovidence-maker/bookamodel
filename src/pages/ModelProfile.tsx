@@ -40,6 +40,10 @@ export const ModelProfile = () => {
     api.albums.listPublicByModelProfile,
     modelProfileWithUser ? { modelProfileId: id as any } : 'skip'
   );
+  const modelPrivacy = useQuery(
+    api.settings.getPrivacyForUser,
+    modelProfileWithUser ? { userId: modelProfileWithUser.userId as any } : 'skip'
+  );
 
   const profile = modelProfileWithUser;
   const isOwnProfile = !!(myProfile && id && myProfile._id === id);
@@ -366,14 +370,18 @@ export const ModelProfile = () => {
                 <div className="text-[10px] uppercase font-bold text-gray-400 tracking-[0.3em] mb-4 sm:mb-6 border-b border-gray-100 pb-2">Physical Attributes</div>
                 <div className="grid grid-cols-2 gap-y-4 sm:gap-y-6 gap-x-8 sm:gap-x-12">
                   {[
-                    { label: 'Height', value: profile.height || '—' },
+                    ...(modelPrivacy?.hideMeasurements
+                      ? []
+                      : [
+                          { label: 'Height', value: profile.height || '—' },
+                          { label: 'Bust', value: profile.bust || '—' },
+                          { label: 'Waist', value: profile.waist || '—' },
+                          { label: 'Hips', value: profile.hips || '—' },
+                          { label: 'Dress', value: profile.dressSize || '—' },
+                          { label: 'Shoes', value: profile.shoeSize || '—' },
+                        ]),
                     { label: 'Eyes', value: profile.eyeColor || '—' },
                     { label: 'Hair', value: profile.hairColor || '—' },
-                    { label: 'Bust', value: profile.bust || '—' },
-                    { label: 'Waist', value: profile.waist || '—' },
-                    { label: 'Hips', value: profile.hips || '—' },
-                    { label: 'Dress', value: profile.dressSize || '—' },
-                    { label: 'Shoes', value: profile.shoeSize || '—' },
                     { label: 'Skin', value: profile.skinTone || '—' },
                   ].map((stat) => (
                     <div key={stat.label}>
@@ -395,7 +403,7 @@ export const ModelProfile = () => {
                 </div>
               )}
 
-              {profile.socials && (profile.socials.instagram || profile.socials.tiktok) && (
+              {modelPrivacy?.showSocialLinks !== false && profile.socials && (profile.socials.instagram || profile.socials.tiktok) && (
                 <div className="mb-8 sm:mb-12">
                   <div className="text-[10px] uppercase font-bold text-gray-400 tracking-[0.3em] mb-4 sm:mb-6 border-b border-gray-100 pb-2">Connect</div>
                   <div className="space-y-2">

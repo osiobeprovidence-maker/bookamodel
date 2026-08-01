@@ -145,6 +145,7 @@ export const listDiscoverableModels = query({
     const visibleProfiles = profiles.filter(
       (profile) =>
         profile.profileCompleted &&
+        profile.discoverable !== false &&
         (profile.profileVisibility === undefined || profile.profileVisibility === "public")
     );
 
@@ -182,6 +183,7 @@ export const saveModelProfile = mutation({
   args: {
     userId: v.id("users"),
     displayName: v.string(),
+    username: v.optional(v.string()),
     phone: v.optional(v.string()),
     bio: v.optional(v.string()),
     tagline: v.optional(v.string()),

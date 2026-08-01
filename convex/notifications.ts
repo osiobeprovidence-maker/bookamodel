@@ -98,6 +98,11 @@ export const upsertPreferences = mutation({
     payments: v.optional(v.boolean()),
     messages: v.optional(v.boolean()),
     system: v.optional(v.boolean()),
+    marketing: v.optional(v.boolean()),
+    verificationUpdates: v.optional(v.boolean()),
+    systemUpdates: v.optional(v.boolean()),
+    weeklySummary: v.optional(v.boolean()),
+    monthlyInsights: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const { userId, ...prefs } = args;

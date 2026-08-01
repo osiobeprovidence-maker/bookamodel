@@ -8,6 +8,20 @@ export const send = mutation({
     content: v.string(),
   },
   handler: async (ctx, args) => {
+    const sender = await ctx.db.get(args.senderId);
+    const receiver = await ctx.db.get(args.receiverId);
+    if (!sender || !receiver) throw new Error("User not found");
+
+    if (receiver.role === "model" && sender.role === "business") {
+      const settings = await ctx.db
+        .query("userSettings")
+        .withIndex("by_userId", (q) => q.eq("userId", args.receiverId))
+        .unique();
+      if (settings && settings.privacy?.allowBrandMessages === false) {
+        throw new Error("This model has turned off direct brand messages.");
+      }
+    }
+
     return await ctx.db.insert("messages", {
       ...args,
       isRead: false,

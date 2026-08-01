@@ -16,10 +16,62 @@ export default defineSchema({
     lastActive: v.optional(v.number()),
     isOnline: v.optional(v.boolean()),
     notificationPreferencesId: v.optional(v.id("notificationPreferences")),
+    sessionEpoch: v.optional(v.number()),
   })
     .index("by_firebaseUid", ["firebaseUid"])
     .index("by_email", ["email"])
     .index("by_role", ["role"]),
+
+  userSettings: defineTable({
+    userId: v.id("users"),
+    general: v.object({
+      username: v.optional(v.string()),
+      language: v.optional(v.string()),
+      timezone: v.optional(v.string()),
+      country: v.optional(v.string()),
+      defaultCategory: v.optional(v.string()),
+      theme: v.optional(v.string()),
+    }),
+    account: v.object({
+      profileVisibility: v.optional(v.boolean()),
+      publicPortfolio: v.optional(v.boolean()),
+      brandDiscovery: v.optional(v.boolean()),
+      autoAcceptVerifiedOnly: v.optional(v.boolean()),
+    }),
+    privacy: v.object({
+      showEmail: v.optional(v.boolean()),
+      showPhone: v.optional(v.boolean()),
+      allowBrandMessages: v.optional(v.boolean()),
+      allowProfileSearch: v.optional(v.boolean()),
+      hideMeasurements: v.optional(v.boolean()),
+      hideAge: v.optional(v.boolean()),
+      showSocialLinks: v.optional(v.boolean()),
+    }),
+    appearance: v.object({
+      theme: v.optional(v.string()),
+      density: v.optional(v.string()),
+      cardRadius: v.optional(v.string()),
+      animations: v.optional(v.boolean()),
+    }),
+    twoFactorEnabled: v.optional(v.boolean()),
+    twoFactorMethod: v.optional(v.string()),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"]),
+
+  loginHistory: defineTable({
+    userId: v.id("users"),
+    browser: v.optional(v.string()),
+    device: v.optional(v.string()),
+    os: v.optional(v.string()),
+    platform: v.optional(v.string()),
+    location: v.optional(v.string()),
+    ip: v.optional(v.string()),
+    success: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_createdAt", ["createdAt"]),
 
   modelProfiles: defineTable({
     userId: v.id("users"),
@@ -70,6 +122,7 @@ export default defineSchema({
     isAvailable: v.boolean(),
     profileCompleted: v.boolean(),
     profileVisibility: v.optional(v.union(v.literal("public"), v.literal("hidden"), v.literal("private"))),
+    discoverable: v.optional(v.boolean()),
     rating: v.optional(v.number()),
     reviewCount: v.optional(v.number()),
     profileViews: v.optional(v.number()),
@@ -370,6 +423,11 @@ export default defineSchema({
     payments: v.boolean(),
     messages: v.boolean(),
     system: v.boolean(),
+    marketing: v.optional(v.boolean()),
+    verificationUpdates: v.optional(v.boolean()),
+    systemUpdates: v.optional(v.boolean()),
+    weeklySummary: v.optional(v.boolean()),
+    monthlyInsights: v.optional(v.boolean()),
     updatedAt: v.number(),
   })
     .index("by_userId", ["userId"]),

@@ -12,19 +12,27 @@ export const send = mutation({
     proposedRate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const invId = await ctx.db.insert("invitations", {
-      ...args,
-      status: "pending",
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
-
     const business = await ctx.db.get(args.businessUserId);
     const businessProfile = await ctx.db
       .query("businessProfiles")
       .withIndex("by_userId", (q) => q.eq("userId", args.businessUserId))
       .unique();
     const bizName = businessProfile?.companyName || business?.name || "A business";
+
+    const modelSettings = await ctx.db
+      .query("userSettings")
+      .withIndex("by_userId", (q) => q.eq("userId", args.modelUserId))
+      .unique();
+    const autoAccept =
+      modelSettings?.account?.autoAcceptVerifiedOnly === true &&
+      businessProfile?.isVerified === true;
+
+    const invId = await ctx.db.insert("invitations", {
+      ...args,
+      status: autoAccept ? "accepted" : "pending",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
 
     const prefs = await ctx.db
       .query("notificationPreferences")
@@ -38,6 +46,43 @@ export const send = mutation({
         type: "job_invitation",
         title: "You received a job invitation",
         message: `${bizName} invited you: "${args.title}"`,
+        entityType: "invitation",
+        entityId: invId,
+        isRead: false,
+        createdAt: Date.now(),
+      });
+    }
+
+    if (autoAccept) {
+      const model = await ctx.db.get(args.modelUserId);
+      const modelProfile = await ctx.db
+        .query("modelProfiles")
+        .withIndex("by_userId", (q) => q.eq("userId", args.modelUserId))
+        .unique();
+      const modelName = modelProfile?.displayName || model?.name || "A model";
+      const bizPrefs = await ctx.db
+        .query("notificationPreferences")
+        .withIndex("by_userId", (q) => q.eq("userId", args.businessUserId))
+        .unique();
+      if ((!bizPrefs || bizPrefs.invitations) && (!bizPrefs || bizPrefs.inApp)) {
+        await ctx.db.insert("notifications", {
+          recipientUserId: args.businessUserId,
+          actorUserId: args.modelUserId,
+          type: "invitation_accepted",
+          title: "Invitation accepted automatically",
+          message: `${modelName} auto-accepted your invitation: "${args.title}"`,
+          entityType: "invitation",
+          entityId: invId,
+          isRead: false,
+          createdAt: Date.now(),
+        });
+      }
+      await ctx.db.insert("notifications", {
+        recipientUserId: args.modelUserId,
+        actorUserId: args.businessUserId,
+        type: "system",
+        title: "Invitation auto-accepted",
+        message: `Invitation from ${bizName} was auto-accepted (verified brand). Review it in your dashboard.`,
         entityType: "invitation",
         entityId: invId,
         isRead: false,

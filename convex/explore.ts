@@ -104,8 +104,10 @@ export const listPublishedModels = query({
 
     profiles.sort((a, b) => (b.rating || 0) - (a.rating || 0));
 
-    const total = profiles.length;
-    const page = profiles.slice(offset, offset + limit);
+    const visible = profiles.filter((p) => p.discoverable !== false);
+
+    const total = visible.length;
+    const page = visible.slice(offset, offset + limit);
 
     const results = await Promise.all(page.map((profile) => toExploreModel(ctx, profile)));
 
@@ -130,6 +132,7 @@ export const listAvailableToday = query({
     for (const p of profiles) {
       if (!p.profileCompleted) continue;
       if (p.profileVisibility === "hidden" || p.profileVisibility === "private") continue;
+      if (p.discoverable === false) continue;
       const user = await ctx.db.get(p.userId);
       if (!user) continue;
       if (user.accountStatus === "suspended" || user.accountStatus === "deactivated") continue;
