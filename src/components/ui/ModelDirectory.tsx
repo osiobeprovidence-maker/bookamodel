@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, SlidersHorizontal, RefreshCw, User, Filter, ChevronDown,
@@ -54,6 +54,20 @@ export const ModelDirectory = ({ mode }: ModelDirectoryProps) => {
   const [page, setPage] = useState(0);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const q = searchParams.get('q');
+    const cat = searchParams.get('cat');
+    if (q) setSearchQuery(q);
+    if (cat) {
+      const match = categoryOptions.find((c) => c.name.toLowerCase() === cat.toLowerCase());
+      setSelectedCategory(match ? match.slug : cat);
+    }
+    setPage(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Business-only state
   const [searchType, setSearchType] = useState('Name');

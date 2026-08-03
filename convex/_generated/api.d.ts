@@ -29,6 +29,7 @@ import type * as push from "../push.js";
 import type * as pushSender from "../pushSender.js";
 import type * as reviews from "../reviews.js";
 import type * as savedModels from "../savedModels.js";
+import type * as search from "../search.js";
 import type * as settings from "../settings.js";
 import type * as storage from "../storage.js";
 import type * as subscriptions from "../subscriptions.js";
@@ -65,6 +66,7 @@ declare const fullApi: ApiFromModules<{
   pushSender: typeof pushSender;
   reviews: typeof reviews;
   savedModels: typeof savedModels;
+  search: typeof search;
   settings: typeof settings;
   storage: typeof storage;
   subscriptions: typeof subscriptions;

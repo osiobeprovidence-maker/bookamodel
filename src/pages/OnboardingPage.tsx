@@ -157,7 +157,7 @@ function AccountTypeSelection() {
     setError('');
     try {
       await setUserRole({ userId: convexUser._id as any, role: selected });
-      navigate(selected === 'business' ? '/business-dashboard' : '/model-dashboard', { replace: true });
+      navigate(selected === 'admin' ? '/admin' : '/discover', { replace: true });
     } catch (err: any) {
       setError('Failed to set account type. Please try again.');
     } finally {
@@ -246,7 +246,7 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     if (convexUser?.role) {
-      navigate(convexUser.role === 'business' ? '/business-dashboard' : convexUser.role === 'admin' ? '/admin' : '/model-dashboard', { replace: true });
+      navigate(convexUser.role === 'admin' ? '/admin' : '/discover', { replace: true });
     }
   }, [convexUser, navigate]);
 

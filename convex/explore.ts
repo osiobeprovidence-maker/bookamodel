@@ -149,3 +149,144 @@ export const listAvailableToday = query({
     return { models, total };
   },
 });
+
+export const listFeed = query({
+  args: {
+    gender: v.optional(v.string()),
+    category: v.optional(v.string()),
+    searchQuery: v.optional(v.string()),
+    offset: v.optional(v.number()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { gender, category, searchQuery, offset = 0, limit = 24 } = args;
+
+    let profiles = await ctx.db
+      .query("modelProfiles")
+      .order("desc")
+      .collect();
+
+    const visible: any[] = [];
+    for (const p of profiles) {
+      if (!p.profileCompleted) continue;
+      if (p.profileVisibility === "hidden" || p.profileVisibility === "private") continue;
+      if (p.discoverable === false) continue;
+      const user = await ctx.db.get(p.userId);
+      if (!user) continue;
+      if (user.accountStatus === "suspended" || user.accountStatus === "deactivated") continue;
+      visible.push(p);
+    }
+
+    visible.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+    if (category) {
+      const cat = await ctx.db
+        .query("categories")
+        .withIndex("by_slug", (q) => q.eq("slug", category))
+        .first();
+      const validKeys = new Set([category.toLowerCase()]);
+      if (cat) {
+        validKeys.add(cat.name.toLowerCase());
+        validKeys.add(cat.slug.toLowerCase());
+      }
+      const filtered = visible.filter((p) =>
+        (p.categories || []).some((c: string) => validKeys.has(c.toLowerCase()))
+      );
+      const page = filtered.slice(offset, offset + limit);
+      return {
+        models: await Promise.all(page.map((p) => toExploreModel(ctx, p))),
+        total: filtered.length,
+      };
+    }
+
+    if (gender) {
+      const g = gender.toLowerCase();
+      const filtered = visible.filter((p) => (p.gender || "").toLowerCase() === g);
+      const page = filtered.slice(offset, offset + limit);
+      return {
+        models: await Promise.all(page.map((p) => toExploreModel(ctx, p))),
+        total: filtered.length,
+      };
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const filtered = visible.filter((p) => {
+        const displayName = p.displayName?.toLowerCase() || "";
+        const city = p.city?.toLowerCase() || "";
+        const state = p.state?.toLowerCase() || "";
+        const categories = (p.categories || []).join(" ").toLowerCase();
+        const tags = (p.tags || []).join(" ").toLowerCase();
+        return (
+          displayName.includes(q) ||
+          city.includes(q) ||
+          state.includes(q) ||
+          categories.includes(q) ||
+          tags.includes(q)
+        );
+      });
+      const page = filtered.slice(offset, offset + limit);
+      return {
+        models: await Promise.all(page.map((p) => toExploreModel(ctx, p))),
+        total: filtered.length,
+      };
+    }
+
+    const total = visible.length;
+    const page = visible.slice(offset, offset + limit);
+    const models = await Promise.all(page.map((profile) => toExploreModel(ctx, profile)));
+
+    return { models, total };
+  },
+});
+
+export const listBusinesses = query({
+  args: {
+    offset: v.optional(v.number()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { offset = 0, limit = 24 } = args;
+
+    const profiles = await ctx.db.query("businessProfiles").collect();
+    const visible: any[] = [];
+    for (const p of profiles) {
+      if (!p.profileCompleted) continue;
+      const user = await ctx.db.get(p.userId);
+      if (!user) continue;
+      if (user.accountStatus === "suspended" || user.accountStatus === "deactivated") continue;
+      visible.push(p);
+    }
+
+    visible.sort((a, b) => (b._creationTime || 0) - (a._creationTime || 0));
+
+    const total = visible.length;
+    const page = visible.slice(offset, offset + limit);
+
+    const businesses = await Promise.all(
+      page.map(async (p) => {
+        const user = await ctx.db.get(p.userId);
+        let logoUrl = p.logoUrl;
+        if (!logoUrl && p.logoStorageId) {
+          logoUrl = (await ctx.storage.getUrl(p.logoStorageId)) ?? null;
+        }
+        return {
+          _id: p._id,
+          userId: p.userId,
+          companyName: p.companyName,
+          businessCategory: p.businessCategory,
+          industry: p.industry,
+          description: p.description,
+          city: p.city,
+          state: p.state,
+          country: p.country,
+          logoUrl: logoUrl || undefined,
+          isVerified: p.isVerified ?? false,
+          user: user ? { name: user.name } : null,
+        };
+      })
+    );
+
+    return { businesses, total };
+  },
+});

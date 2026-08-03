@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Component, lazy, Suspense, useEffect, type ReactNode } from 'react';
+import { Component, lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -19,6 +19,8 @@ const lazyNamed =
     lazy(() => loader().then((m) => ({ default: m[name] })));
 
 const ModelWall = lazyNamed('ModelWall')(() => import('./pages/ModelWall'));
+const Discover = lazyNamed('Discover')(() => import('./pages/Discover'));
+const MessagesPage = lazyNamed('MessagesPage')(() => import('./pages/MessagesPage'));
 const ModelProfile = lazyNamed('ModelProfile')(() => import('./pages/ModelProfile'));
 const CreateProfile = lazyNamed('CreateProfile')(() => import('./pages/CreateProfile'));
 const CreateInvitation = lazyNamed('CreateInvitation')(() => import('./pages/CreateInvitation'));
@@ -79,6 +81,27 @@ const ScrollToTop = () => {
     window.scrollTo(0, 0);
   }, [pathname]);
   return null;
+};
+
+const VISITED_KEY = 'bookamodel_visited';
+
+const HomeRouter = () => {
+  const [visited] = useState(() => {
+    try {
+      return window.localStorage.getItem(VISITED_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(VISITED_KEY, '1');
+    } catch {}
+  }, []);
+
+  if (visited) return <Navigate to="/discover" replace />;
+  return <LandingPage />;
 };
 
 const PageLoader = () => (
@@ -273,7 +296,10 @@ export default function App() {
         {!isDashboard && !isAdmin && <Navbar />}
         <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<HomeRouter />} />
+          <Route path="/discover" element={<Discover />} />
+          <Route path="/search" element={<Discover />} />
+          <Route path="/messages" element={<MessagesPage />} />
           <Route path="/explore" element={<ModelWall />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/models" element={<ModelWall />} />

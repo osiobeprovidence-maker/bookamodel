@@ -15,13 +15,13 @@ export const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const createUser = useMutation(api.users.createUser);
   const navigate = useNavigate();
-  const { firebaseUser, isLoading: authLoading } = useUser();
+  const { firebaseUser, convexUser, isLoading: authLoading } = useUser();
 
   useEffect(() => {
     if (!authLoading && firebaseUser) {
-      navigate('/onboarding', { replace: true });
+      navigate(convexUser?.role ? (convexUser.role === 'admin' ? '/admin' : '/discover') : '/onboarding', { replace: true });
     }
-  }, [firebaseUser, authLoading, navigate]);
+  }, [firebaseUser, convexUser, authLoading, navigate]);
 
   if (!authLoading && firebaseUser) {
     return (
