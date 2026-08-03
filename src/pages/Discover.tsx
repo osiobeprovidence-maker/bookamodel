@@ -5,7 +5,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import {
   Search, X, BadgeCheck, MapPin, Bookmark, ExternalLink, Send,
-  Briefcase,
+  Briefcase, Camera, Play,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useUser } from '../contexts/UserContext';
@@ -49,6 +49,13 @@ const STYLES = [
   'Bridal', 'Lifestyle', 'Streetwear', 'Jewellery', 'Product',
 ];
 
+const SHOOT_CATEGORIES = [
+  'fashion', 'beauty', 'editorial', 'commercial', 'fitness',
+  'runway', 'lifestyle', 'portrait', 'swimwear', 'product',
+];
+
+const capitalize = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+
 const ASPECTS = [
   'aspect-[3/4]',
   'aspect-[2/3]',
@@ -67,7 +74,7 @@ const STATIC_FILTERS = [
 
 type FeedItem = {
   key: string;
-  kind: 'model' | 'business' | 'casting';
+  kind: 'model' | 'business' | 'casting' | 'content';
   _id: string;
   name: string;
   location: string;
@@ -78,6 +85,7 @@ type FeedItem = {
   rating?: number;
   aspect: string;
   subline?: string;
+  mediaType?: 'image' | 'video';
 };
 
 export const Discover = () => {
@@ -114,6 +122,7 @@ export const Discover = () => {
   });
   const businessesQuery = useQuery(api.explore.listBusinesses, { limit: 40 });
   const castingsQuery = useQuery(api.jobRequests.listOpen);
+  const contentQuery = useQuery(api.explore.listContent, { limit: 60 });
 
   const filters = useMemo(() => {
     const names = (categoriesQuery ?? []).map((c: any) => c.name);
@@ -291,8 +300,69 @@ export const Discover = () => {
       }
       i++;
     }
-    return combined;
-  }, [modelsQuery, businessesQuery, castingsQuery, filter, query, categoryArg, isBusinessFilter, isCastingFilter]);
+
+    const contentItems: FeedItem[] = [];
+    for (const c of contentQuery ?? []) {
+      if (categoryArg && c.category !== categoryArg) continue;
+      if (genderArg && (c.gender || '').toLowerCase() !== genderArg.toLowerCase()) continue;
+      if (!matches(c.modelName || '', c.city || '', [c.category || ''])) continue;
+      contentItems.push({
+        key: c._id,
+        kind: 'content' as const,
+        _id: c.modelProfileId,
+        name: c.modelName || 'Model',
+        location: [c.city, c.state, c.country].filter(Boolean)[0] || 'Nigeria',
+        image: c.imageUrl,
+        categories: [c.category || 'shoot'],
+        isVerified: c.isVerified,
+        isAvailable: c.isAvailable,
+        aspect: aspectFor(c._id),
+        subline: c.category,
+        mediaType: c.type === 'video' ? 'video' : 'image',
+      });
+    }
+    if (!categoryArg || SHOOT_CATEGORIES.includes(categoryArg)) {
+      let ci = 0;
+      while (contentItems.length < 12) {
+        const cat = categoryArg || SHOOT_CATEGORIES[ci % SHOOT_CATEGORIES.length];
+        const name = FILLER_NAMES[ci % FILLER_NAMES.length];
+        const city = FILLER_CITIES[ci % FILLER_CITIES.length];
+        if (matches(name, city, [cat])) {
+          contentItems.push({
+            key: `filler-content-${ci}`,
+            kind: 'content',
+            _id: `filler-content-${ci}`,
+            name,
+            location: city,
+            image: fallbackFor(`shoot-${ci}`, ci),
+            categories: [cat],
+            isVerified: ci % 3 === 0,
+            isAvailable: ci % 2 === 0,
+            aspect: aspectFor(`shoot-${ci}`),
+            subline: cat,
+            mediaType: ci % 5 === 0 ? 'video' : 'image',
+          });
+        }
+        ci++;
+      }
+    }
+
+    const interleave = (models: FeedItem[], content: FeedItem[], every = 5): FeedItem[] => {
+      if (!content.length) return models;
+      const out: FeedItem[] = [];
+      let cIdx = 0;
+      for (let mIdx = 0; mIdx < models.length; mIdx++) {
+        out.push(models[mIdx]);
+        if ((mIdx + 1) % every === 0 && cIdx < content.length) {
+          out.push(content[cIdx++]);
+        }
+      }
+      while (cIdx < content.length) out.push(content[cIdx++]);
+      return out;
+    };
+
+    return interleave(combined, contentItems, 5);
+  }, [modelsQuery, businessesQuery, castingsQuery, contentQuery, filter, query, categoryArg, isBusinessFilter, isCastingFilter]);
 
   const visibleItems = items.slice(0, visibleCount);
 
@@ -311,7 +381,7 @@ export const Discover = () => {
     return () => obs.disconnect();
   }, [items.length]);
 
-  const isLoading = modelsQuery === undefined || businessesQuery === undefined || castingsQuery === undefined || categoriesQuery === undefined;
+  const isLoading = modelsQuery === undefined || businessesQuery === undefined || castingsQuery === undefined || categoriesQuery === undefined || contentQuery === undefined;
 
   const toggleSave = (item: FeedItem) => {
     if (item.kind !== 'model' || item._id.startsWith('filler-')) {
@@ -428,6 +498,8 @@ export const Discover = () => {
             {visibleItems.map((item, i) =>
               item.kind === 'casting' ? (
                 <CastingCard key={item.key} item={item} index={i} onOpen={() => openCastings(item)} />
+              ) : item.kind === 'content' ? (
+                <ContentCard key={item.key} item={item} index={i} onOpen={() => openProfile(item)} />
               ) : (
                 <PortfolioCard
                   key={item.key}
@@ -609,6 +681,64 @@ const CastingCard = ({ item, index, onOpen }: { item: FeedItem; index: number; o
               </span>
             )}
           </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+const ContentCard = ({ item, index, onOpen }: { item: FeedItem; index: number; onOpen: () => void }) => {
+  const category = item.subline || item.categories[0] || 'Shoot';
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-40px' }}
+      transition={{ duration: 0.5, delay: (index % 4) * 0.05 }}
+      className="group relative w-full break-inside-avoid mb-6"
+    >
+      <div
+        className={cn(
+          'relative w-full overflow-hidden rounded-3xl bg-[#E8E6E0] cursor-pointer active:scale-[0.99]',
+          'shadow-[0_1px_2px_rgba(17,17,17,0.04),0_8px_24px_-12px_rgba(17,17,17,0.1)]',
+          'hover:shadow-[0_24px_48px_-16px_rgba(17,17,17,0.28)] transition-[box-shadow,transform] duration-300',
+          item.aspect
+        )}
+        onClick={onOpen}
+      >
+        <img
+          src={item.image || fallbackFor(item._id, index)}
+          alt={item.name}
+          loading="lazy"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-[220ms] ease-out group-hover:scale-[1.02] brightness-[0.97] contrast-[1.03] saturate-[0.95]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-70 transition-opacity duration-[220ms] group-hover:opacity-90" />
+
+        {item.mediaType === 'video' && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-[0_4px_16px_rgba(0,0,0,0.25)] transition-transform duration-[220ms] group-hover:scale-110">
+              <Play className="w-5 h-5 text-[#111111] fill-current ml-0.5" />
+            </span>
+          </div>
+        )}
+
+        {/* Shoot category badge */}
+        <div className="absolute top-3 left-3">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#D4AF37] text-[#111111] text-[11px] font-bold uppercase tracking-wider shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
+            <Camera className="w-3.5 h-3.5" />
+            {capitalize(category)}
+          </span>
+        </div>
+
+        {/* Model name */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 text-left">
+          <div className="flex items-center gap-1.5">
+            <p className="text-white text-[15px] font-semibold leading-tight tracking-tight drop-shadow">
+              {item.name}
+            </p>
+            {item.isVerified && <BadgeCheck className="w-4 h-4 text-[#D4AF37] shrink-0 drop-shadow" />}
+          </div>
+          <p className="text-white/85 text-[11px] font-medium mt-1 uppercase tracking-[0.12em]">{item.location}</p>
         </div>
       </div>
     </motion.div>

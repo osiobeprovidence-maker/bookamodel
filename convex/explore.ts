@@ -290,3 +290,50 @@ export const listBusinesses = query({
     return { businesses, total };
   },
 });
+
+export const listContent = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { limit = 60 } = args;
+    const items = await ctx.db.query("portfolio").order("desc").collect();
+
+    const out: any[] = [];
+    for (const p of items) {
+      if (p.status === "deleted") continue;
+      if (p.visibility === "private" || p.visibility === "hidden") continue;
+      const profile = await ctx.db.get(p.modelProfileId);
+      if (!profile) continue;
+      if (!profile.profileCompleted) continue;
+      if (profile.discoverable === false) continue;
+      if (profile.profileVisibility === "hidden" || profile.profileVisibility === "private") continue;
+      const user = await ctx.db.get(profile.userId);
+      if (!user) continue;
+      if (user.accountStatus === "suspended" || user.accountStatus === "deactivated") continue;
+
+      let imageUrl = p.imageUrl;
+      if (!imageUrl && p.thumbnailUrl) imageUrl = p.thumbnailUrl;
+      if (!imageUrl && profile.imageUrl) imageUrl = profile.imageUrl;
+
+      out.push({
+        _id: p._id,
+        modelProfileId: p.modelProfileId,
+        modelName: profile.displayName,
+        city: profile.city,
+        state: profile.state,
+        country: profile.country,
+        gender: profile.gender,
+        type: p.type === "video" ? "video" : "image",
+        category: p.category,
+        title: p.title || "",
+        imageUrl: imageUrl || undefined,
+        isVerified: profile.isVerified,
+        isAvailable: profile.isAvailable,
+      });
+      if (out.length >= limit) break;
+    }
+
+    return out;
+  },
+});
