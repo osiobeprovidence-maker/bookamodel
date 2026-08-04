@@ -367,10 +367,9 @@ export default function Portfolio() {
                     item.status === 'ready' && item.playbackId ? (
                       inlinePlayingId === item._id ? (
                         <div className="relative w-full h-full bg-black">
-                          <video
-                            key={item._id}
+                          <VideoPlayer
+                            playbackId={item.playbackId}
                             className="w-full h-full object-contain"
-                            src={`https://stream.mux.com/${item.playbackId}/high.mp4`}
                             controls
                             autoPlay
                             muted
@@ -679,19 +678,15 @@ export default function Portfolio() {
               Close
             </button>
             <div className="rounded-2xl overflow-hidden bg-black shadow-2xl" style={{ maxHeight: '85vh' }}>
-              <video
+              <VideoPlayer
                 key={playingVideo}
+                playbackId={playingVideo}
                 className="w-full h-full"
-                style={{ maxHeight: '85vh' }}
                 controls
                 autoPlay
                 muted
                 playsInline
-                poster={`https://image.mux.com/${playingVideo}/thumbnail.jpg`}
-              >
-                <source src={`https://stream.mux.com/${playingVideo}.m3u8`} type="application/x-mpegURL" />
-                <source src={`https://stream.mux.com/${playingVideo}/high.mp4`} type="video/mp4" />
-              </video>
+              />
             </div>
           </div>
         </div>

@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQuery } from 'convex/react';
+import Hls from 'hls.js';
 import { api } from '../../convex/_generated/api';
 import {
   Search, X, BadgeCheck, MapPin, Bookmark, ExternalLink, Send,
-  Briefcase, Camera, Play, Pause, Volume2, VolumeX,
+  Briefcase, Camera, Play, VideoOff,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useUser } from '../contexts/UserContext';
@@ -418,17 +419,18 @@ export const Discover = () => {
     });
   };
 
-  const openCreator = (item: FeedItem) => {
-    if (item.kind === 'business') {
-      toast('Business profiles coming soon', 'info');
-      return;
-    }
-    if (item._id.startsWith('filler-')) {
-      toast('Profile preview coming soon', 'info');
-      return;
-    }
-    navigate(`/profile/${item._id}`);
-  };
+const openCreator = (item: FeedItem) => {
+  if (item.kind === 'business') {
+    toast('Business profiles coming soon', 'info');
+    return;
+  }
+  if (item._id.startsWith('filler-')) {
+    toast('Profile preview coming soon', 'info');
+    return;
+  }
+  closeViewer();
+  navigate(`/profile/${item._id}`);
+};
 
   const [viewer, setViewer] = useState<{ type: 'photo' | 'video'; id: string } | null>(null);
   const viewParam = searchParams.get('view');
@@ -841,87 +843,68 @@ const ContentCard = ({
   );
 };
 
-const fmt = (s: number) => {
-  if (!isFinite(s) || s < 0) s = 0;
-  const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60);
-  return `${m}:${sec.toString().padStart(2, '0')}`;
-};
-
-const VideoViewer = ({ src, poster }: { src: string; poster?: string }) => {
+const VideoViewer = ({ src, poster }: { src?: string; poster?: string }) => {
   const ref = useRef<HTMLVideoElement>(null);
-  const [playing, setPlaying] = useState(true);
-  const [muted, setMuted] = useState(true);
-  const [time, setTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const isHls = !!src && src.includes('.m3u8');
 
-  const toggle = () => {
-    const v = ref.current;
-    if (!v) return;
-    if (v.paused) void v.play();
-    else v.pause();
-  };
-  const toggleMute = () => {
-    const v = ref.current;
-    if (!v) return;
-    v.muted = !v.muted;
-    setMuted(v.muted);
-  };
-  const seek = (e: ChangeEvent<HTMLInputElement>) => {
-    const v = ref.current;
-    if (!v) return;
-    const t = parseFloat(e.target.value);
-    v.currentTime = t;
-    setTime(t);
-  };
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+
+    let hls: Hls | null = null;
+
+    if (src && isHls) {
+      if (Hls.isSupported()) {
+        hls = new Hls();
+        hls.loadSource(src);
+        hls.attachMedia(video);
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = src;
+      }
+    } else if (src) {
+      video.src = src;
+    }
+
+    return () => {
+      if (hls) hls.destroy();
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    };
+  }, [src, isHls]);
+
+  if (!src) {
+    return (
+      <div className="relative" onClick={(e) => e.stopPropagation()}>
+        {poster ? (
+          <img
+            src={poster}
+            alt="Video unavailable"
+            className="max-h-[68vh] max-w-full object-contain rounded-lg"
+          />
+        ) : (
+          <div className="max-h-[68vh] max-w-full rounded-lg bg-[#E8E6E0]" />
+        )}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 bg-black/40 rounded-lg">
+          <VideoOff className="w-8 h-8 text-white" />
+          <p className="text-white text-sm font-semibold drop-shadow">Video unavailable</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="relative max-w-full" onClick={(e) => e.stopPropagation()}>
+    <div onClick={(e) => e.stopPropagation()}>
       <video
         ref={ref}
-        src={src}
         poster={poster}
         autoPlay
         muted
+        controls
         playsInline
-        onClick={toggle}
-        onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
-        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
-        onTimeUpdate={(e) => setTime(e.currentTarget.currentTime || 0)}
+        preload="metadata"
         className="max-h-[68vh] max-w-full rounded-lg bg-black shadow-2xl"
       />
-      <div className="absolute bottom-0 left-0 right-0 px-3 pb-2 pt-10 bg-gradient-to-t from-black/70 to-transparent rounded-b-lg">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggle}
-            className="text-white w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-full transition-colors shrink-0"
-            aria-label={playing ? 'Pause' : 'Play'}
-          >
-            {playing ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-          </button>
-          <input
-            type="range"
-            min={0}
-            max={duration || 0}
-            step={0.1}
-            value={time}
-            onChange={seek}
-            className="flex-1 accent-white min-w-0"
-            aria-label="Seek"
-          />
-          <span className="text-white/80 text-[11px] font-medium tabular-nums shrink-0">
-            {fmt(time)} / {fmt(duration)}
-          </span>
-          <button
-            onClick={toggleMute}
-            className="text-white w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-full transition-colors shrink-0"
-            aria-label={muted ? 'Unmute' : 'Mute'}
-          >
-            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </button>
-        </div>
-      </div>
     </div>
   );
 };
@@ -972,7 +955,7 @@ const ContentViewer = ({
 
       <div className="flex-1 min-h-0 w-full flex items-center justify-center px-4 sm:px-8 pt-16 pb-3">
         {type === 'video' ? (
-          <VideoViewer src={item.videoUrl || SAMPLE_VIDEO} poster={src} />
+          <VideoViewer src={item.videoUrl} poster={src} />
         ) : (
           <img
             src={src}

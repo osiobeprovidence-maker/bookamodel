@@ -318,7 +318,7 @@ export const listContent = query({
 
       let videoUrl: string | undefined;
       if (p.type === "video") {
-        videoUrl = p.videoUrl || (p.playbackId ? `https://stream.mux.com/${p.playbackId}/high.mp4` : undefined);
+        videoUrl = p.videoUrl || (p.playbackId ? `https://stream.mux.com/${p.playbackId}.m3u8` : undefined);
       }
 
       out.push({
