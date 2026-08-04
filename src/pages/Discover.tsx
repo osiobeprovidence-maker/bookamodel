@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import {
   Search, X, BadgeCheck, MapPin, Bookmark, ExternalLink, Send,
-  Briefcase, Camera, Play,
+  Briefcase, Camera, Play, Pause, Volume2, VolumeX,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useUser } from '../contexts/UserContext';
@@ -79,14 +79,19 @@ type FeedItem = {
   name: string;
   location: string;
   image?: string;
+  videoUrl?: string;
+  avatar?: string;
   categories: string[];
   isVerified?: boolean;
   isAvailable?: boolean;
   rating?: number;
   aspect: string;
   subline?: string;
-  mediaType?: 'image' | 'video';
+  mediaType?: 'photo' | 'video' | 'profile';
 };
+
+const SAMPLE_VIDEO =
+  'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
 export const Discover = () => {
   const navigate = useNavigate();
@@ -201,6 +206,8 @@ export const Discover = () => {
         isVerified: b.isVerified,
         aspect: aspectFor(b._id),
         subline: b.industry || b.businessCategory || '',
+        avatar: b.logoUrl || undefined,
+        mediaType: 'profile' as const,
       }));
       const combined = [...real];
       let i = 0;
@@ -222,6 +229,8 @@ export const Discover = () => {
             isVerified: i % 3 === 0,
             aspect: aspectFor(`filler-b-${i}`),
             subline: filter === 'Photographers' ? 'Photography' : 'Agency',
+            avatar: fallbackFor(`biz-${i}`, i),
+            mediaType: 'profile' as const,
           });
         }
         i++;
@@ -277,6 +286,8 @@ export const Discover = () => {
       isAvailable: m.isAvailable,
       rating: m.rating,
       aspect: aspectFor(m._id),
+      avatar: m.imageUrl || fallbackFor(m._id, i),
+      mediaType: 'profile' as const,
     }));
     const combined = [...real];
     let i = 0;
@@ -296,6 +307,8 @@ export const Discover = () => {
           isVerified: i % 3 === 0,
           isAvailable: i % 2 === 0,
           aspect: aspectFor(`filler-${i}`),
+          avatar: fallbackFor(name + i, i),
+          mediaType: 'profile' as const,
         });
       }
       i++;
@@ -318,7 +331,9 @@ export const Discover = () => {
         isAvailable: c.isAvailable,
         aspect: aspectFor(c._id),
         subline: c.category,
-        mediaType: c.type === 'video' ? 'video' : 'image',
+        videoUrl: c.videoUrl,
+        avatar: c.avatarUrl || c.imageUrl,
+        mediaType: c.type === 'video' ? 'video' : 'photo',
       });
     }
     if (!categoryArg || SHOOT_CATEGORIES.includes(categoryArg)) {
@@ -340,7 +355,9 @@ export const Discover = () => {
             isAvailable: ci % 2 === 0,
             aspect: aspectFor(`shoot-${ci}`),
             subline: cat,
-            mediaType: ci % 5 === 0 ? 'video' : 'image',
+            videoUrl: ci % 5 === 0 ? SAMPLE_VIDEO : undefined,
+            avatar: fallbackFor(`shoot-${ci}`, ci),
+            mediaType: ci % 5 === 0 ? 'video' : 'photo',
           });
         }
         ci++;
@@ -401,13 +418,52 @@ export const Discover = () => {
     });
   };
 
-  const openProfile = (item: FeedItem) => {
+  const openCreator = (item: FeedItem) => {
+    if (item.kind === 'business') {
+      toast('Business profiles coming soon', 'info');
+      return;
+    }
     if (item._id.startsWith('filler-')) {
       toast('Profile preview coming soon', 'info');
       return;
     }
     navigate(`/profile/${item._id}`);
   };
+
+  const [viewer, setViewer] = useState<{ type: 'photo' | 'video'; id: string } | null>(null);
+  const viewParam = searchParams.get('view');
+  const idParam = searchParams.get('id');
+
+  useEffect(() => {
+    if ((viewParam === 'photo' || viewParam === 'video') && idParam) {
+      setViewer({ type: viewParam, id: idParam });
+    } else {
+      setViewer(null);
+    }
+  }, [viewParam, idParam]);
+
+  const openViewer = (type: 'photo' | 'video', id: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('view', type);
+    next.set('id', id);
+    setSearchParams(next, { replace: false });
+  };
+
+  const closeViewer = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('view');
+    next.delete('id');
+    setSearchParams(next, { replace: true });
+  };
+
+  const openItem = (item: FeedItem) => {
+    openViewer(item.mediaType === 'video' ? 'video' : 'photo', item.key);
+  };
+
+  const viewerItem = useMemo(
+    () => (viewer ? items.find((it) => it.key === viewer.id) ?? null : null),
+    [viewer, items]
+  );
 
   const openCastings = (item: FeedItem) => {
     if (item._id.startsWith('filler-')) {
@@ -499,7 +555,13 @@ export const Discover = () => {
               item.kind === 'casting' ? (
                 <CastingCard key={item.key} item={item} index={i} onOpen={() => openCastings(item)} />
               ) : item.kind === 'content' ? (
-                <ContentCard key={item.key} item={item} index={i} onOpen={() => openProfile(item)} />
+                <ContentCard
+                  key={item.key}
+                  item={item}
+                  index={i}
+                  onOpen={() => openItem(item)}
+                  onOpenCreator={() => openCreator(item)}
+                />
               ) : (
                 <PortfolioCard
                   key={item.key}
@@ -507,7 +569,8 @@ export const Discover = () => {
                   index={i}
                   isSaved={saved.has(item._id)}
                   onSave={() => toggleSave(item)}
-                  onOpen={() => openProfile(item)}
+                  onOpen={() => openItem(item)}
+                  onOpenCreator={() => openCreator(item)}
                   canInvite={convexUser?.role === 'business'}
                   onInvite={() => toast('Invitation flow coming soon', 'info')}
                 />
@@ -524,6 +587,15 @@ export const Discover = () => {
           </div>
         )}
       </main>
+
+      {viewer && viewerItem && (
+        <ContentViewer
+          item={viewerItem}
+          type={viewer.type}
+          onClose={closeViewer}
+          onOpenCreator={() => openCreator(viewerItem)}
+        />
+      )}
     </div>
   );
 };
@@ -534,6 +606,7 @@ const PortfolioCard = ({
   isSaved,
   onSave,
   onOpen,
+  onOpenCreator,
   onInvite,
   canInvite,
 }: {
@@ -542,6 +615,7 @@ const PortfolioCard = ({
   isSaved: boolean;
   onSave: () => void;
   onOpen: () => void;
+  onOpenCreator: () => void;
   onInvite: () => void;
   canInvite: boolean;
 }) => {
@@ -599,7 +673,7 @@ const PortfolioCard = ({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onOpen();
+              onOpenCreator();
             }}
             className="w-9 h-9 rounded-full bg-white/95 text-[#111111] flex items-center justify-center backdrop-blur hover:bg-white transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
             aria-label="View profile"
@@ -623,9 +697,15 @@ const PortfolioCard = ({
         {/* Name + role + location */}
         <div className="absolute bottom-0 left-0 right-0 p-4 text-left">
           <div className="flex items-center gap-1.5">
-            <p className="text-white text-[15px] font-semibold leading-tight tracking-tight drop-shadow">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenCreator();
+              }}
+              className="text-white text-[15px] font-semibold leading-tight tracking-tight drop-shadow hover:underline text-left"
+            >
               {item.name}
-            </p>
+            </button>
             {item.isVerified && <BadgeCheck className="w-4 h-4 text-[#D4AF37] shrink-0 drop-shadow" />}
           </div>
           <p className="text-white/85 text-[11px] font-medium mt-1 flex items-center gap-1">
@@ -687,7 +767,17 @@ const CastingCard = ({ item, index, onOpen }: { item: FeedItem; index: number; o
   );
 };
 
-const ContentCard = ({ item, index, onOpen }: { item: FeedItem; index: number; onOpen: () => void }) => {
+const ContentCard = ({
+  item,
+  index,
+  onOpen,
+  onOpenCreator,
+}: {
+  item: FeedItem;
+  index: number;
+  onOpen: () => void;
+  onOpenCreator: () => void;
+}) => {
   const category = item.subline || item.categories[0] || 'Shoot';
   return (
     <motion.div
@@ -733,12 +823,200 @@ const ContentCard = ({ item, index, onOpen }: { item: FeedItem; index: number; o
         {/* Model name */}
         <div className="absolute bottom-0 left-0 right-0 p-4 text-left">
           <div className="flex items-center gap-1.5">
-            <p className="text-white text-[15px] font-semibold leading-tight tracking-tight drop-shadow">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenCreator();
+              }}
+              className="text-white text-[15px] font-semibold leading-tight tracking-tight drop-shadow hover:underline text-left"
+            >
               {item.name}
-            </p>
+            </button>
             {item.isVerified && <BadgeCheck className="w-4 h-4 text-[#D4AF37] shrink-0 drop-shadow" />}
           </div>
           <p className="text-white/85 text-[11px] font-medium mt-1 uppercase tracking-[0.12em]">{item.location}</p>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+const fmt = (s: number) => {
+  if (!isFinite(s) || s < 0) s = 0;
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+};
+
+const VideoViewer = ({ src, poster }: { src: string; poster?: string }) => {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(true);
+  const [muted, setMuted] = useState(true);
+  const [time, setTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  const toggle = () => {
+    const v = ref.current;
+    if (!v) return;
+    if (v.paused) void v.play();
+    else v.pause();
+  };
+  const toggleMute = () => {
+    const v = ref.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setMuted(v.muted);
+  };
+  const seek = (e: ChangeEvent<HTMLInputElement>) => {
+    const v = ref.current;
+    if (!v) return;
+    const t = parseFloat(e.target.value);
+    v.currentTime = t;
+    setTime(t);
+  };
+
+  return (
+    <div className="relative max-w-full" onClick={(e) => e.stopPropagation()}>
+      <video
+        ref={ref}
+        src={src}
+        poster={poster}
+        autoPlay
+        muted
+        playsInline
+        onClick={toggle}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
+        onTimeUpdate={(e) => setTime(e.currentTarget.currentTime || 0)}
+        className="max-h-[68vh] max-w-full rounded-lg bg-black shadow-2xl"
+      />
+      <div className="absolute bottom-0 left-0 right-0 px-3 pb-2 pt-10 bg-gradient-to-t from-black/70 to-transparent rounded-b-lg">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggle}
+            className="text-white w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-full transition-colors shrink-0"
+            aria-label={playing ? 'Pause' : 'Play'}
+          >
+            {playing ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={duration || 0}
+            step={0.1}
+            value={time}
+            onChange={seek}
+            className="flex-1 accent-white min-w-0"
+            aria-label="Seek"
+          />
+          <span className="text-white/80 text-[11px] font-medium tabular-nums shrink-0">
+            {fmt(time)} / {fmt(duration)}
+          </span>
+          <button
+            onClick={toggleMute}
+            className="text-white w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-full transition-colors shrink-0"
+            aria-label={muted ? 'Unmute' : 'Mute'}
+          >
+            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ContentViewer = ({
+  item,
+  type,
+  onClose,
+  onOpenCreator,
+}: {
+  item: FeedItem;
+  type: 'photo' | 'video';
+  onClose: () => void;
+  onOpenCreator: () => void;
+}) => {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+
+  const category = item.subline || item.categories[0] || 'Shoot';
+  const src = item.image || fallbackFor(item._id, 0);
+  const avatar = item.avatar || src;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[100] bg-black/95 flex flex-col"
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        aria-label="Close viewer"
+        className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      <div className="flex-1 min-h-0 w-full flex items-center justify-center px-4 sm:px-8 pt-16 pb-3">
+        {type === 'video' ? (
+          <VideoViewer src={item.videoUrl || SAMPLE_VIDEO} poster={src} />
+        ) : (
+          <img
+            src={src}
+            alt={item.name}
+            className="max-h-full max-w-full object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        )}
+      </div>
+
+      <div className="w-full px-4 sm:px-8 pb-6" onClick={(e) => e.stopPropagation()}>
+        <div className="max-w-3xl mx-auto bg-white rounded-2xl p-3.5 flex items-center gap-3.5 shadow-xl">
+          <img
+            src={avatar}
+            alt={item.name}
+            className="w-11 h-11 rounded-full object-cover shrink-0 bg-gray-100"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={onOpenCreator}
+                className="text-sm font-bold text-[#111111] hover:underline truncate"
+              >
+                {item.name}
+              </button>
+              {item.isVerified && <BadgeCheck className="w-4 h-4 text-[#D4AF37] shrink-0" />}
+            </div>
+            <p className="text-[11px] text-gray-500 font-medium mt-0.5 flex items-center gap-1.5 truncate">
+              <span className="uppercase tracking-[0.1em] text-[#D4AF37] font-bold">{capitalize(category)}</span>
+              <span className="text-gray-300">•</span>
+              <span className="flex items-center gap-0.5">
+                <MapPin className="w-3 h-3" /> {item.location}
+              </span>
+            </p>
+          </div>
+          <button
+            onClick={onOpenCreator}
+            className="shrink-0 px-4 py-2 rounded-full bg-[#111111] text-white text-sm font-bold hover:bg-black transition-colors"
+          >
+            View Profile
+          </button>
         </div>
       </div>
     </motion.div>

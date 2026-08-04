@@ -316,6 +316,11 @@ export const listContent = query({
       if (!imageUrl && p.thumbnailUrl) imageUrl = p.thumbnailUrl;
       if (!imageUrl && profile.imageUrl) imageUrl = profile.imageUrl;
 
+      let videoUrl: string | undefined;
+      if (p.type === "video") {
+        videoUrl = p.videoUrl || (p.playbackId ? `https://stream.mux.com/${p.playbackId}/high.mp4` : undefined);
+      }
+
       out.push({
         _id: p._id,
         modelProfileId: p.modelProfileId,
@@ -328,6 +333,8 @@ export const listContent = query({
         category: p.category,
         title: p.title || "",
         imageUrl: imageUrl || undefined,
+        videoUrl,
+        avatarUrl: profile.imageUrl || undefined,
         isVerified: profile.isVerified,
         isAvailable: profile.isAvailable,
       });
